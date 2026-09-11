@@ -1,0 +1,3379 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Painel de Campanhas CRM</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+/* ===================== TOKENS ===================== */
+:root{
+  --ground:#f4f5f8; --surface:#ffffff; --surface-2:#fafbfc; --surface-3:#eef0f4;
+  --line:#e2e5ec; --line-2:#cfd4de;
+  --ink:#14161c; --ink-2:#535a68; --ink-3:#878e9d;
+  --accent:#4f52c9; --accent-soft:rgba(79,82,201,.10); --focus:rgba(79,82,201,.45);
+
+  /* famílias de cor dos status */
+  --c-nc:#949aa8;      /* neutro          */
+  --c-cancel:#a3223c;  /* cancelado       */
+  --c-indisp:#b06a76;  /* indisponível    */
+  --c-alert:#cd2c4b;   /* falta algo      */
+  --c-warn:#b8690a;    /* ajustar         */
+  --c-mid:#cb5a13;     /* redação ok      */
+  --c-info:#0a76ba;    /* draft / inativo */
+  --c-good:#0d8a62;    /* concluído       */
+  --c-seal:#04402e;    /* revisado/ativo  */
+  --c-seal2:#0a7873;   /* flow revisado   */
+
+  --sh-1:0 1px 2px rgba(16,18,24,.05);
+  --sh-2:0 4px 14px -3px rgba(16,18,24,.10), 0 2px 5px -3px rgba(16,18,24,.07);
+  --sh-3:0 18px 44px -10px rgba(16,18,24,.20), 0 5px 14px -6px rgba(16,18,24,.12);
+
+  --r-1:5px; --r-2:9px; --r-3:13px;
+  --ui:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#090a0d; --surface:#111319; --surface-2:#15171e; --surface-3:#1d202a;
+    --line:#242833; --line-2:#343945;
+    --ink:#f1f2f5; --ink-2:#a0a7b6; --ink-3:#6c7383;
+    --accent:#8286f2; --accent-soft:rgba(130,134,242,.15); --focus:rgba(130,134,242,.55);
+    --c-nc:#6c7383; --c-cancel:#f0788d; --c-indisp:#d195a0; --c-alert:#f4657f; --c-warn:#e0a03e;
+    --c-mid:#f08d43; --c-info:#44b0ef; --c-good:#37cd97; --c-seal:#1c8a62; --c-seal2:#33c5bd;
+    --sh-1:0 1px 2px rgba(0,0,0,.45); --sh-2:0 4px 16px -3px rgba(0,0,0,.55);
+    --sh-3:0 22px 52px -12px rgba(0,0,0,.75), 0 5px 14px -6px rgba(0,0,0,.55);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#090a0d; --surface:#111319; --surface-2:#15171e; --surface-3:#1d202a;
+  --line:#242833; --line-2:#343945;
+  --ink:#f1f2f5; --ink-2:#a0a7b6; --ink-3:#6c7383;
+  --accent:#8286f2; --accent-soft:rgba(130,134,242,.15); --focus:rgba(130,134,242,.55);
+  --c-nc:#6c7383; --c-cancel:#f0788d; --c-indisp:#d195a0; --c-alert:#f4657f; --c-warn:#e0a03e;
+  --c-mid:#f08d43; --c-info:#44b0ef; --c-good:#37cd97; --c-seal:#1c8a62; --c-seal2:#33c5bd;
+  --sh-1:0 1px 2px rgba(0,0,0,.45); --sh-2:0 4px 16px -3px rgba(0,0,0,.55);
+  --sh-3:0 22px 52px -12px rgba(0,0,0,.75), 0 5px 14px -6px rgba(0,0,0,.55);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--ground);color:var(--ink);font-family:var(--ui);font-size:14px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;min-height:100vh}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:99px;border:3px solid var(--ground)}
+
+/* ===================== CHROME ===================== */
+.app{max-width:1620px;margin:0 auto;padding:20px 24px 90px;display:flex;flex-direction:column;gap:15px}
+.topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{margin-right:auto;display:flex;align-items:center;gap:11px;min-width:0}
+.brand h1{font-size:18px;font-weight:600;letter-spacing:-.022em}
+.tb{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+.btn{display:inline-flex;align-items:center;gap:7px;height:33px;padding:0 12px;border-radius:var(--r-2);
+  border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:500;color:var(--ink-2);
+  box-shadow:var(--sh-1);white-space:nowrap;transition:background .13s,border-color .13s,color .13s,transform .06s}
+.btn:hover:not(:disabled){background:var(--surface-3);color:var(--ink);border-color:var(--line-2)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:transparent;color:#fff;box-shadow:var(--sh-2)}
+.btn.primary:hover:not(:disabled){filter:brightness(1.09);color:#fff;background:var(--accent)}
+.btn.icon{width:33px;padding:0;justify-content:center}
+.btn.sm{height:29px;padding:0 10px;font-size:12.5px}
+.btn.icon.sm{width:29px}
+.btn.danger:hover{color:var(--c-alert);border-color:color-mix(in srgb,var(--c-alert) 42%,transparent)}
+
+.seg{display:inline-flex;background:var(--surface-3);border:1px solid var(--line);border-radius:var(--r-2);padding:2px;gap:2px}
+.seg button{height:27px;padding:0 12px;border-radius:7px;font-size:12.5px;font-weight:500;color:var(--ink-3);transition:all .13s}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--sh-1);font-weight:600}
+
+.sync{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-3);padding:8px 12px;box-shadow:var(--sh-1);font-size:12.5px;color:var(--ink-2)}
+.sync .dotp{width:7px;height:7px;border-radius:99px;background:var(--c-good);flex-shrink:0}
+.sync.busy .dotp{background:var(--c-mid);animation:pulse 1.1s ease-in-out infinite}
+.sync.off .dotp{background:var(--c-alert)}
+.sync.wait .dotp{background:var(--ink-3)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.32}}
+.sync .who{margin-left:auto;display:flex;align-items:center;gap:7px;color:var(--ink-3)}
+.sync .who input{height:26px;width:110px;border:1px solid var(--line);border-radius:7px;background:var(--surface-2);
+  padding:0 8px;font-size:12.5px;outline:none}
+.sync .who input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.sync b{color:var(--ink);font-weight:600}
+.banner{display:flex;gap:9px;align-items:flex-start;padding:11px 14px;border-radius:var(--r-3);font-size:12.5px;
+  line-height:1.5;background:color-mix(in srgb,var(--c-alert) 9%,var(--surface));
+  border:1px solid color-mix(in srgb,var(--c-alert) 32%,transparent);color:var(--ink-2)}
+.banner b{color:var(--c-alert)}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-3);padding:14px 16px;box-shadow:var(--sh-1)}
+.kpi .lab{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.kpi .val{font-size:28px;font-weight:600;letter-spacing:-.035em;margin-top:8px;line-height:1;font-variant-numeric:tabular-nums}
+.kpi .val small{font-size:15px;font-weight:500;color:var(--ink-3);letter-spacing:0}
+.kpi .foot{font-size:12px;color:var(--ink-3);margin-top:7px;min-height:17px}
+.kpi.warn .val{color:var(--c-mid)}
+.kpi.ok .val{color:var(--c-good)}
+.bar{height:5px;border-radius:99px;background:var(--surface-3);overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--c-good);transition:width .45s cubic-bezier(.2,.8,.2,1)}
+
+.toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-3);padding:10px 12px;box-shadow:var(--sh-1)}
+.wklabel{font-family:var(--mono);font-size:12.5px;font-weight:500;min-width:184px;text-align:center;color:var(--ink)}
+.vsep{width:1px;height:22px;background:var(--line);margin:0 3px}
+.field{height:31px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);padding:0 9px;
+  font-size:12.5px;color:var(--ink);outline:none;transition:border-color .13s,box-shadow .13s}
+.field:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+select.field{padding-right:26px;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
+  background-position:calc(100% - 14px) 13px,calc(100% - 10px) 13px;background-size:4px 4px,4px 4px;background-repeat:no-repeat}
+.search{min-width:160px;flex:1;max-width:240px}
+.chk{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2);cursor:pointer;user-select:none;
+  height:31px;padding:0 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);transition:.13s}
+.chk:hover{border-color:var(--line-2)}
+.chk input{accent-color:var(--accent);width:14px;height:14px;cursor:pointer}
+.chk:has(input:checked){border-color:color-mix(in srgb,var(--c-alert) 46%,transparent);
+  background:color-mix(in srgb,var(--c-alert) 8%,transparent);color:var(--c-alert)}
+.custom{display:none;align-items:center;gap:6px;font-size:12px;color:var(--ink-3)}
+.custom[data-on]{display:inline-flex}
+.custom input{height:31px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);padding:0 7px;
+  font-family:var(--mono);font-size:11.5px;color:var(--ink);outline:none}
+.custom input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+/* ===================== PASTILHAS DE STATUS ===================== */
+/* pastilha de status com o rótulo por extenso */
+.pill{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 11px 0 14px;border-radius:999px;
+  font-size:12.5px;font-weight:600;line-height:1;letter-spacing:-.005em;white-space:nowrap;
+  color:var(--c);background:color-mix(in srgb,var(--c) 11%,transparent);
+  border:1px solid color-mix(in srgb,var(--c) 24%,transparent);
+  transition:background .13s,border-color .13s}
+.pill .cv{margin-left:auto;font-size:10px;opacity:.62;font-style:normal;line-height:1;transform:translateY(1px)}
+.pill[data-solid]{background:color-mix(in srgb,var(--c) 17%,transparent);border-color:color-mix(in srgb,var(--c) 40%,transparent)}
+/* NC é ausência de trabalho: tem que ser o item mais silencioso da linha, nos dois temas */
+.pill[data-s="vazio"]{background:transparent;border-color:transparent;color:var(--ink-3);
+  opacity:.45;font-weight:400;padding-left:11px}
+.cellv.stcell:hover .pill.clic[data-s="vazio"]{background:var(--surface-3);border-color:transparent}
+.pill[data-s="nc"]{color:var(--ink-3);font-weight:500;
+  background:color-mix(in srgb,var(--ink-3) 10%,transparent);
+  border-color:color-mix(in srgb,var(--ink-3) 18%,transparent)}
+.pill.sm{height:26px;padding:0 10px;font-size:11.5px;gap:6px}
+.pill.fill{width:100%;padding-left:11px;justify-content:flex-start}
+/* ponto = existe comentário do ajuste */
+.pill[data-note]::before{content:"";width:5px;height:5px;border-radius:99px;background:currentColor;
+  opacity:.8;flex:0 0 auto;margin-right:-2px}
+
+details.legend{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-3);box-shadow:var(--sh-1)}
+/* A faixa inteira era clicável e o Leo abria a legenda sem querer o tempo todo.
+   Agora só o botãozinho da esquerda abre — o resto da faixa é texto morto. */
+details.legend > summary{cursor:default;list-style:none;padding:9px 14px;font-size:12.5px;font-weight:500;
+  color:var(--ink-2);display:flex;align-items:center;gap:9px;user-select:none}
+details.legend > summary::-webkit-details-marker{display:none}
+.lgbt{display:inline-grid;place-items:center;width:22px;height:22px;flex:0 0 auto;cursor:pointer;
+  border:1px solid var(--line-2);border-radius:7px;background:var(--surface-2);color:var(--ink-2);
+  font-size:10px;line-height:1;transition:transform .15s,background .12s,border-color .12s,color .12s}
+.lgbt:hover{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+details.legend[open] .lgbt{transform:rotate(90deg)}
+details.legend .lgbody{padding:0 14px 13px;display:flex;flex-direction:column;gap:9px}
+.lgrow{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.lgrow .lgn{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink-3);min-width:132px}
+.lgrow .lgi{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink-2)}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-3);box-shadow:var(--sh-1);overflow:hidden}
+
+/* ===================== GRADE EDITÁVEL ===================== */
+.grid-wrap{overflow:auto;max-height:calc(100vh - 290px)}
+table.grid{border-collapse:separate;border-spacing:0;table-layout:fixed;width:100%;min-width:1894px}
+table.grid td{border-bottom:1px solid var(--line)}
+/* alça de redimensionar, na borda direita de cada cabeçalho */
+.rz{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:9;
+  touch-action:none;user-select:none}
+.rz::after{content:"";position:absolute;left:3px;top:6px;bottom:6px;width:2px;border-radius:2px;
+  background:transparent;transition:background .12s}
+.rz:hover::after,.rz.on::after{background:var(--accent)}
+body.redimensionando{cursor:col-resize;user-select:none}
+table.grid thead th{position:sticky;top:0;z-index:6;background:var(--surface);
+  font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);
+  padding:14px 6px 12px 14px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line);
+  position:sticky;overflow:visible}
+table.grid thead th{position:sticky}
+table.grid thead th.c{text-align:center;padding-left:6px}
+/* limite dos grupos de status: respiro, não linha */
+table.grid th[data-gstart],table.grid td[data-gstart]{border-left:1px solid var(--line);}
+.sk{position:sticky;z-index:4;background:var(--surface)}
+/* precisa vencer a especificidade de `table.grid thead th`, senão as colunas
+   que rolam por baixo passam por cima do cabeçalho congelado */
+table.grid thead th.sk{z-index:8;background:var(--surface)}
+.sk0{left:0}
+.sk1{left:var(--sk1,108px);box-shadow:8px 0 12px -10px rgba(16,18,24,.35)}
+html[data-theme="dark"] .sk1{box-shadow:8px 0 12px -10px rgba(0,0,0,.9)}
+tbody tr:hover td,tbody tr:hover .sk{background:var(--surface-2)}
+tbody tr[data-newday] td{border-top:1px solid var(--line)}
+tbody tr[data-today] .sk0{box-shadow:inset 3px 0 0 var(--accent)}
+/* URGENCIA: a data esta perto (ou passou) e ainda ha canal travado.
+   Precisa vir depois da regra de [data-today] para ganhar dela na cascata. */
+tbody tr[data-urg] .sk0{box-shadow:inset 3px 0 0 var(--c-alert)}
+tbody tr[data-urg="breve"] .sk0{box-shadow:inset 3px 0 0 var(--c-warn)}
+tbody tr[data-urg] .sk0 .cellv{color:var(--c-alert);font-weight:600}
+tbody tr[data-urg="breve"] .sk0 .cellv{color:var(--c-warn)}
+tbody tr[data-urg] .sk0 .cellv .ph{color:inherit;opacity:.75}
+td.gc{padding:6px 5px;height:56px;vertical-align:middle}
+td.gc.st{text-align:left;padding:6px 6px 6px 3px}
+td.gc.pad{padding-left:11px}
+/* a alça de linha: faixa fina na borda esquerda da primeira célula.
+   Não precisa de position:relative — a célula já é sticky, que também posiciona. */
+.rowsel{position:absolute;left:0;top:0;bottom:0;width:11px;cursor:pointer;z-index:5}
+.rowsel::after{content:"";position:absolute;left:4px;top:9px;bottom:9px;width:3px;border-radius:2px;
+  background:transparent;transition:background .12s}
+tbody tr:hover .rowsel::after{background:var(--line-2)}
+.rowsel:hover::after{background:var(--accent)}
+
+.ci{width:100%;height:34px;border:0;background:transparent;padding:0 8px;font-size:13px;color:var(--ink);
+  outline:none;font-family:var(--ui);border-radius:7px}
+input.ci[type="date"],input.ci[type="time"],input.ci.num{font-family:var(--mono);font-size:11.5px;padding:0 2px 0 6px;
+  letter-spacing:-.02em}
+input.ci.num{padding:0 8px}
+input.ci[type="date"]::-webkit-calendar-picker-indicator,
+input.ci[type="time"]::-webkit-calendar-picker-indicator{opacity:.5;cursor:pointer;padding:0;margin:0}
+input.ci[type="date"]:hover::-webkit-calendar-picker-indicator,
+input.ci[type="time"]:hover::-webkit-calendar-picker-indicator{opacity:.9}
+/* ícone de calendário na célula de data em repouso */
+.calbt{margin-left:auto;flex:0 0 auto;display:grid;place-items:center;width:22px;height:22px;padding:0;
+  border:0;background:transparent;color:var(--ink-3);border-radius:5px;cursor:pointer;
+  opacity:0;transition:opacity .12s,background .12s,color .12s}
+.cellv:hover .calbt,.cellv:focus .calbt{opacity:.7}
+.calbt:hover{background:var(--surface-3);color:var(--ink);opacity:1}
+input.calpick{position:fixed;opacity:0;border:0;padding:0;margin:0;background:transparent;z-index:60}
+select.ci{appearance:none;cursor:pointer;padding-right:18px;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
+  background-position:calc(100% - 12px) 15px,calc(100% - 8px) 15px;background-size:4px 4px,4px 4px;background-repeat:no-repeat}
+.ci::placeholder{color:var(--ink-3);opacity:.55}
+.ci:hover:not(:focus){background:var(--surface-3)}
+.ci:focus{outline:none;box-shadow:0 0 0 2px var(--accent);background:var(--surface);position:relative;z-index:3}
+.ci.nome{font-weight:550;letter-spacing:-.012em}
+/* célula em repouso: clique seleciona, duplo clique (ou Enter / F2) abre para editar */
+.cellv{display:flex;align-items:center;height:34px;padding:0 8px;border-radius:7px;font-size:13px;color:var(--ink);
+  cursor:default;user-select:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;outline:none;
+  transition:background .1s}
+/* o miolo precisa ser selecionável para o Ctrl+C nativo funcionar */
+.cellv > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:text;-webkit-user-select:text}
+.cellv.nome{font-weight:550;letter-spacing:-.012em}
+.cellv.num{font-family:var(--mono);font-size:11.5px;letter-spacing:-.02em}
+.cellv:hover{background:var(--surface-3)}
+.cellv:focus{box-shadow:0 0 0 2px var(--accent);background:var(--surface);position:relative;z-index:3}
+.cellv .ph{color:var(--ink-3);opacity:.5;font-weight:400}
+/* faixa selecionada com Shift, como no Excel */
+table.grid tbody td.selc,
+table.grid tbody td.selc.sk{background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
+table.grid tbody tr:hover td.selc{background:color-mix(in srgb,var(--accent) 14%,var(--surface))}
+table.grid thead th.selh{color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
+/* célula de status: o vazio ao redor seleciona, a pastilha abre a lista */
+.cellv.stcell{padding:0 4px;cursor:default}
+.cellv.stcell:hover{background:transparent}
+.pill.clic{cursor:pointer}
+.cellv.stcell:hover .pill.clic{background:color-mix(in srgb,var(--c) 22%,transparent);
+  border-color:color-mix(in srgb,var(--c) 42%,transparent)}
+.cellv.stcell:hover .pill.clic[data-s="nc"]{background:var(--line);border-color:transparent}
+td.pctc{text-align:right;padding:6px 14px 6px 6px}
+.pctwrap{display:flex;align-items:center;gap:9px}
+.mini{flex:1;height:5px;border-radius:99px;background:var(--surface-3);overflow:hidden;min-width:24px}
+.mini i{display:block;height:100%;background:var(--c-good);border-radius:99px;transition:width .35s}
+.mini[data-lv="part"] i{background:var(--c-mid)}
+.mini[data-lv="low"] i{background:var(--c-alert)}
+.pct{font-family:var(--mono);font-size:11px;color:var(--ink-3);font-weight:500;min-width:32px;text-align:right}
+td.more{padding:0;text-align:center}
+td.more button{width:30px;height:30px;border-radius:8px;color:var(--ink-3);font-size:13px;line-height:1}
+td.more button:hover{color:var(--accent);background:var(--surface-3)}
+/* linha de adicionar, no rodapé da tabela */
+tr.addrow td{border-bottom:0;padding:10px 14px 12px}
+.addbtn{width:100%;height:44px;border:1px dashed var(--line-2);border-radius:11px;color:var(--ink-3);
+  font-size:12.5px;font-weight:500;transition:.14s;background:transparent}
+.addbtn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.addbtn:focus{border-color:var(--accent);color:var(--accent)}
+.gridfoot{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line);
+  background:var(--surface-2);font-size:11.5px;color:var(--ink-3);flex-wrap:wrap}
+.gridfoot kbd{font-family:var(--mono);font-size:10px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;
+  padding:1px 4px;background:var(--surface);color:var(--ink-2)}
+
+.tag{font-size:10.5px;font-weight:600;padding:2px 6px;border-radius:5px;white-space:nowrap;
+  background:var(--surface-3);color:var(--ink-3);border:1px solid var(--line)}
+.tag[data-t="Esportes"]{color:var(--c-info);background:color-mix(in srgb,var(--c-info) 11%,transparent);border-color:color-mix(in srgb,var(--c-info) 27%,transparent)}
+.tag[data-t="Cassino"]{color:var(--accent);background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 30%,transparent)}
+.tag[data-t="Gamificação"]{color:var(--c-warn);background:color-mix(in srgb,var(--c-warn) 12%,transparent);border-color:color-mix(in srgb,var(--c-warn) 28%,transparent)}
+.tag[data-t="Institucional"]{color:var(--c-seal2);background:color-mix(in srgb,var(--c-seal2) 12%,transparent);border-color:color-mix(in srgb,var(--c-seal2) 28%,transparent)}
+.who-av{width:21px;height:21px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:9px;font-weight:600;background:var(--surface-3);color:var(--ink-2);
+  border:1px solid var(--line);flex-shrink:0}
+
+/* ===================== TIMELINE ===================== */
+#viewTimeline{flex-direction:column;gap:22px}
+.tlbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tlbar .dica{font-size:11.5px;color:var(--ink-3)}
+.day > header .diaadd{margin-left:8px;width:20px;height:20px;border-radius:6px;color:var(--ink-3);
+  font-size:12px;line-height:1;opacity:0;transition:opacity .12s,background .12s}
+.day:hover > header .diaadd{opacity:1}
+.day > header .diaadd:hover{background:var(--accent-soft);color:var(--accent)}
+.day > header .diaadd:focus{opacity:1;background:var(--accent-soft);color:var(--accent)}
+.tl-week{display:flex;flex-direction:column;gap:10px}
+.tl-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:0 2px}
+.tl-head h3{font-size:13px;font-weight:600}
+.tl-head .meta{font-size:12px;color:var(--ink-3)}
+.tl-head .meta b{color:var(--c-alert);font-weight:600}
+.tl-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:9px}
+.day{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-3);min-height:136px;display:flex;
+  flex-direction:column;box-shadow:var(--sh-1);overflow:hidden}
+.day.weekend{background:var(--surface-2)}
+.day.today{border-color:color-mix(in srgb,var(--accent) 55%,transparent);box-shadow:0 0 0 3px var(--accent-soft)}
+.day > header{padding:9px 11px 8px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:6px}
+.day .dw{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.day .dn{font-family:var(--mono);font-size:15px;font-weight:600;margin-left:auto;color:var(--ink-2)}
+.day.today .dw,.day.today .dn{color:var(--accent)}
+.day .stack{padding:8px;display:flex;flex-direction:column;gap:7px;flex:1}
+.tcard{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-2);padding:8px 9px;cursor:pointer;
+  text-align:left;width:100%;transition:transform .1s,box-shadow .14s,border-color .14s}
+.tcard:hover{transform:translateY(-1px);box-shadow:var(--sh-2);border-color:var(--line-2)}
+.tcard .r1{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.tcard .hr{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--ink-3)}
+.tcard .nm{font-size:12px;font-weight:500;line-height:1.33;display:-webkit-box;-webkit-line-clamp:3;
+  -webkit-box-orient:vertical;overflow:hidden}
+.tcard .dots{display:flex;gap:3px;margin-top:7px;flex-wrap:wrap}
+.dot{width:7px;height:7px;border-radius:99px;background:var(--c);opacity:.85}
+.dot[data-o]{background:transparent;border:1px solid var(--line-2)}
+.tcard .blk{font-size:10.5px;font-weight:600;color:var(--c-alert);margin-top:6px}
+.day .empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:11.5px;opacity:.5}
+
+.blank{padding:52px 20px;text-align:center;color:var(--ink-3);display:flex;flex-direction:column;align-items:center;gap:6px}
+.blank .big{font-size:15px;font-weight:500;color:var(--ink-2)}
+.blank p{font-size:13px;margin-bottom:12px}
+
+/* ===================== POPOVER / GAVETA / TOAST ===================== */
+.pop{position:fixed;z-index:200;width:206px;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;box-shadow:var(--sh-3);padding:6px;max-height:min(74vh,480px);overflow:auto;display:none}
+.pop[data-open]{display:block;animation:pin .12s ease-out}
+@keyframes pin{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:none}}
+.pop .ph{font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);
+  padding:5px 6px 7px;display:flex;align-items:center;gap:6px}
+.pop .ph .gear{margin-left:auto;font-size:12px;color:var(--ink-3);letter-spacing:0;text-transform:none;
+  width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center}
+.pop .ph .gear:hover{background:var(--surface-3);color:var(--accent)}
+/* opções: só as pastilhas, uma embaixo da outra */
+.popt{display:block;width:100%;padding:2px;border-radius:9px;transition:background .1s}
+.popt:hover{background:var(--surface-3)}
+.popt[aria-current="true"] .pill{box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--c)}
+.popt[aria-current="true"] .pill[data-s="nc"]{box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--line-2)}
+/* menu simples de texto (exportar / botão direito) */
+.pop .txtopt{display:flex;align-items:center;gap:9px;width:100%;padding:7px 9px;border-radius:8px;
+  font-size:12.5px;color:var(--ink-2);text-align:left}
+.pop .txtopt:hover{background:var(--surface-3);color:var(--ink)}
+.pop .txtopt .ic{width:15px;text-align:center;opacity:.65;flex:0 0 auto}
+.pop .txtopt.danger:hover{color:var(--c-alert)}
+.pop .sep{height:1px;background:var(--line);margin:4px 6px}
+/* opção de lista: texto simples, sem pastilha */
+.popt.txt{padding:8px 10px;text-align:left;font-size:12.5px;color:var(--ink-2);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.popt.txt:hover{color:var(--ink)}
+.popt.txt[aria-current="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+/* célula que abre lista: setinha à direita, como nas de status */
+.cellv.listcell{cursor:pointer}
+.cellv.listcell .cv{margin-left:auto;font-size:10px;opacity:.45;font-style:normal;flex:0 0 auto;
+  transform:translateY(1px)}
+.cellv.listcell:hover .cv{opacity:.9}
+.pop.ctx{width:auto;min-width:212px}
+.pop.ctx .ph{padding-bottom:5px;max-width:212px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  text-transform:none;letter-spacing:0;font-size:12px;font-weight:600;color:var(--ink)}
+/* comentário do ajuste */
+.popnote{border-top:1px solid var(--line);margin-top:6px;padding:9px 6px 4px;display:flex;flex-direction:column;gap:7px}
+.popnote label{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--c-warn)}
+.popnote textarea{width:100%;min-height:64px;resize:vertical;border:1px solid var(--line);border-radius:8px;
+  background:var(--surface-2);padding:7px 8px;font-family:var(--ui);font-size:12.5px;line-height:1.45;
+  color:var(--ink);outline:none}
+.popnote textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.popnote .row{display:flex;gap:6px;align-items:center}
+.popnote .hint{font-size:10.5px;color:var(--ink-3);margin-left:auto}
+
+/* menu de coluna: ordenar e filtrar por valores, no botão direito do cabeçalho */
+.pop.colmenu{width:264px;max-height:min(78vh,540px);overflow:hidden;flex-direction:column}
+.pop.colmenu[data-open]{display:flex}
+.colmenu .fbusca{height:30px;margin:2px 6px 6px;border:1px solid var(--line);border-radius:8px;
+  background:var(--surface-2);padding:0 9px;font-size:12.5px;color:var(--ink);outline:none}
+.colmenu .fbusca:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.colmenu .fatalhos{display:flex;align-items:center;gap:7px;padding:0 9px 7px;font-size:11.5px;color:var(--ink-3)}
+.colmenu .fatalhos button{color:var(--accent);font-size:11.5px;padding:0}
+.colmenu .fatalhos button:hover{text-decoration:underline}
+.colmenu .fconta{margin-left:auto;font-variant-numeric:tabular-nums}
+.colmenu .flista{flex:1;min-height:60px;overflow:auto;padding:5px 2px;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.colmenu .flista label{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:7px;
+  font-size:12.5px;color:var(--ink-2);cursor:pointer}
+.colmenu .flista label:hover{background:var(--surface-3);color:var(--ink)}
+.colmenu .flista input{accent-color:var(--accent);width:14px;height:14px;flex:0 0 auto;cursor:pointer}
+.colmenu .flista label > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.colmenu .flista em{color:var(--ink-3);font-style:italic}
+.colmenu .ffoot{display:flex;gap:6px;justify-content:flex-end;padding:9px 6px 3px}
+/* marca no cabeçalho da coluna filtrada ou ordenada */
+th .thmk{margin-left:5px;color:var(--accent)}
+th .thmk svg{vertical-align:-1px}
+
+.scrim{position:fixed;inset:0;background:rgba(10,11,14,.36);backdrop-filter:blur(2px);z-index:150;opacity:0;
+  pointer-events:none;transition:opacity .2s}
+.scrim[data-open]{opacity:1;pointer-events:auto}
+/* Era uma gaveta colada na direita. Virou um diálogo centralizado — que é onde o
+   olho procura quando se abre uma campanha — e mais largo, porque os campos em
+   duas colunas ficavam apertados nos 460px de antes. */
+.drawer{position:fixed;inset:0;margin:auto;z-index:160;
+  width:min(760px,calc(100% - 32px));height:fit-content;max-height:min(88vh,900px);
+  background:var(--surface);border:1px solid var(--line);border-radius:16px;
+  display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--sh-3);
+  opacity:0;pointer-events:none;transform:translateY(10px) scale(.985);
+  transition:opacity .18s ease,transform .18s cubic-bezier(.3,.9,.3,1)}
+.drawer[data-open]{opacity:1;pointer-events:auto;transform:none}
+.drawer > header{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:12px}
+.drawer > header h2{font-size:15px;font-weight:600;flex:1;line-height:1.35}
+.dbody{flex:1;min-height:0;overflow:auto;padding:16px 20px 22px}
+.dfoot{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;background:var(--surface-2)}
+label.f{display:block;margin-bottom:11px}
+label.f > span{font-family:var(--mono);display:block;font-size:10px;font-weight:500;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:5px}
+label.f .field,label.f textarea{width:100%}
+textarea.field{height:auto;padding:8px 9px;resize:vertical;min-height:70px;font-family:var(--ui);line-height:1.5}
+.dsec{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);
+  margin:16px 0 8px;padding-top:14px;border-top:1px solid var(--line)}
+.chrow{display:flex;align-items:center;gap:10px;padding:4px 0}
+.chrow .nm{font-size:13px;flex:1;font-weight:500}
+.chrow select{min-width:150px}
+.chnote{padding:2px 0 10px;display:flex;flex-direction:column;gap:5px}
+.chnote label{font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--c-warn)}
+.chnote textarea{width:100%;min-height:58px;resize:vertical;border:1px solid color-mix(in srgb,var(--c-warn) 30%,transparent);
+  border-radius:9px;background:color-mix(in srgb,var(--c-warn) 6%,var(--surface-2));padding:7px 9px;
+  font-family:var(--ui);font-size:12.5px;line-height:1.45;color:var(--ink);outline:none}
+.chnote textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+/* ===================== EDITOR DE STATUS ===================== */
+.modal{position:fixed;inset:0;z-index:170;display:none;align-items:center;justify-content:center;padding:24px;
+  background:rgba(10,11,14,.42);backdrop-filter:blur(2px)}
+.modal[data-open]{display:flex}
+.mbox{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh-3);
+  width:min(680px,100%);max-height:min(84vh,760px);display:flex;flex-direction:column;overflow:hidden}
+.mbox > header{padding:16px 18px 14px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:12px}
+.mbox > header h2{font-size:15px;font-weight:600;flex:1;line-height:1.35}
+.mbox > header p{font-size:12px;color:var(--ink-3);margin-top:3px;font-weight:400}
+.mbody{flex:1;overflow:auto;padding:14px 18px 18px}
+.mfoot{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center;
+  background:var(--surface-2);flex-wrap:wrap}
+.strow{display:grid;grid-template-columns:150px 1fr 118px 138px auto;gap:8px;align-items:center;
+  padding:7px 0;border-bottom:1px solid var(--line)}
+.strow:last-of-type{border-bottom:0}
+.strow .prev{overflow:hidden}
+.strow input,.strow select{height:32px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);
+  padding:0 9px;font-size:12.5px;color:var(--ink);outline:none;width:100%}
+.strow select{appearance:none;padding-right:22px;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
+  background-position:calc(100% - 13px) 14px,calc(100% - 9px) 14px;background-size:4px 4px,4px 4px;background-repeat:no-repeat}
+.strow input:focus,.strow select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.strow .acts{display:flex;gap:2px}
+.strow .acts button{width:26px;height:26px;border-radius:7px;color:var(--ink-3);font-size:12px;line-height:1}
+.strow .acts button:hover{background:var(--surface-3);color:var(--ink)}
+.strow .acts button.rm:hover{color:var(--c-alert)}
+.sthead{display:grid;grid-template-columns:150px 1fr 118px 138px auto;gap:8px;padding-bottom:7px;
+  border-bottom:1px solid var(--line-2)}
+.sthead span{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.mnote{font-size:11.5px;color:var(--ink-3);line-height:1.5;margin-top:14px;padding:10px 12px;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:10px}
+/* diálogo de confirmação / pergunta — o confirm() nativo é bloqueado dentro do artefato */
+.mbox.ask{width:min(430px,100%)}
+.mbox.ask > header{border-bottom:0;padding-bottom:0}
+.mbox.ask .mbody{padding-top:12px}
+.mbox.ask .mbody:empty{display:none}
+.mbox.ask .mfoot{border-top:0;background:transparent;padding-top:6px}
+.askinput{width:100%;height:36px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);
+  padding:0 10px;font-size:13px;color:var(--ink);outline:none}
+.askinput:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 10px;line-height:1.5;font-family:var(--ui)}
+#askYes.perigo{background:var(--c-alert)}
+@media (max-width:640px){
+  .strow,.sthead{grid-template-columns:1fr 1fr;gap:6px}
+  .sthead{display:none}
+}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);
+  color:var(--ground);padding:9px 16px;border-radius:99px;font-size:12.5px;font-weight:500;box-shadow:var(--sh-3);
+  opacity:0;pointer-events:none;transition:.22s;z-index:300;max-width:88vw;text-align:center}
+.toast[data-open]{opacity:1;transform:translateX(-50%)}
+
+/* ===================== LOGIN ===================== */
+.login{position:fixed;inset:0;display:grid;place-items:center;padding:24px;background:var(--ground);z-index:400}
+.login[hidden]{display:none}
+.loginbox{width:min(380px,100%);background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-3);box-shadow:var(--sh-3);padding:26px 24px;display:flex;flex-direction:column;gap:10px}
+.loginbox h1{font-size:19px;font-weight:600;letter-spacing:-.022em}
+.loginbox > p{font-size:12.5px;color:var(--ink-3);margin-bottom:8px}
+.loginbox label{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-3)}
+.loginbox input{height:38px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);
+  padding:0 11px;font-size:13.5px;color:var(--ink);outline:none}
+.loginbox input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.loginbox .btn{height:38px;justify-content:center;margin-top:4px}
+.loginbox .aviso{font-size:12.5px;line-height:1.5;color:var(--ink-2);background:var(--surface-2);
+  border:1px solid var(--line);border-radius:9px;padding:9px 11px}
+.loginbox .rodape{font-size:11.5px;color:var(--ink-3);margin-top:6px;line-height:1.5}
+
+@media (max-width:1100px){ .kpis{grid-template-columns:repeat(2,1fr)} .tl-grid{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:640px){
+  .app{padding:14px 12px 70px} .kpis{grid-template-columns:1fr} .tl-grid{grid-template-columns:1fr}
+  .brand{width:100%} .sync .who{margin-left:0;width:100%}
+}
+</style>
+
+<div class="login" id="login" hidden>
+  <form class="loginbox" id="loginForm">
+    <h1>Painel de Campanhas</h1>
+    <p>Acesso restrito à equipe de CRM da Bet dá Sorte.</p>
+    <label for="loginEmail">Seu e-mail da empresa</label>
+    <input id="loginEmail" type="email" required autocomplete="email"
+           placeholder="voce@betdasorte.com" spellcheck="false">
+    <label for="loginSenha">Senha</label>
+    <input id="loginSenha" type="password" autocomplete="current-password" placeholder="••••••••">
+    <button class="btn primary" id="loginBt" type="submit">Entrar</button>
+    <button class="btn" id="loginLinkBt" type="button">Prefiro receber um link por e-mail</button>
+    <div class="aviso" id="loginAviso" hidden></div>
+    <p class="rodape">Entre com a senha, ou peça um link por e-mail e clique nele.
+      Nos dois casos, só entra quem está liberado na lista da equipe.</p>
+  </form>
+</div>
+
+<div class="app">
+  <div class="topbar">
+    <div class="brand"><h1>Painel de Campanhas</h1><span class="tag" id="brandCount">—</span></div>
+    <div class="tb">
+      <div class="seg" id="viewSeg" role="group" aria-label="Visão">
+        <button data-v="tabela" aria-pressed="true">Tabela</button>
+        <button data-v="timeline" aria-pressed="false">Timeline</button>
+      </div>
+      <button class="btn icon" id="btnUndo" title="Desfazer (Ctrl+Z)" aria-label="Desfazer" disabled>↶</button>
+      <button class="btn icon" id="btnRedo" title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer" disabled>↷</button>
+      <button class="btn icon" id="btnTheme" title="Alternar tema" aria-label="Alternar tema">◐</button>
+      <button class="btn" id="btnExport">Exportar</button>
+    </div>
+  </div>
+
+  <div class="sync wait" id="syncBar">
+    <span class="dotp"></span><span id="syncMsg">Conectando…</span>
+    <span class="who"><b id="euNome">—</b><button class="btn sm" id="btnSair" title="Sair da conta">Sair</button></span>
+  </div>
+
+  <div id="bannerHost"></div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="lab">Campanhas no período</div><div class="val" id="k1">0</div><div class="foot" id="k1f"></div></div>
+    <div class="kpi ok"><div class="lab">Progresso</div><div class="val" id="k2">0<small>%</small></div><div class="bar"><i id="k2bar"></i></div><div class="foot" id="k2f"></div></div>
+    <div class="kpi warn"><div class="lab">Pendências</div><div class="val" id="k3">0</div><div class="foot" id="k3f"></div></div>
+    <div class="kpi"><div class="lab">Esta semana</div><div class="val" id="k4">0</div><div class="foot" id="k4f"></div></div>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn icon sm" id="navPrev" title="Anterior" aria-label="Anterior">‹</button>
+    <span class="wklabel" id="wkLabel">—</span>
+    <button class="btn icon sm" id="navNext" title="Próximo" aria-label="Próximo">›</button>
+    <button class="btn sm" id="navReset" title="Voltar para o período atual">⟲</button>
+    <div class="seg" id="rangeSeg" role="group" aria-label="Período">
+      <button data-r="hoje" aria-pressed="false">Hoje</button>
+      <button data-r="semana" aria-pressed="true">Semana</button>
+      <button data-r="proxima" aria-pressed="false">Próxima</button>
+      <button data-r="mes" aria-pressed="false">Mês</button>
+      <button data-r="tudo" aria-pressed="false">Tudo</button>
+      <button data-r="custom" aria-pressed="false">Datas…</button>
+    </div>
+    <span class="custom" id="customBox">
+      <input type="date" id="fFrom" aria-label="Data inicial"><span>até</span><input type="date" id="fTo" aria-label="Data final">
+    </span>
+    <span class="vsep"></span>
+    <input class="field search" id="fq" type="search" placeholder="Buscar campanha…" aria-label="Buscar campanha">
+    <select class="field" id="fTipo" aria-label="Filtrar por tipo"></select>
+    <select class="field" id="fResp" aria-label="Filtrar por responsável"></select>
+    <label class="chk"><input type="checkbox" id="fBlock"> Só com pendência</label>
+    <button class="btn sm" id="btnClear">Limpar</button>
+  </div>
+
+  <details class="legend" id="legend"><summary><span class="lgbt" role="button" tabindex="0"
+    aria-label="Mostrar ou esconder a legenda" title="Mostrar ou esconder a legenda">&#9654;</span>Legenda dos status — cada coluna tem sua própria lista</summary><div class="lgbody" id="lgbody"></div></details>
+
+  <div id="viewTabela">
+    <div class="card"><div class="grid-wrap" id="gridWrap"></div><div class="gridfoot" id="gridFoot"></div></div>
+  </div>
+  <div id="viewTimeline" style="display:none"></div>
+</div>
+
+<div class="pop" id="pop" role="menu"></div>
+<div class="pop ctx" id="ctx" role="menu"></div>
+<div class="pop colmenu" id="colmenu" role="dialog" aria-label="Ordenar e filtrar a coluna"></div>
+<div class="scrim" id="scrim"></div>
+
+<aside class="drawer" id="drawer" aria-hidden="true" aria-label="Detalhes da campanha">
+  <header><h2 id="dTitle">Campanha</h2><button class="btn icon" id="dClose" title="Fechar" aria-label="Fechar">✕</button></header>
+  <div class="dbody" id="dBody"></div>
+  <div class="dfoot">
+    <button class="btn" id="dDup">Duplicar</button>
+    <button class="btn danger" id="dDel">Excluir</button>
+  </div>
+</aside>
+
+<div class="modal" id="askModal" role="dialog" aria-modal="true" aria-labelledby="askTitle">
+  <div class="mbox ask">
+    <header><div style="flex:1"><h2 id="askTitle"></h2><p id="askText"></p></div></header>
+    <div class="mbody" id="askBody"></div>
+    <div class="mfoot">
+      <button class="btn" id="askNo" style="margin-left:auto">Cancelar</button>
+      <button class="btn primary" id="askYes">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="stModal" role="dialog" aria-modal="true" aria-labelledby="stTitle">
+  <div class="mbox">
+    <header>
+      <div style="flex:1">
+        <h2 id="stTitle">Status</h2>
+        <p id="stSub"></p>
+      </div>
+      <button class="btn icon" id="stClose" title="Fechar" aria-label="Fechar">✕</button>
+    </header>
+    <div class="mbody" id="stBody"></div>
+    <div class="mfoot">
+      <button class="btn" id="stAdd">＋ Novo status</button>
+      <select class="field" id="stReuse" aria-label="Trazer um status já existente"></select>
+      <button class="btn" id="stReset" style="margin-left:auto">Restaurar padrão</button>
+      <button class="btn primary" id="stDone">Concluir</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ===================== STATUS =====================
+   kind: block = pendência · wip = em andamento · done = pronto · skip = fora da conta.
+   Estas são as definições de fábrica; o que estiver salvo no painel manda por cima,
+   porque cada coluna pode ganhar, perder ou renomear status. */
+const STATUS_BASE = {
+  falta_subir:  {label:"Falta subir",   c:"alert",  kind:"block"},
+  ajustar:      {label:"Ajustar",       c:"warn",   kind:"block"},
+  flow_draft:   {label:"Flow draft",    c:"info",   kind:"wip"},
+  inativo:      {label:"Inativo",       c:"info",   kind:"wip"},
+  concluido:    {label:"Concluído",     c:"good",   kind:"done"},
+  ativo:        {label:"Ativo",         c:"good",   kind:"done"},
+  single:       {label:"Single",        c:"good",   kind:"done"},
+  first:        {label:"First",         c:"info",   kind:"done"},
+  revisado:     {label:"Revisado",      c:"seal",   kind:"done", solid:true},
+  flow_ativo:   {label:"Flow ativo",    c:"seal",   kind:"done", solid:true},
+  flow_revisado:{label:"Flow revisado", c:"seal2",  kind:"done", solid:true},
+  cancelado:    {label:"Cancelado",     c:"cancel", kind:"skip", solid:true},
+  indisponivel: {label:"Indisponível",  c:"indisp", kind:"skip"},
+  nc:           {label:"NC",            c:"nc",     kind:"skip"},
+  /* Deixa a célula em branco. É "skip" como o NC — não entra no cálculo de
+     progresso —, mas serve para "ainda não decidi", enquanto NC quer dizer
+     "esta campanha não tem esse canal". */
+  vazio:        {label:"—",             c:"nc",     kind:"skip"},
+};
+/* status aposentados → o que passa a valer no lugar */
+const MIGRA = {falta_redacao:"falta_subir", redacao_ok:"falta_subir"};
+
+let STATUS = Object.assign({}, STATUS_BASE);
+const S = k => STATUS[k] || STATUS.nc;
+
+const CORES = [
+  {k:"nc",n:"Cinza"},{k:"alert",n:"Vermelho"},{k:"cancel",n:"Vinho"},{k:"indisp",n:"Rosa"},
+  {k:"warn",n:"Âmbar"},{k:"mid",n:"Laranja"},{k:"info",n:"Azul"},
+  {k:"good",n:"Verde"},{k:"seal",n:"Verde escuro"},{k:"seal2",n:"Verde-água"},
+];
+const KINDS = [
+  {k:"block",n:"Pendência"},{k:"wip",n:"Em andamento"},{k:"done",n:"Pronto"},{k:"skip",n:"Não entra na conta"},
+];
+
+const CANAIS = [
+  {k:"flow",n:"Flow"},{k:"missao",n:"Missão"},{k:"email",n:"E-mail"},{k:"telegram",n:"Telegram"},
+  {k:"popup",n:"Pop-up"},{k:"sms",n:"SMS"},{k:"inbox",n:"Inbox"},{k:"push",n:"Push"},{k:"banner",n:"Banner"},
+];
+/* Cada coluna tem a SUA lista — mexer numa não mexe nas outras.
+   Estas são só as listas iniciais. */
+const _MSG = ["falta_subir","concluido","revisado","ajustar","flow_draft","flow_ativo","cancelado","nc"];
+const _PI  = ["falta_subir","ajustar","concluido","revisado","flow_draft","flow_ativo","flow_revisado","cancelado","nc"];
+const COLUNAS_PADRAO = {
+  flow:    ["falta_subir","flow_draft","flow_ativo","ajustar","cancelado","indisponivel","nc"],
+  missao:  ["falta_subir","inativo","ativo","revisado","ajustar","nc","cancelado"],
+  email:   _MSG.slice(), telegram:_MSG.slice(), popup:_MSG.slice(), sms:_MSG.slice(),
+  inbox:   _PI.slice(),  push:_PI.slice(),
+  banner:  ["falta_subir","ajustar","single","first","nc","cancelado"],
+};
+/* "vazio" fica disponível em todas as colunas, no fim da lista para não mexer
+   na numeração dos atalhos que já existiam. */
+Object.keys(COLUNAS_PADRAO).forEach(k=>{
+  if(!COLUNAS_PADRAO[k].includes("vazio")) COLUNAS_PADRAO[k].push("vazio");
+});
+let colunas = JSON.parse(JSON.stringify(COLUNAS_PADRAO));
+function optsDe(ch){ const l = colunas[ch]; return (l && l.length) ? l : ["nc"]; }
+/* onde desenhar o respiro entre blocos de colunas */
+const DIVISORES = {flow:1, missao:1, email:1, inbox:1, banner:1};
+function nomeCanal(k){ const c = CANAIS.find(x=>x.k===k); return c ? c.n : k; }
+
+const TIPOS = ["Cassino","Esportes","Gamificação","Institucional"];
+
+/* Colunas que abrem uma lista de opções, como as de status: Enter abre, setas
+   andam, 1–9 escolhe direto. `livre` marca a coluna que aceita um nome fora da
+   lista, digitado pela opção "Outro…". */
+/* Marcadores das opções especiais. Precisam ser texto comum: eles viajam por um
+   atributo HTML, e caractere de controle é corrompido pelo navegador na volta. */
+const VAZIO = "__em_branco__";
+const OUTRO = "__outro__";
+const OPCOES_LISTA = {
+  tipo: ()=> TIPOS.map(x=>({v:x, r:x})).concat([{v:VAZIO, r:"—  (em branco)"}]),
+  resp: ()=> [{v:"Sacra", r:"Sacra"}, {v:"LV", r:"LV"},
+              {v:OUTRO, r:"Outro…"}, {v:VAZIO, r:"—  (em branco)"}],
+};
+
+/* As duas primeiras colunas ficam congeladas na rolagem horizontal. */
+const COLS = [
+  {k:"data", n:"Data",     kind:"date",   w:108},
+  {k:"nome", n:"Campanha", kind:"text",   w:288},
+  {k:"hora", n:"Hora",     kind:"time",   w:74},
+  {k:"tipo", n:"Tipo",     kind:"lista",  w:116},
+  {k:"resp", n:"Resp.",    kind:"lista",  w:96, livre:true},
+].concat(CANAIS.map(c=>({k:c.k, n:c.n, kind:"status", w:120})));
+const NCOL = COLS.length;
+const NSTICKY = 2;
+
+/* Não há mais carga inicial: as campanhas vêm do banco. */
+
+function blankCanais(){ const o={}; CANAIS.forEach(c=>o[c.k]="nc"); return o; }
+/* Campanha nova nasce com tudo em branco — quem preenche é o operador.
+   O "nc" continua sendo o valor de segurança para dado antigo ou desconhecido. */
+function canaisVazios(){ const o={}; CANAIS.forEach(c=>o[c.k]="vazio"); return o; }
+function normCanais(src){
+  const o = blankCanais();
+  CANAIS.forEach(ch=>{
+    let v = src && src[ch.k];
+    if(v && MIGRA[v]) v = MIGRA[v];              // status aposentado vira o substituto
+    o[ch.k] = (v && STATUS[v]) ? v : "nc";       // mantém mesmo se saiu da lista da coluna
+  });
+  return o;
+}
+function normNotas(src){
+  const o = {};
+  CANAIS.forEach(ch=>{ const v = src && src[ch.k]; if(v) o[ch.k] = String(v); });
+  return o;
+}
+
+/* ===================== ESTADO ===================== */
+const UIKEY = "painel-ui-v3", MEKEY = "painel-eu";
+let campanhas = [], meta = {}, me = "", openId = null;
+let ui = {view:"tabela", range:"semana", offset:0, from:"", to:"", larguras:{}, filters:{q:"",tipo:"",resp:"",block:false}};
+let pendingScroll = null, pendingFocus = null, seenBefore = false;
+
+function readUI(){
+  try{
+    const d = JSON.parse(localStorage.getItem(UIKEY)||"{}");
+    if(d.view === "tabela" || d.view === "timeline") ui.view = d.view;
+    if(d.range) ui.range = d.range;
+    // sem isto, cada gravação recarregava a tela e jogava você de volta na semana atual
+    if(typeof d.offset === "number" && isFinite(d.offset)) ui.offset = d.offset;
+    if(d.from) ui.from = d.from;
+    if(d.to) ui.to = d.to;
+    if(d.filters) ui.filters = Object.assign(ui.filters, d.filters);
+    if(d.larguras && typeof d.larguras === "object") ui.larguras = d.larguras;
+    if(d.theme) document.documentElement.dataset.theme = d.theme;
+    seenBefore = !!d.seen;
+  }catch(e){}
+  try{ me = localStorage.getItem(MEKEY) || ""; }catch(e){}
+  try{ const s = JSON.parse(sessionStorage.getItem("painel-scroll")||"null"); if(s) pendingScroll = s; }catch(e){}
+}
+function writeUI(){
+  try{
+    localStorage.setItem(UIKEY, JSON.stringify({view:ui.view, range:ui.range, offset:ui.offset,
+      from:ui.from, to:ui.to,
+      larguras:ui.larguras, filters:ui.filters, seen:true, theme:document.documentElement.dataset.theme || ""}));
+  }catch(e){}
+}
+addEventListener("pagehide", ()=>{ try{ sessionStorage.setItem("painel-scroll", JSON.stringify({y:scrollY})); }catch(e){} });
+
+/* ===================== SINCRONIZAÇÃO (Supabase) =====================
+   O que mudou em relação ao artefato: o painel grava só a campanha que você
+   mexeu — não o estado inteiro — e recebe ao vivo o que a outra pessoa mudou.
+   Sumiram junto: o plano B (republicar a página), o espelho no navegador e a
+   fusão de conflitos. Nada disso faz falta quando existe um banco de verdade. */
+
+const SB_URL = "SUBSTITUA_PELA_URL_DO_SEU_PROJETO_SUPABASE";
+/* Esta chave é pública de propósito — ela fica visível no código desta página,
+   como em qualquer site. Ela sozinha não abre nada: quem decide o que cada um
+   pode ler e escrever são as regras (RLS) dentro do banco. */
+const SB_KEY = "SUBSTITUA_PELA_CHAVE_ANON_PUBLIC_DO_SEU_PROJETO_SUPABASE";
+
+let sb = null;                 // cliente do Supabase
+let euSou = "";                // e-mail de quem está logado
+let saveTimer = null, saving = false, dirty = false;
+let syncState = "wait", syncNote = "", ultimoCodigo = "";
+let cfgGravada = "";           // foto da configuração já salva
+/* e-mail -> nome, vindo da tabela perfis. O banco carimba quem alterou pelo
+   E-MAIL; sem esta tradução a barra de estado mostrava "por Leo" quando era a
+   sua própria gravação (que já sabe o seu nome) e "por crm1@betdasorte.com"
+   quando a alteração chegava de fora. */
+let nomesPorEmail = {};
+function nomeDe(email){
+  if(!email) return "";
+  return nomesPorEmail[email] || String(email).split("@")[0];
+}
+/* O que ESTA aba acabou de gravar, para reconhecer o próprio eco quando ele
+   voltar pelo canal ao vivo. Antes o eco era identificado pelo autor — o que
+   descartava também o que você mexe em outra aba ou no celular, deixando
+   aquelas cópias congeladas e prontas para empurrar estado velho. */
+const meusEnvios = new Map();
+let gravado = new Map();       // foto das campanhas já salvas, por id
+
+/* Quem mexeu e quando, por id. Fica FORA do objeto da campanha de propósito:
+   o objeto é copiado no duplicar e serializado no desfazer, e essas três
+   colunas viajariam junto, mentindo sobre a autoria. Só o Exportar lê daqui. */
+let auditoria = new Map();
+function guardaAuditoria(linhas){
+  (linhas || []).forEach(r=>{
+    if(!r || !r.id) return;
+    auditoria.set(r.id, {
+      criado_em:    r.criado_em    || null,
+      alterado_em:  r.alterado_em  || null,
+      alterado_por: r.alterado_por || null
+    });
+  });
+}
+
+/* ---------- tradução entre o painel e a tabela ---------- */
+function linhaDb(c){
+  return {
+    id: c.id, data: c.data || null, hora: c.hora || "", nome: c.nome || "",
+    tipo: c.tipo || "", resp: c.resp || "", obs: c.obs || "", link: c.link || "",
+    canais: c.canais || {}, notas: c.notas || {}
+  };
+}
+function daLinha(r){
+  return {
+    id: r.id, data: r.data || "", hora: r.hora || "", nome: r.nome || "",
+    tipo: r.tipo || "", resp: r.resp || "", obs: r.obs || "", link: r.link || "",
+    canais: normCanais(r.canais), notas: normNotas(r.notas)
+  };
+}
+function fotografa(){
+  gravado = new Map(campanhas.map(c => [c.id, JSON.stringify(linhaDb(c))]));
+}
+
+/* só grava as definições de status que fogem do padrão de fábrica */
+function defsCustom(){
+  const defs = {};
+  Object.keys(STATUS).forEach(k=>{
+    const b = STATUS_BASE[k], s = STATUS[k];
+    if(!b || b.label!==s.label || b.c!==s.c || b.kind!==s.kind) defs[k] = {label:s.label, c:s.c, kind:s.kind, solid:!!s.solid};
+  });
+  return defs;
+}
+
+/* ---------- gravar ---------- */
+function markDirty(){
+  dirty = true; paintSync();
+  clearTimeout(saveTimer); saveTimer = setTimeout(doSave, 700);
+}
+function flushNow(){ clearTimeout(saveTimer); if(dirty) doSave(); }
+
+async function doSave(){
+  if(!sb || saving || !dirty) return;
+  if(canWrite === false){ paintSync(); return; }
+  saving = true; syncState = "busy"; paintSync();
+  try{
+    // 1) o que mudou desde a última gravação
+    const mudadas = campanhas.filter(c => gravado.get(c.id) !== JSON.stringify(linhaDb(c)));
+    if(mudadas.length){
+      const {error} = await sb.from("campanhas").upsert(mudadas.map(linhaDb));
+      if(error) throw error;
+      mudadas.forEach(c => meusEnvios.set(c.id, JSON.stringify(linhaDb(c))));
+    }
+    // 2) o que você excluiu — vira exclusão lógica, nunca some do banco
+    const sumidas = [...gravado.keys()].filter(id => !campanhas.some(c => c.id === id));
+    for(const id of sumidas){
+      const {error} = await sb.from("campanhas")
+        .update({excluida_em: new Date().toISOString()}).eq("id", id);
+      if(error) throw error;
+    }
+    // 3) listas de status, só quando você mexeu nelas
+    const cfg = JSON.stringify({colunas, status_defs: defsCustom()});
+    if(cfg !== cfgGravada){
+      const {error} = await sb.from("config")
+        .update({colunas, status_defs: defsCustom()}).eq("id", 1);
+      if(error) throw error;
+      cfgGravada = cfg;
+    }
+
+    fotografa();
+    dirty = false; canWrite = true;
+    syncState = "ok"; syncNote = ""; ultimoCodigo = "";
+    meta = {por: me || euSou, em: new Date().toISOString()};
+  }catch(err){
+    ultimoCodigo = (err && (err.code || err.message)) || "erro desconhecido";
+    // 42501 = o banco recusou: esta conta não tem permissão de escrita
+    if(err && (err.code === "42501" || err.code === "PGRST301")){
+      canWrite = false; syncState = "off"; syncNote = "sem_permissao";
+    }else{
+      syncState = "off"; syncNote = "erro";
+      clearTimeout(saveTimer); saveTimer = setTimeout(doSave, 5000);   // tenta de novo sozinho
+    }
+  }
+  saving = false; paintSync();
+}
+
+/* ---------- receber ao vivo ---------- */
+let remotoPendente = false;
+function ligaAoVivo(){
+  sb.channel("painel")
+    .on("postgres_changes", {event:"*", schema:"public", table:"campanhas"}, chegouCampanha)
+    .on("postgres_changes", {event:"*", schema:"public", table:"config"},    chegouConfig)
+    .subscribe();
+}
+/* Não redesenha por cima de quem está digitando: espera o campo fechar.
+   Perder o que a pessoa está escrevendo seria pior que atrasar 1 segundo. */
+function podeAplicar(){
+  // 1) alteração sua ainda não gravada: recarregar agora a apagaria
+  if(dirty || saving) return false;
+  // 2) você está no meio de alguma coisa — redesenhar arrancaria o que está aberto
+  if(typeof editando === "function" && editando()) return false;
+  if(document.querySelector("input.calpick")) return false;            // calendário de data
+  if(document.getElementById("pop").dataset.open) return false;        // lista de status
+  if(document.getElementById("askModal").dataset.open) return false;
+  if(document.getElementById("stModal").dataset.open) return false;    // editor de status
+  if(document.getElementById("lgModal") && document.getElementById("lgModal").dataset.open) return false;
+  if(document.getElementById("drawer").dataset.open) return false;     // gaveta da campanha
+  return true;
+}
+function adiaAplicacao(){
+  if(remotoPendente) return;
+  remotoPendente = true;
+  const tenta = ()=>{
+    if(!podeAplicar()){ setTimeout(tenta, 800); return; }
+    remotoPendente = false; recarregaDoBanco();
+  };
+  setTimeout(tenta, 800);
+}
+function chegouCampanha(p){
+  const r = p.new && p.new.id ? p.new : p.old;
+  if(!r) return;
+  // eco desta aba: o conteúdo é exatamente o que ela acabou de mandar
+  if(p.new && p.new.id){
+    const enviei = meusEnvios.get(p.new.id);
+    if(enviei && enviei === JSON.stringify(linhaDb(daLinha(p.new)))){
+      meusEnvios.delete(p.new.id);   // o eco chega uma vez só
+      return;
+    }
+  }
+  if(!podeAplicar()){ adiaAplicacao(); return; }
+  aplicaUma(p);
+}
+function aplicaUma(p){
+  const r = p.new;
+  const foraAgora = !r || r.excluida_em;
+  const id = (p.new && p.new.id) || (p.old && p.old.id);
+  const i = campanhas.findIndex(c => c.id === id);
+  if(foraAgora){ if(i >= 0) campanhas.splice(i, 1); auditoria.delete(id); }
+  else if(i >= 0) campanhas[i] = daLinha(r);
+  else campanhas.push(daLinha(r));
+  if(!foraAgora) guardaAuditoria([r]);
+  gravado.set(id, r && !r.excluida_em ? JSON.stringify(linhaDb(daLinha(r))) : undefined);
+  if(foraAgora) gravado.delete(id);
+  render();
+  meta = {por: nomeDe(r && r.alterado_por), em: (r && r.alterado_em) || new Date().toISOString()};
+  paintSync();
+}
+function chegouConfig(p){
+  if(!p.new) return;
+  if(!podeAplicar()){ adiaAplicacao(); return; }
+  aplicaConfig(p.new);
+  render();
+}
+function aplicaConfig(row){
+  if(row.status_defs) Object.assign(STATUS, row.status_defs);
+  if(row.colunas) CANAIS.forEach(ch=>{
+    const l = row.colunas[ch.k];
+    if(Array.isArray(l) && l.length) colunas[ch.k] = l.slice();
+  });
+  cfgGravada = JSON.stringify({colunas, status_defs: defsCustom()});
+}
+
+/* ---------- carregar ---------- */
+async function recarregaDoBanco(){
+  const {data, error} = await sb.from("campanhas").select("*").is("excluida_em", null);
+  if(error) return;
+  campanhas = data.map(daLinha);
+  guardaAuditoria(data);
+  fotografa();
+  render(); paintSync();
+}
+
+async function carrega(){
+  const [camp, cfg, perfil] = await Promise.all([
+    sb.from("campanhas").select("*").is("excluida_em", null),
+    sb.from("config").select("*").eq("id", 1).maybeSingle(),
+    sb.from("perfis").select("email,nome,papel")
+  ]);
+  if(camp.error) throw camp.error;
+
+  if(cfg.data) aplicaConfig(cfg.data);
+  campanhas = (camp.data || []).map(daLinha);
+  guardaAuditoria(camp.data);
+  fotografa();
+
+  // quem você é vem do login, não de um campo digitado
+  nomesPorEmail = {};
+  (perfil.data || []).forEach(p => { if(p.nome) nomesPorEmail[p.email] = p.nome; });
+  const meu = (perfil.data || []).find(p => p.email === euSou);
+  me = (meu && meu.nome) || euSou.split("@")[0];
+  canWrite = !meu ? false : meu.papel === "editor";
+
+  if(!seenBefore && campanhas.length && !visible().length){
+    ui.range = "mes";
+    if(!visible().length) ui.range = "tudo";
+    syncRangeButtons();
+  }
+  render();
+  ligaAoVivo();
+}
+
+/* ---------- barra de estado ---------- */
+function paintSync(){
+  const bar = document.getElementById("syncBar"), msg = document.getElementById("syncMsg");
+  if(!bar) return;
+  bar.className = "sync " + (syncState === "ok" ? "" : syncState);
+  if(syncState === "wait") msg.textContent = "Conectando…";
+  else if(syncState === "busy") msg.textContent = "Salvando…";
+  else if(syncState === "off") msg.innerHTML =
+      syncNote === "sem_permissao"
+        ? "<b>Modo leitura.</b> Sua conta não tem permissão de edição."
+        : "<b>Não consegui salvar.</b> Tentando de novo…";
+  else msg.innerHTML = dirty ? "Alterações pendentes…"
+    : "Sincronizado" + (meta.em ? " · " + relTime(meta.em) + (meta.por ? " por " + esc(meta.por) : "") : "");
+  renderBanner();
+}
+function renderBanner(){
+  const host = document.getElementById("bannerHost");
+  if(!host) return;
+  if(syncState !== "off"){ host.innerHTML = ""; delete host.dataset.estado; return; }
+  if(host.dataset.estado === syncNote + ultimoCodigo) return;
+  host.dataset.estado = syncNote + ultimoCodigo;
+  const corpo = syncNote === "sem_permissao"
+    ? `<b>Você está no modo leitura.</b> Vê e filtra tudo, mas não consegue alterar.
+       Peça para o Leo te incluir como editor.`
+    : `<b>Perdi contato com o servidor.</b> Suas alterações continuam aqui na tela e
+       vão subir sozinhas assim que a conexão voltar. Não feche a aba.`;
+  const codigo = ultimoCodigo ? `<div style="margin-top:7px;font-family:var(--mono);font-size:11px;opacity:.75">
+    motivo: <b>${esc(ultimoCodigo)}</b></div>` : "";
+  host.innerHTML = `<div class="banner"><span>◐</span><span>${corpo}${codigo}</span></div>`;
+}
+
+/* ---------- login ---------- */
+function mostraLogin(aviso){
+  document.getElementById("login").hidden = false;
+  document.querySelector(".app").style.display = "none";
+  const av = document.getElementById("loginAviso");
+  av.textContent = aviso || "";
+  av.hidden = !aviso;
+}
+function escondeLogin(){
+  document.getElementById("login").hidden = true;
+  document.querySelector(".app").style.display = "";
+}
+
+function emailDigitado(){ return document.getElementById("loginEmail").value.trim().toLowerCase(); }
+function diz(txt){
+  const av = document.getElementById("loginAviso");
+  av.hidden = !txt; av.textContent = txt || "";
+}
+/* mensagens do Supabase vêm em inglês e técnicas demais para quem só quer entrar */
+function traduzErro(e){
+  const m = (e && e.message || "").toLowerCase();
+  if(m.includes("invalid login credentials")) return "E-mail ou senha incorretos.";
+  if(m.includes("rate limit"))                return "O envio de e-mails atingiu o limite por hora. Entre com a senha, ou tente o link daqui a pouco.";
+  if(m.includes("email not confirmed"))       return "Esta conta ainda não foi confirmada. Avise o Leo.";
+  if(m.includes("signups not allowed") || m.includes("not allowed for otp"))
+                                              return "Este e-mail não está cadastrado no painel. Avise o Leo.";
+  return (e && e.message) || "Não consegui entrar.";
+}
+
+/* Entrar com senha. É o caminho principal: não depende de e-mail nenhum. */
+async function entraComSenha(e){
+  if(e) e.preventDefault();
+  const email = emailDigitado(), senha = document.getElementById("loginSenha").value;
+  if(!email) return;
+  if(!senha) return pedeLink();          // sem senha digitada, cai no link
+  const bt = document.getElementById("loginBt");
+  bt.disabled = true; bt.textContent = "Entrando…";
+  const {error} = await sb.auth.signInWithPassword({email, password: senha});
+  bt.disabled = false; bt.textContent = "Entrar";
+  if(error){ diz(traduzErro(error)); return; }
+  location.reload();                     // a sessão está guardada; o boot pega daqui
+}
+
+/* Alternativa sem senha: link no e-mail. */
+async function pedeLink(){
+  const email = emailDigitado();
+  if(!email){ diz("Escreva seu e-mail primeiro."); return; }
+  const bt = document.getElementById("loginLinkBt");
+  bt.disabled = true; bt.textContent = "Enviando…";
+  const {error} = await sb.auth.signInWithOtp({
+    email, options:{emailRedirectTo: location.origin + location.pathname, shouldCreateUser:false}
+  });
+  bt.disabled = false; bt.textContent = "Prefiro receber um link por e-mail";
+  diz(error ? traduzErro(error)
+            : "Link enviado para " + email + ". Abra o e-mail e clique — pode demorar um minuto.");
+}
+
+async function boot(){
+  syncState = "wait"; paintSync();
+  try{
+    sb = window.supabase.createClient(SB_URL, SB_KEY);
+  }catch(e){
+    mostraLogin("Não consegui carregar a biblioteca do Supabase. Recarregue a página.");
+    return;
+  }
+  document.getElementById("loginForm").onsubmit = entraComSenha;
+  document.getElementById("loginLinkBt").onclick = pedeLink;
+  document.getElementById("btnSair").onclick = async ()=>{
+    flushNow(); await sb.auth.signOut(); location.reload();
+  };
+
+  const {data:{session}} = await sb.auth.getSession();
+  if(!session){ mostraLogin(); return; }
+  euSou = (session.user.email || "").toLowerCase();
+
+  escondeLogin();
+  try{
+    await carrega();
+    syncState = "ok";
+  }catch(err){
+    // logado, mas o banco não deixou ler: não está na lista de acesso
+    syncState = "off"; canWrite = false; syncNote = "sem_permissao";
+    ultimoCodigo = (err && (err.code || err.message)) || "";
+  }
+  document.getElementById("euNome").textContent = me || euSou;
+  paintSync();
+}
+let canWrite = null;
+
+/* alterações pendentes não podem morrer num fechar de aba */
+addEventListener("beforeunload", (e)=>{
+  if(dirty){ flushNow(); e.preventDefault(); e.returnValue = ""; }
+});
+
+/* ===================== DATAS ===================== */
+const DIAS = ["seg","ter","qua","qui","sex","sáb","dom"];
+const MESES = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const MESES_L = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+function parseD(s){ const p = String(s||"").split("-").map(Number); return new Date(p[0]||1970,(p[1]||1)-1,p[2]||1); }
+function fmtD(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function startOfWeek(d){ const x=new Date(d); x.setDate(x.getDate()-((x.getDay()+6)%7)); x.setHours(0,0,0,0); return x; }
+function addD(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function shortD(d){ return d.getDate()+" "+MESES[d.getMonth()]; }
+function relTime(iso){
+  const s = (Date.now()-new Date(iso).getTime())/1000;
+  if(!isFinite(s)) return "";
+  if(s<45) return "agora";
+  if(s<3600) return "há "+Math.round(s/60)+" min";
+  if(s<86400) return "há "+Math.round(s/3600)+"h";
+  return "em "+shortD(new Date(iso));
+}
+const TODAY = fmtD(new Date());
+
+function rangeDates(){
+  const t = new Date(); t.setHours(0,0,0,0);
+  switch(ui.range){
+    case "hoje":   { const d = addD(t, ui.offset); return [d,d]; }
+    case "semana": { const a = addD(startOfWeek(t), ui.offset*7); return [a, addD(a,6)]; }
+    case "proxima":{ const a = addD(startOfWeek(t), (ui.offset+1)*7); return [a, addD(a,6)]; }
+    case "mes":    { const m = new Date(t.getFullYear(), t.getMonth()+ui.offset, 1);
+                     return [m, new Date(m.getFullYear(), m.getMonth()+1, 0)]; }
+    case "custom": { if(!ui.from && !ui.to) return null;
+                     let a = ui.from?parseD(ui.from):parseD("1900-01-01");
+                     let b = ui.to?parseD(ui.to):parseD("2999-12-31");
+                     if(a>b){ const x=a; a=b; b=x; } return [a,b]; }
+    default: return null;
+  }
+}
+function rangeLabel(){
+  const r = rangeDates();
+  if(!r) return ui.range==="custom" ? "Escolha as datas" : "Todo o histórico";
+  if(ui.range==="hoje")
+    return (fmtD(r[0])===TODAY ? "hoje · " : "") + DIAS[(r[0].getDay()+6)%7]+", "+r[0].getDate()+" "+MESES[r[0].getMonth()];
+  if(ui.range==="mes") return MESES_L[r[0].getMonth()]+" de "+r[0].getFullYear();
+  return shortD(r[0])+" – "+shortD(r[1])+" de "+r[1].getFullYear();
+}
+function navStep(n){
+  if(ui.range==="tudo"||ui.range==="custom") return;
+  ui.offset += n; render();
+}
+
+/* ===================== SELEÇÃO ===================== */
+function inRange(c){ const r = rangeDates(); if(!r) return true; const d = parseD(c.data); return d>=r[0] && d<=r[1]; }
+function anyFilter(){ const f = ui.filters; return !!(f.q||f.tipo||f.resp||f.block); }
+function matchFilters(c){
+  const f = ui.filters;
+  if(f.tipo && c.tipo !== f.tipo) return false;
+  if(f.resp && c.resp !== f.resp) return false;
+  if(f.q && !((c.nome+" "+(c.obs||"")).toLowerCase().includes(f.q.toLowerCase()))) return false;
+  if(f.block && statsOf(c).blk === 0) return false;
+  return true;
+}
+/* ===================== URGENCIA =====================
+   So e urgente o que tem canal travado E data chegando. Campanha sem pendencia
+   nunca acende, por mais perto que esteja — senao a cor perde o sentido. */
+function urgenciaDe(c){
+  if(!c.data || statsOf(c).blk === 0) return "";
+  const dias = Math.round((parseD(c.data).getTime() - parseD(TODAY).getTime()) / 86400000);
+  if(dias < 0)   return "atrasada";
+  if(dias === 0) return "hoje";
+  if(dias <= 2)  return "breve";
+  return "";
+}
+
+/* ===================== ARQUIVO =====================
+   Campanha velha nao some do painel: ela para de aparecer em "Tudo", que e onde
+   ela so servia para inflar o contador de pendencias e engordar o arquivo.
+   Nos periodos escolhidos a dedo (Semana/Mes/Datas) e na busca, nada e escondido —
+   la voce pediu aquele intervalo de proposito. */
+const DIAS_ARQUIVO = 30;
+let verAntigas = false;
+function limiteArquivo(){ return fmtD(addD(new Date(), -DIAS_ARQUIVO)); }
+function arquivando(){ return !verAntigas && ui.range === "tudo" && !ui.filters.q; }
+function velha(c){ return !!c.data && c.data < limiteArquivo(); }
+function ocultasPorIdade(){
+  if(!arquivando()) return 0;
+  return campanhas.filter(c=> velha(c) && matchFilters(c)).length;
+}
+
+/* ===================== FILTRO E ORDEM POR COLUNA =====================
+   Convive com os filtros da barra de cima em vez de disputar com eles: o painel
+   aplica primeiro aqueles e, sobre o que sobrou, aplica estes. O filtro de coluna
+   só consegue TIRAR linhas — nunca traz de volta o que a barra já escondeu. */
+let ordem = null;        // {k, dir:1|-1}
+let filtroCol = {};      // {k: Set(valores permitidos)}
+
+/* o texto que a pessoa vê na célula — é por ele que se filtra */
+function valorDe(c, col){
+  if(col.kind === "status") return S(c.canais[col.k] || "nc").label;
+  if(col.kind === "date")   return c.data ? dataBR(c.data) : "";
+  return c[col.k] || "";
+}
+function passaFiltroColuna(c, exceto){
+  for(const k in filtroCol){
+    if(k === exceto) continue;
+    const col = COLS.find(x => x.k === k); if(!col) continue;
+    if(!filtroCol[k].has(valorDe(c, col))) return false;
+  }
+  return true;
+}
+/* Os valores oferecidos no menu saem do que está visível AGORA, ignorando só o
+   filtro da própria coluna — senão você não conseguiria voltar atrás num valor
+   que acabou de excluir. */
+function valoresDaColuna(k){
+  const col = COLS.find(x => x.k === k), esconde = arquivando();
+  const base = campanhas.filter(c => !(esconde && velha(c)) && inRange(c)
+                                  && matchFilters(c) && passaFiltroColuna(c, k));
+  return [...new Set(base.map(c => valorDe(c, col)))]
+    .sort((a,b) => (!a) - (!b) || a.localeCompare(b, "pt", {sensitivity:"base"}));
+}
+/* Data e hora vão pelo relógio; status vai pela ordem da própria lista da coluna
+   (que é a ordem do trabalho, não a do alfabeto); o resto vai por A-Z. */
+function cmpColuna(a, b, col){
+  if(col.kind === "date") return String(a.data || "~").localeCompare(String(b.data || "~"));
+  if(col.kind === "time") return String(a.hora || "~").localeCompare(String(b.hora || "~"));
+  if(col.kind === "status"){
+    const l = optsDe(col.k);
+    const ia = l.indexOf(a.canais[col.k] || "nc"), ib = l.indexOf(b.canais[col.k] || "nc");
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  }
+  const va = a[col.k] || "", vb = b[col.k] || "";
+  if(!va !== !vb) return va ? -1 : 1;                     // vazio sempre por último
+  return va.localeCompare(vb, "pt", {sensitivity:"base"});
+}
+function colunaOrdenada(){ return ordem ? COLS.find(x => x.k === ordem.k) : null; }
+function quantasFiltradas(){ return Object.keys(filtroCol).length; }
+function limpaFiltrosColuna(){ filtroCol = {}; ordem = null; render(); }
+
+function visible(){
+  const esconde = arquivando();
+  const lista = campanhas.filter(c => !(esconde && velha(c)) && inRange(c)
+                                   && matchFilters(c) && passaFiltroColuna(c));
+  const col = colunaOrdenada();
+  if(col) return lista.sort((a,b)=> ordem.dir * cmpColuna(a,b,col)
+      || String(a.data).localeCompare(b.data) || String(a.nome).localeCompare(b.nome));
+  return lista.sort((a,b)=>{
+    // linha recém-criada (ainda sem nome) fica no fim, onde você acabou de clicar
+    const na = a.nome ? 0 : 1, nb = b.nome ? 0 : 1;
+    if(na !== nb) return na - nb;
+    return String(a.data).localeCompare(b.data)
+        || String(a.hora||"~").localeCompare(b.hora||"~")
+        || String(a.nome).localeCompare(b.nome);
+  });
+}
+function statsOf(c){
+  let rel=0, done=0, blk=0;
+  CANAIS.forEach(ch=>{
+    const kind = S(c.canais[ch.k]).kind;
+    if(kind==="block") blk++;
+    if(kind==="skip") return;
+    rel++; if(kind==="done") done++;
+  });
+  return {rel, done, blk, pct: rel?Math.round(done/rel*100):0};
+}
+function blockersOf(c){ return CANAIS.filter(ch=>S(c.canais[ch.k]).kind==="block").map(ch=>({ch, st:c.canais[ch.k]})); }
+function notaDe(c, ch){ return (c.notas && c.notas[ch]) || ""; }
+/* mod: "fill" ocupa a célula inteira · "chev" desenha a setinha · "sm" versão miúda
+   nota: marca a pastilha com um ponto quando existe comentário */
+function pillHTML(k, mod, nota, abre){
+  const s = S(k), m = mod || "";
+  const cls = "pill" + (m.includes("fill")?" fill":"") + (m.includes("sm")?" sm":"") + (abre?" clic":"");
+  return `<span class="${cls}" data-s="${k}" ${s.solid?"data-solid":""} ${nota?"data-note":""} ${abre?"data-abrepop":""}
+    style="--c:var(--c-${s.c})">${esc(s.label)}${m.includes("chev")?'<i class="cv">▾</i>':""}</span>`;
+}
+
+/* ===================== RENDER ===================== */
+function render(){
+  renderLegend(); renderKPIs(); renderFilters();
+  document.getElementById("wkLabel").textContent = rangeLabel();
+  const fixed = ui.range==="tudo" || ui.range==="custom";
+  document.getElementById("navPrev").disabled = fixed;
+  document.getElementById("navNext").disabled = fixed;
+  document.getElementById("navReset").disabled = fixed || ui.offset===0;
+  document.getElementById("customBox").toggleAttribute("data-on", ui.range==="custom");
+  document.getElementById("brandCount").textContent = campanhas.length + " campanhas";
+  document.getElementById("viewTabela").style.display   = ui.view==="timeline" ? "none" : "";
+  document.getElementById("viewTimeline").style.display = ui.view==="timeline" ? "flex" : "none";
+  if(ui.view==="timeline") renderTimeline(); else renderGrid();
+  writeUI();
+  if(pendingFocus) restoreFocus();
+}
+function renderLegend(){
+  document.getElementById("lgbody").innerHTML = CANAIS.map(ch=>
+    `<div class="lgrow"><span class="lgn">${esc(ch.n)}</span>${optsDe(ch.k).map((k,i)=>
+      `<span class="lgi">${pillHTML(k,"sm")}<kbd style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3)">${i+1}</kbd></span>`).join("")}
+      <button class="btn sm" data-editstatus="${ch.k}" style="margin-left:auto">Editar</button></div>`).join("");
+}
+function renderKPIs(){
+  const list = visible();
+  let rel=0, done=0, blk=0; const by={};
+  list.forEach(c=>{
+    const s = statsOf(c); rel+=s.rel; done+=s.done; blk+=s.blk;
+    CANAIS.forEach(ch=>{ const st=c.canais[ch.k]; if(S(st).kind==="block") by[st]=(by[st]||0)+1; });
+  });
+  const pct = rel?Math.round(done/rel*100):0;
+  const fechadas = list.filter(c=>{ const s=statsOf(c); return s.rel>0 && s.done===s.rel; }).length;
+  /* Este cartão não segue o período navegado — é sempre a semana corrente,
+     senão ele zera toda vez que você olha outro mês. Os filtros de busca valem. */
+  const wa = fmtD(startOfWeek(new Date())), wb = fmtD(addD(startOfWeek(new Date()),6));
+  const semana = campanhas.filter(c=>matchFilters(c) && c.data >= wa && c.data <= wb)
+    .sort((a,b)=>String(a.data).localeCompare(b.data) || String(a.hora||"~").localeCompare(b.hora||"~"));
+  const hoje = semana.filter(c=>c.data===TODAY);
+  const adiante = semana.filter(c=>c.data > TODAY);
+  document.getElementById("k1").textContent = list.length;
+  document.getElementById("k1f").textContent = fechadas+" fechadas · "+(list.length-fechadas)+" em aberto";
+  document.getElementById("k2").innerHTML = pct+"<small>%</small>";
+  document.getElementById("k2bar").style.width = pct+"%";
+  document.getElementById("k2f").textContent = done+" de "+rel+" entregas prontas";
+  document.getElementById("k3").textContent = blk;
+  const urgentes = list.filter(c=>urgenciaDe(c)).length;
+  document.getElementById("k3f").textContent = !blk ? "Nada travado"
+    : (urgentes ? urgentes + (urgentes===1 ? " urgente · " : " urgentes · ") : "")
+      + Object.keys(by).map(k=>by[k]+" "+S(k).label.toLowerCase()).join(" · ");
+  document.getElementById("k4").textContent = semana.length;
+  const corta = s => String(s||"Sem nome").slice(0,30) + (String(s||"").length>30 ? "…" : "");
+  document.getElementById("k4f").textContent =
+      !semana.length ? "Nada nesta semana"
+    : hoje.length    ? hoje.length + " hoje · " + (hoje[0].hora ? hoje[0].hora + " " : "") + corta(hoje[0].nome)
+    : adiante.length ? "próxima " + DIAS[(parseD(adiante[0].data).getDay()+6)%7] + " · " + corta(adiante[0].nome)
+    :                  "resto da semana livre";
+}
+function renderFilters(){
+  fillSel("fTipo", [...new Set(campanhas.map(c=>c.tipo).filter(Boolean))].sort(), ui.filters.tipo, "Todos os tipos");
+  fillSel("fResp", [...new Set(campanhas.map(c=>c.resp).filter(Boolean))].sort(), ui.filters.resp, "Todos responsáveis");
+  document.getElementById("fBlock").checked = ui.filters.block;
+  const q = document.getElementById("fq"); if(q.value !== ui.filters.q) q.value = ui.filters.q;
+  const ff = document.getElementById("fFrom"), ft = document.getElementById("fTo");
+  if(ff.value !== ui.from) ff.value = ui.from;
+  if(ft.value !== ui.to) ft.value = ui.to;
+}
+function fillSel(id, opts, val, ph){
+  const el = document.getElementById(id);
+  el.innerHTML = `<option value="">${ph}</option>` + opts.map(o=>`<option${o===val?" selected":""}>${esc(o)}</option>`).join("");
+  el.value = val || "";
+}
+
+/* ---------- grade ---------- */
+let rowIds = [];
+function gstart(col){ return col.kind==="status" && !!DIVISORES[col.k]; }
+function cellHTML(c, r, ci, col){
+  const at = `data-r="${r}" data-c="${ci}"`;
+  const gs = gstart(col) ? " data-gstart" : "";
+  const sticky = ci < NSTICKY ? ` sk sk${ci}` : "";
+  const pad = ci === 0 ? " pad" : "";
+  if(col.kind === "status"){
+    const st = c.canais[col.k] || "nc";
+    const nota = notaDe(c, col.k);
+    const t = col.n + ": " + S(st).label + (nota ? " — " + nota : "");
+    // a célula inteira seleciona; só a pastilha abre a lista de status
+    return `<td class="gc st${sticky}"${gs}><div class="cellv stcell" tabindex="0" ${at}
+      data-kind="status" data-ch="${col.k}" role="gridcell" title="${esc(t)}" aria-label="${esc(t)}"
+      >${pillHTML(st,"chev", nota, true)}</div></td>`;
+  }
+  if(col.kind === "lista"){
+    const v = c[col.k] || "";
+    const t = col.n + ": " + (v || "vazio");
+    return `<td class="gc${sticky}${pad}"><div class="cellv listcell" tabindex="0" ${at}
+      data-kind="lista" data-k="${col.k}" role="gridcell" title="${esc(t)}" aria-label="${esc(t)}"
+      >${v ? `<span>${esc(v)}</span>` : `<span class="ph">—</span>`}<i class="cv">▾</i></div></td>`;
+  }
+  // a primeira coluna ganha uma alça na borda esquerda que seleciona a linha toda,
+  // fazendo pela linha o que o clique no cabeçalho já fazia pela coluna
+  const alca = ci === 0
+    ? `<span class="rowsel" data-linha="${r}" role="button" tabindex="-1"
+         title="Selecionar a linha inteira" aria-label="Selecionar a linha inteira"></span>` : "";
+  return `<td class="gc${sticky}${pad}">${alca}${displayHTML(c, r, ci, col)}</td>`;
+}
+/* célula em repouso — só mostra o valor */
+function displayHTML(c, r, ci, col){
+  const v = c[col.k] || "";
+  const mono = col.kind==="date" || col.kind==="time";
+  let txt = v;
+  if(col.kind === "date" && v) txt = dataBR(v);
+  const vazio = !v;
+  const ph = col.k==="nome" ? "Nome da campanha" : col.kind==="date" ? "sem data" : col.kind==="time" ? "--:--" : "—";
+  return `<div class="cellv${col.k==="nome"?" nome":""}${mono?" num":""}" tabindex="0"
+    data-r="${r}" data-c="${ci}" data-kind="field" data-k="${col.k}" role="gridcell"
+    aria-label="${col.n}: ${esc(v||"vazio")}" title="${esc(v ? (col.kind==="date"?dataBR(v):v) : "")}"
+    >${vazio ? `<span class="ph">${esc(ph)}</span>` : `<span>${esc(txt)}</span>`}${col.kind==="date"?CAL_BT:""}</div>`;
+}
+const CAL_BT = `<button class="calbt" type="button" tabindex="-1" data-cal
+  aria-label="Escolher no calendário" title="Escolher no calendário"><svg viewBox="0 0 16 16" width="12" height="12"
+  aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.6" y="3.2" width="12.8" height="11.2"
+  rx="2"/><path d="M1.6 6.6h12.8"/><path d="M5 1.5v2.6M11 1.5v2.6" stroke-linecap="round"/></svg></button>`;
+/* aceita 1/9 · 01/09 · 1-9-26 · 01092026 · 2026-09-01 — devolve ISO ou "" */
+function parseData(txt){
+  const s = String(txt == null ? "" : txt).trim();
+  if(!s) return "";
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  let dia, mes, ano = null;
+  if(/^\d{1,2}\s*[\/.\-]\s*\d{1,2}(\s*[\/.\-]\s*\d{2,4})?$/.test(s)){
+    const p = s.split(/[\/.\-]/).map(x=>+x.trim());
+    dia = p[0]; mes = p[1]; if(p.length > 2) ano = p[2];
+  }else{
+    const d = s.replace(/\D/g,"");
+    if(d.length === 4){ dia = +d.slice(0,2); mes = +d.slice(2,4); }
+    else if(d.length === 6){ dia = +d.slice(0,2); mes = +d.slice(2,4); ano = +d.slice(4,6); }
+    else if(d.length === 8){ dia = +d.slice(0,2); mes = +d.slice(2,4); ano = +d.slice(4,8); }
+    else return "";
+  }
+  if(ano == null) ano = +TODAY.slice(0,4);
+  if(ano < 100) ano += 2000;
+  if(!(dia >= 1 && dia <= 31 && mes >= 1 && mes <= 12 && ano >= 1900 && ano <= 2999)) return "";
+  const iso = ano + "-" + String(mes).padStart(2,"0") + "-" + String(dia).padStart(2,"0");
+  const t = new Date(iso + "T12:00:00");
+  if(isNaN(t.getTime()) || t.getDate() !== dia) return "";   // 31/02 não existe
+  return iso;
+}
+/* Vai pondo as barras enquanto a pessoa digita: 0509 -> 05/09, 05092026 -> 05/09/2026.
+   Se ela digitar a barra por conta própria, respeita o que escreveu — 5/9 continua valendo. */
+function mascaraData(txt){
+  const s = String(txt == null ? "" : txt);
+  if(/[\/.\-]/.test(s)) return s.replace(/[.\-]/g, "/").split("/").slice(0,3).join("/");
+  const d = s.replace(/\D/g, "").slice(0, 8);
+  if(d.length > 4) return d.slice(0,2) + "/" + d.slice(2,4) + "/" + d.slice(4);
+  if(d.length > 2) return d.slice(0,2) + "/" + d.slice(2);
+  return d;
+}
+function dataBR(iso){
+  const p = String(iso).split("-");
+  return p.length===3 ? p[2]+"/"+p[1]+"/"+p[0] : iso;
+}
+function renderGrid(){
+  const list = visible();
+  rowIds = list.map(c=>c.id);
+  const wrap = document.getElementById("gridWrap");
+  const podeAdicionar = !anyFilter();
+  if(!list.length && !podeAdicionar){ wrap.innerHTML = blankState(); renderGridFoot(0,false,ocultasPorIdade()); return; }
+
+  let h = `<table class="grid"><colgroup>`
+    + COLS.map(c=>`<col style="width:${larguraDe(c)}px">`).join("")
+    + `<col style="width:92px"><col style="width:40px"></colgroup><thead><tr>`
+    + COLS.map((c,i)=>{
+        const mk = (filtroCol[c.k] ? `<span class="thmk" title="Coluna filtrada">${FUNIL}</span>` : "")
+                 + (ordem && ordem.k === c.k ? `<span class="thmk" title="Coluna ordenada">${ordem.dir>0?"▲":"▼"}</span>` : "");
+        return `<th class="${i<NSTICKY?`sk sk${i}`:""}"${c.kind==="status"&&gstart(c)?" data-gstart":""}
+          title="Botão direito: ordenar e filtrar">${c.n}${mk}<span class="rz" data-rz="${i}" title="Arraste para mudar a largura · duplo clique volta ao padrão"></span></th>`;
+      }).join("")
+    + `<th class="c">Pronto</th><th></th></tr></thead><tbody>`;
+
+  let prev = null;
+  list.forEach((c,r)=>{
+    const s = statsOf(c), lv = s.pct>=100?"full":(s.pct>=50?"part":"low");
+    const newDay = c.data !== prev; prev = c.data;
+    const urg = urgenciaDe(c);
+    h += `<tr${newDay&&r>0?" data-newday":""}${c.data===TODAY?" data-today":""}${urg?` data-urg="${urg}"`:""}>`
+      + COLS.map((col,ci)=>cellHTML(c,r,ci,col)).join("")
+      + `<td class="pctc"><span class="pctwrap"><span class="mini" data-lv="${lv}"><i style="width:${s.pct}%"></i></span>
+         <span class="pct">${s.rel?s.pct+"%":"—"}</span></span></td>`
+      + `<td class="more"><button data-open="${c.id}" title="Observação, link e mais" aria-label="Detalhes">⋯</button></td></tr>`;
+  });
+  if(podeAdicionar){
+    h += `<tr class="addrow"><td colspan="${NCOL+2}">
+      <button class="addbtn" data-act="new">+ adicionar campanha</button></td></tr>`;
+  }
+  h += `</tbody></table>`;
+  wrap.innerHTML = h;
+  aplicaLarguras();
+  renderGridFoot(list.length, podeAdicionar, ocultasPorIdade());
+  // a faixa precisa caber na tabela nova
+  if(selAnc && selFoc){
+    const max = Math.max(0, rowIds.length-1);
+    selAnc = {r:Math.min(selAnc.r,max), c:Math.min(selAnc.c,NCOL-1)};
+    selFoc = {r:Math.min(selFoc.r,max), c:Math.min(selFoc.c,NCOL-1)};
+  }
+  pintaSelecao();
+}
+
+/* ---------- largura das colunas (arrastando o cabeçalho, como no Excel) ---------- */
+function larguraDe(col){
+  const v = ui.larguras && ui.larguras[col.k];
+  return (typeof v === "number" && v > 0) ? v : col.w;
+}
+function aplicaLarguras(){
+  const t = gridWrap.querySelector("table.grid"); if(!t) return;
+  const cols = t.querySelectorAll("colgroup col");
+  let soma = 0;
+  COLS.forEach((c,i)=>{ const w = larguraDe(c); if(cols[i]) cols[i].style.width = w+"px"; soma += w; });
+  soma += 92 + 40;
+  t.style.minWidth = soma + "px";
+  t.style.setProperty("--sk1", larguraDe(COLS[0]) + "px");   // a 2ª coluna congelada acompanha a 1ª
+}
+/* os ouvintes de arraste ficam mais abaixo, junto com os outros da grade */
+function renderGridFoot(n, podeAdicionar, ocultas){
+  /* o aviso das antigas so existe quando ha algo escondido — nada de controle
+     permanente na tela para uma situacao que quase nunca acontece */
+  /* filtro de coluna é fácil de esquecer: sem este aviso, campanha some e a pessoa
+     acha que perdeu. */
+  const nf = quantasFiltradas();
+  const filtros = (nf || ordem)
+    ? `<span class="vsep"></span><span style="color:var(--accent);font-weight:600">${
+        nf ? nf + (nf===1 ? " coluna filtrada" : " colunas filtradas") : "ordenado por coluna"
+      }</span><button class="btn sm" id="btnLimpaCol">Limpar</button>`
+    : "";
+  const antigas = ocultas
+    ? `<span class="vsep"></span><button class="btn sm" id="btnAntigas">
+         Mostrar ${ocultas} de mais de ${DIAS_ARQUIVO} dias</button>`
+    : (verAntigas && ui.range === "tudo"
+        ? `<span class="vsep"></span><button class="btn sm" id="btnAntigas">Ocultar as antigas</button>`
+        : "");
+  document.getElementById("gridFoot").innerHTML = podeAdicionar
+    ? `<span>${n} campanha${n===1?"":"s"} no período</span><span class="vsep"></span>
+       <span id="selInfo" style="color:var(--accent);font-weight:600"></span>
+       <span><kbd>Shift</kbd>+clique ou <kbd>Shift</kbd>+setas seleciona a faixa ·
+       <kbd>F2</kbd> ou duplo clique edita · <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> ·
+       <kbd>Ctrl</kbd>+<kbd>Z</kbd> desfaz · <kbd>Ctrl</kbd>+<kbd>↵</kbd> nova linha ·
+       no status, <kbd>1</kbd>–<kbd>9</kbd> aplica direto</span>${filtros}${antigas}`
+    : `<span>${n} campanha${n===1?"":"s"} no período</span><span class="vsep"></span><span>Limpe os filtros para poder adicionar campanhas.</span>${filtros}`;
+  const b = document.getElementById("btnAntigas");
+  if(b) b.onclick = ()=>{ verAntigas = !verAntigas; render(); };
+  const bf = document.getElementById("btnLimpaCol");
+  if(bf) bf.onclick = limpaFiltrosColuna;
+}
+
+/* ---------- timeline ---------- */
+function renderTimeline(){
+  const host = document.getElementById("viewTimeline"), list = visible();
+  let weeks = [];
+  const r = rangeDates();
+  const barraSo = `<div class="tlbar"><button class="btn primary" data-act="new">＋ Nova campanha</button></div>`;
+  if(!r){
+    const ds = [...new Set(list.map(c=>c.data))].sort();
+    if(!ds.length){ host.innerHTML = barraSo + `<div class="card">${blankState()}</div>`; return; }
+    let s = startOfWeek(parseD(ds[0])); const end = startOfWeek(parseD(ds[ds.length-1]));
+    while(s<=end && weeks.length<60){ weeks.push(new Date(s)); s = addD(s,7); }
+  }else{
+    let s = startOfWeek(r[0]);
+    while(s<=r[1] && weeks.length<60){ weeks.push(new Date(s)); s = addD(s,7); }
+  }
+  const barra = `<div class="tlbar"><button class="btn primary" data-act="new">＋ Nova campanha</button>
+    <span class="dica">Botão direito num dia cria a campanha já naquela data</span></div>`;
+  host.innerHTML = barra + weeks.map(ws=>{
+    const days = Array.from({length:7},(_,i)=>addD(ws,i));
+    const inWk = list.filter(c=>{ const d=parseD(c.data); return d>=days[0]&&d<=days[6]; });
+    let rel=0,done=0,blk=0;
+    inWk.forEach(c=>{ const s=statsOf(c); rel+=s.rel; done+=s.done; blk+=s.blk; });
+    const pct = rel?Math.round(done/rel*100):0;
+    const cur = fmtD(startOfWeek(new Date()))===fmtD(ws);
+    return `<section class="tl-week"><div class="tl-head">
+      <h3>${shortD(days[0])} – ${shortD(days[6])}${cur?" · semana atual":""}</h3>
+      <span class="meta">${inWk.length} campanha${inWk.length===1?"":"s"} · ${pct}% pronto${blk?` · <b>${blk} pendência${blk===1?"":"s"}</b>`:""}</span>
+      </div><div class="tl-grid">${days.map(d=>dayCol(d,list)).join("")}</div></section>`;
+  }).join("");
+  if(!weeks.length) host.innerHTML = barraSo + `<div class="card">${blankState()}</div>`;
+}
+function dayCol(d, list){
+  const key = fmtD(d);
+  const items = list.filter(c=>c.data===key).sort((a,b)=>String(a.hora||"~").localeCompare(b.hora||"~"));
+  const wknd = d.getDay()===0||d.getDay()===6, isT = key===TODAY;
+  return `<div class="day${wknd?" weekend":""}${isT?" today":""}" data-dia="${key}">
+    <header><span class="dw">${DIAS[(d.getDay()+6)%7]}</span><span class="dn">${d.getDate()}</span>
+      <button class="diaadd" data-novodia="${key}" title="Nova campanha em ${esc(shortD(d))}" aria-label="Nova campanha em ${esc(shortD(d))}">＋</button></header>
+    <div class="stack">${items.length?items.map(c=>{
+      const s = statsOf(c);
+      return `<button class="tcard" data-open="${c.id}">
+        <span class="r1"><span class="hr">${esc(c.hora||"—")}</span>
+          ${c.tipo?`<span class="tag" data-t="${esc(c.tipo)}">${esc(c.tipo)}</span>`:""}
+          ${c.resp?`<span class="who-av" style="margin-left:auto" title="${esc(c.resp)}">${esc(initials(c.resp))}</span>`:""}</span>
+        <span class="nm">${esc(c.nome)}</span>
+        <span class="dots">${CANAIS.map(ch=>{
+          const st = c.canais[ch.k]||"nc";
+          return S(st).kind==="skip" ? `<span class="dot" data-o="1" title="${ch.n}: ${S(st).label}"></span>`
+                 : `<span class="dot" style="--c:var(--c-${S(st).c})" title="${ch.n}: ${S(st).label}"></span>`;
+        }).join("")}</span>
+        ${s.blk?`<span class="blk">● ${s.blk} pendência${s.blk===1?"":"s"}</span>`:""}</button>`;
+    }).join(""):`<div class="empty">—</div>`}</div></div>`;
+}
+function blankState(){
+  const f = anyFilter();
+  return `<div class="blank"><span class="big">${f?"Nenhuma campanha com esses filtros":"Nenhuma campanha neste período"}</span>
+    <p>${f?"Ajuste ou limpe os filtros para ver o resto.":"Mude o período acima ou crie a primeira campanha."}</p>
+    <button class="btn${f?"":" primary"}" data-act="${f?"clear":"new"}">${f?"Limpar filtros":"＋ Nova campanha"}</button></div>`;
+}
+
+/* ===================== GRADE: EDIÇÃO E TECLADO ===================== */
+function byId(id){ return campanhas.find(c=>c.id===id); }
+function rowCampanha(r){ return byId(rowIds[r]); }
+/* Linha nova: data de hoje, sempre no fim da tabela (ver a ordenação em visible()),
+   e já gravada — mesmo sem nome. */
+function novaLinha(dataISO){
+  marco("nova campanha");
+  const c = {id:uid(), data:dataISO||TODAY, hora:"", nome:"", tipo:"", resp:"", canais:canaisVazios(), notas:{}, obs:"", link:""};
+  campanhas.push(c);
+  markDirty();
+  // se o período em uso escondesse a linha recém-criada, abre o histórico inteiro
+  if(!visible().some(x=>x.id === c.id)){
+    ui.range = "tudo"; ui.offset = 0; ui.from = ""; ui.to = "";
+    syncRangeButtons();
+    toast("Período mudado para Tudo — a campanha de hoje ficaria fora do filtro");
+  }
+  return c;
+}
+
+const gridWrap = document.getElementById("gridWrap");
+
+/* ===================== SELEÇÃO EM FAIXA (Shift) =====================
+   Âncora fica onde você clicou; o foco é a outra ponta. Shift+clique e
+   Shift+setas movem só o foco, como numa planilha. */
+let selAnc = null, selFoc = null;
+
+function celulaEm(r, c){ return gridWrap.querySelector(`[data-r="${r}"][data-c="${c}"]`); }
+function faixa(){
+  if(!selAnc || !selFoc) return null;
+  const f = {r0:Math.min(selAnc.r,selFoc.r), r1:Math.max(selAnc.r,selFoc.r),
+             c0:Math.min(selAnc.c,selFoc.c), c1:Math.max(selAnc.c,selFoc.c)};
+  return (f.r0===f.r1 && f.c0===f.c1) ? null : f;   // uma célula só não é faixa
+}
+function ancoraEm(r, c){ selAnc = {r, c}; selFoc = {r, c}; pintaSelecao(); }
+function estendePara(r, c){
+  if(!selAnc) selAnc = {r, c};
+  selFoc = {r, c}; pintaSelecao();
+}
+function limpaSelecao(){ selAnc = selFoc = null; pintaSelecao(); }
+
+/* --- o que dá para fazer com a faixa --- */
+function tsvDaFaixa(f){
+  const linhas = [];
+  for(let r = f.r0; r <= f.r1; r++){
+    const cols = [];
+    for(let c = f.c0; c <= f.c1; c++){
+      const el = celulaEm(r, c);
+      cols.push(el ? (valorDaCelula(el) || "") : "");
+    }
+    linhas.push(cols.join("\t"));
+  }
+  return linhas.join("\n");
+}
+function limpaFaixa(f){
+  marco("limpeza");
+  let n = 0;
+  for(let r = f.r0; r <= f.r1; r++){
+    const camp = rowCampanha(r); if(!camp) continue;
+    for(let c = f.c0; c <= f.c1; c++){
+      const col = COLS[c]; if(!col) continue;
+      if(col.kind === "status"){ if(camp.canais[col.k] !== "nc"){ camp.canais[col.k] = "nc"; n++; } }
+      else if(col.k !== "data"){ if(camp[col.k]){ camp[col.k] = ""; n++; } }   // sem data a linha se perde
+    }
+  }
+  render(); markDirty();
+  toast(n ? n + (n===1?" célula limpa":" células limpas") : "Nada a limpar");
+}
+function aplicaStatusFaixa(f, n){
+  marco("status em lote");
+  let mudou = 0, fora = 0;
+  for(let r = f.r0; r <= f.r1; r++){
+    const camp = rowCampanha(r); if(!camp) continue;
+    for(let c = f.c0; c <= f.c1; c++){
+      const col = COLS[c];
+      if(!col || col.kind !== "status") continue;
+      const opts = optsDe(col.k);
+      if(n > opts.length){ fora++; continue; }        // essa coluna não tem a opção n
+      if(camp.canais[col.k] !== opts[n-1]){ camp.canais[col.k] = opts[n-1]; mudou++; }
+    }
+  }
+  if(!mudou && !fora){ undoPilha.pop(); pintaUndo(); toast("Nenhuma coluna de status na seleção"); return; }
+  render(); markDirty();
+  toast(mudou + (mudou===1?" célula alterada":" células alteradas") + (fora ? " · " + fora + " sem a opção " + n : ""));
+}
+
+function pintaSelecao(){
+  gridWrap.querySelectorAll("td.selc").forEach(td=>{ td.classList.remove("selc"); td.style.boxShadow = ""; });
+  gridWrap.querySelectorAll("th.selh").forEach(th=>th.classList.remove("selh"));
+  const f = faixa();
+  atualizaRodapeSelecao(f);
+  if(!f) return;
+  for(let r = f.r0; r <= f.r1; r++){
+    for(let c = f.c0; c <= f.c1; c++){
+      const el = celulaEm(r, c); if(!el) continue;
+      const td = el.closest("td"); if(!td) continue;
+      td.classList.add("selc");
+      const b = [];
+      if(c === f.c0) b.push("inset 2px 0 0 var(--accent)");
+      if(c === f.c1) b.push("inset -2px 0 0 var(--accent)");
+      if(r === f.r0) b.push("inset 0 2px 0 var(--accent)");
+      if(r === f.r1) b.push("inset 0 -2px 0 var(--accent)");
+      td.style.boxShadow = b.join(",");
+    }
+  }
+  const ths = gridWrap.querySelectorAll("thead th");
+  for(let c = f.c0; c <= f.c1; c++) if(ths[c]) ths[c].classList.add("selh");
+}
+function atualizaRodapeSelecao(f){
+  const el = document.getElementById("selInfo");
+  if(!el) return;
+  if(!f){ el.textContent = ""; return; }
+  const nl = f.r1-f.r0+1, nc = f.c1-f.c0+1;
+  el.textContent = `${nl}×${nc} selecionadas · Ctrl+C copia · Delete limpa · 1–9 aplica status`;
+}
+
+/* seleciona a coluna inteira ao clicar no cabeçalho */
+gridWrap.addEventListener("click", (e)=>{
+  const th = e.target.closest("thead th");
+  if(!th || e.target.closest("[data-rz]")) return;
+  const ths = [...gridWrap.querySelectorAll("thead th")];
+  const c = ths.indexOf(th);
+  if(c < 0 || c >= NCOL || !rowIds.length) return;
+  if(e.shiftKey && selAnc){ estendePara(rowIds.length-1, c); }
+  else { selAnc = {r:0, c}; selFoc = {r:rowIds.length-1, c}; pintaSelecao(); }
+  const alvo = celulaEm(0, c); if(alvo) alvo.focus({preventScroll:true});
+});
+
+/* alça da linha: seleciona a linha inteira, como o cabeçalho faz com a coluna */
+gridWrap.addEventListener("click", (e)=>{
+  const h = e.target.closest("[data-linha]"); if(!h) return;
+  e.preventDefault(); e.stopPropagation();
+  const r = +h.dataset.linha;
+  if(e.shiftKey && selAnc) estendePara(r, NCOL - 1);
+  else { selAnc = {r, c:0}; selFoc = {r, c:NCOL - 1}; pintaSelecao(); }
+  const alvo = celulaEm(r, 0); if(alvo) alvo.focus({preventScroll:true});
+});
+
+/* clique numa célula: define a âncora; com Shift, estende */
+let recliqueStatus = false;   // segundo clique na mesma célula de status abre a lista
+gridWrap.addEventListener("mousedown", (e)=>{
+  const cel = e.target.closest("[data-r]"); if(!cel) return;
+  const r = +cel.dataset.r, c = +cel.dataset.c;
+  recliqueStatus = cel.dataset.kind === "status" && !e.shiftKey && !faixa()
+                && !!selAnc && selAnc.r === r && selAnc.c === c;
+  if(e.shiftKey){
+    e.preventDefault();
+    estendePara(r, c);
+    cel.focus({preventScroll:true});
+  }else ancoraEm(r, c);
+});
+
+/* --- entrar e sair do modo de edição --- */
+function editando(){ return gridWrap.querySelector("input.ci[data-kind='field']"); }
+
+function abreEdicao(el, charInicial){
+  // a grade pode ter sido redesenhada entre o clique e este momento: editar uma
+  // célula que já saiu do documento gravaria na linha errada, ou em lugar nenhum
+  if(!el || !el.isConnected) return;
+  const r = +el.dataset.r, ci = +el.dataset.c, k = el.dataset.k;
+  const col = COLS[ci], camp = rowCampanha(r);
+  if(!camp || !col) return;
+  const ehData = col.kind === "date";
+  const inp = document.createElement("input");
+  // a data é um campo de texto para poder ser digitada solta (1/9, 0109, 01/09/2026);
+  // o calendário fica no ícone da célula em repouso
+  inp.type = ehData ? "text" : col.kind==="time" ? "time" : "text";
+  inp.className = "ci" + (k==="nome" ? " nome" : "") + (ehData ? " num" : "");
+  inp.dataset.r = r; inp.dataset.c = ci; inp.dataset.kind = "field"; inp.dataset.k = k;
+  /* Guarda QUAL campanha está sendo editada, não em que linha ela estava.
+     Mudar data ou hora reordena a tabela: quando a edição fecha, aquela posição
+     pode já pertencer a outra campanha, e o valor ia parar nas duas.
+     O id nunca muda — nem quando o nome, a data ou a posição mudam. */
+  inp.dataset.cid = camp.id;
+  inp.setAttribute("aria-label", col.n);
+  if(ehData){ inp.dataset.fmt = "data"; inp.placeholder = "ddmmaaaa"; inp.inputMode = "numeric"; inp.maxLength = 10; }
+  if(col.list) inp.setAttribute("list", col.list);
+  inp.dataset.orig = camp[k] || "";
+  inp.value = charInicial != null ? charInicial
+            : ehData ? (camp[k] ? dataBR(camp[k]) : "")
+            : (camp[k] || "");
+  el.replaceWith(inp);
+  inp.focus();
+  if(charInicial != null && inp.type === "text"){
+    try{ inp.setSelectionRange(inp.value.length, inp.value.length); }catch(err){}
+  }else if(inp.type === "text"){
+    try{ inp.select(); }catch(err){}
+  }
+  inp.oninput = ()=>{
+    if(inp.dataset.fmt === "data"){
+      const m = mascaraData(inp.value);
+      if(m !== inp.value){ inp.value = m; try{ inp.setSelectionRange(m.length, m.length); }catch(err){} }
+      const iso = parseData(inp.value);
+      if(iso || !inp.value.trim()){ camp[k] = iso; dirty = true; paintSync(); renderKPIs(); }
+      return;   // enquanto a data estiver pela metade, não mexe no dado
+    }
+    camp[k] = inp.value; dirty = true; paintSync(); renderKPIs();
+  };
+  inp.onblur = ()=>{ if(inp.isConnected) fechaEdicao(inp, null); };
+}
+
+/* destino: {r,c} para onde ir depois de confirmar, ou null */
+function fechaEdicao(inp, destino, cancelar){
+  const r = +inp.dataset.r, ci = +inp.dataset.c, k = inp.dataset.k;
+  const camp = (inp.dataset.cid && byId(inp.dataset.cid)) || rowCampanha(r);
+  if(!camp){ render(); return; }
+  const antigo = inp.dataset.orig || "";
+  let novo = cancelar ? antigo : inp.value;
+  if(!cancelar && inp.dataset.fmt === "data"){
+    // texto ilegível volta ao que era; campo vazio limpa a data
+    novo = inp.value.trim() ? (parseData(inp.value) || antigo) : "";
+  }
+  if(novo !== antigo){
+    camp[k] = antigo;                 // o oninput já tinha alterado ao vivo
+    marco(COLS[ci] ? COLS[ci].n.toLowerCase() : "edição");
+  }
+  camp[k] = novo;
+  markDirty();
+  /* Data e hora mudam a ordem das linhas, então normalmente é preciso redesenhar.
+     Mas redesenhar arranca do documento a célula em que você acabou de clicar —
+     e aí o campo que abriu fica órfão e o que você digita nele se perde.
+     Por isso: só redesenha se a ordem tiver realmente mudado. */
+  let reordena = (k === "data" || k === "hora");
+  if(reordena && rowIds.join("") === visible().map(x=>x.id).join("")) reordena = false;
+  if(reordena){
+    pendingFocus = destino ? {id:camp.id, c:destino.c} : {id:camp.id, c:ci};
+    render();
+    if(destino && destino.r !== r) setTimeout(()=>focusCell(Math.min(destino.r, rowIds.length-1), destino.c), 0);
+    return;
+  }
+  const rAtual = rowIds.indexOf(camp.id);
+  if(rAtual < 0){ render(); return; }        // a linha saiu da vista: redesenha inteiro
+  const tpl = document.createElement("template");
+  tpl.innerHTML = displayHTML(camp, rAtual, ci, COLS[ci]).trim();
+  const celulaNova = tpl.content.firstChild;
+  inp.replaceWith(celulaNova);
+  renderKPIs();
+  if(destino) focusCell(destino.r, destino.c);
+  else if(document.activeElement === document.body) celulaNova.focus();
+}
+
+/* o tipo continua sendo um select comum */
+gridWrap.addEventListener("change", (e)=>{
+  const el = e.target.closest("select[data-kind='field']"); if(!el) return;
+  const c = rowCampanha(+el.dataset.r); if(!c) return;
+  if(c[el.dataset.k] !== el.value) marco("tipo");
+  c[el.dataset.k] = el.value;
+  pendingFocus = {id:c.id, c:+el.dataset.c};
+  render(); markDirty();
+});
+
+/* clique simples seleciona · duplo clique edita */
+gridWrap.addEventListener("dblclick", (e)=>{
+  if(e.target.closest("[data-cal]")) return;
+  const el = e.target.closest(".cellv"); if(!el) return;
+  // status e listas não viram campo de texto: o clique já abriu as opções
+  if(el.dataset.kind === "status" || el.dataset.kind === "lista"){ e.preventDefault(); return; }
+  abreEdicao(el, null); e.preventDefault();
+});
+
+/* ícone de calendário na coluna Data: abre o seletor nativo do navegador.
+   O campo de verdade fica invisível em cima da célula só para o popup nascer ali. */
+function abreCalendario(cel){
+  const r = +cel.dataset.r, ci = +cel.dataset.c;
+  const camp = rowCampanha(r); if(!camp) return;
+  const b = cel.getBoundingClientRect();
+  const dt = document.createElement("input");
+  dt.type = "date"; dt.className = "calpick"; dt.value = camp.data || "";
+  dt.style.left = b.left + "px"; dt.style.top = b.top + "px";
+  dt.style.width = b.width + "px"; dt.style.height = b.height + "px";
+  document.body.appendChild(dt);
+  let feito = false;
+  const some = ()=>{ if(feito) return; feito = true; dt.remove();
+    const alvo = celulaEm(r, ci); if(alvo) alvo.focus({preventScroll:true}); };
+  dt.addEventListener("change", ()=>{
+    const v = dt.value;
+    if(feito) return; feito = true; dt.remove();
+    if(v === (camp.data || "")){ const alvo = celulaEm(r, ci); if(alvo) alvo.focus({preventScroll:true}); return; }
+    marco("data");
+    camp.data = v; markDirty();
+    pendingFocus = {id:camp.id, c:ci};
+    render();
+  });
+  dt.addEventListener("blur", ()=>setTimeout(some, 150));
+  dt.focus({preventScroll:true});
+  if(dt.showPicker){ try{ dt.showPicker(); }catch(err){} }
+}
+gridWrap.addEventListener("click", (e)=>{
+  const bt = e.target.closest("[data-cal]"); if(!bt) return;
+  const cel = bt.closest(".cellv"); if(!cel) return;
+  e.preventDefault(); e.stopPropagation();
+  abreCalendario(cel);
+});
+
+/* --- largura das colunas: arrastar a borda do cabeçalho, como no Excel --- */
+gridWrap.addEventListener("pointerdown", (e)=>{
+  const alca = e.target.closest("[data-rz]"); if(!alca) return;
+  e.preventDefault();
+  const i = +alca.dataset.rz, col = COLS[i];
+  const t = gridWrap.querySelector("table.grid"); if(!t) return;
+  const x0 = e.clientX, w0 = t.querySelectorAll("colgroup col")[i].getBoundingClientRect().width;
+  alca.classList.add("on"); document.body.classList.add("redimensionando");
+  ui.larguras = ui.larguras || {};
+  const mover = (ev)=>{
+    ui.larguras[col.k] = Math.max(56, Math.min(700, Math.round(w0 + ev.clientX - x0)));
+    aplicaLarguras();
+  };
+  const soltar = ()=>{
+    alca.classList.remove("on"); document.body.classList.remove("redimensionando");
+    removeEventListener("pointermove", mover); removeEventListener("pointerup", soltar);
+    writeUI();
+  };
+  addEventListener("pointermove", mover); addEventListener("pointerup", soltar);
+});
+gridWrap.addEventListener("dblclick", (e)=>{
+  const alca = e.target.closest("[data-rz]"); if(!alca) return;
+  e.stopPropagation();
+  const col = COLS[+alca.dataset.rz];
+  if(ui.larguras) delete ui.larguras[col.k];
+  aplicaLarguras(); writeUI();
+  toast("Largura de " + col.n + " no padrão");
+}, true);
+
+gridWrap.addEventListener("keydown", (e)=>{
+  const el = e.target.closest("[data-r]"); if(!el) return;
+  const r = +el.dataset.r, c = +el.dataset.c;
+  const isStatus  = el.dataset.kind === "status";
+  const isLista   = el.dataset.kind === "lista";
+  // popup aberto e o foco caiu na célula: a seta pertence ao popup, não à grade
+  if(pop.dataset.open && /^Arrow(Left|Right|Up|Down)$/.test(e.key)
+     && !e.ctrlKey && !e.metaKey && !e.altKey && el.tagName !== "INPUT"){
+    setaComPopupAberto(e.key); e.preventDefault(); return;
+  }
+  const isDisplay = el.classList.contains("cellv");
+  const isInput   = el.tagName === "INPUT";
+  const isTexto   = isInput && el.type === "text";
+  const maxR = rowIds.length - 1;
+
+  const alvo = (dr,dc)=>{
+    let nr = Math.min(Math.max(0, r+dr), Math.max(0,maxR)), nc = c+dc;
+    if(nc < 0){ nc = NCOL-1; nr = Math.max(0, nr-1); }
+    if(nc > NCOL-1){ nc = 0; nr = Math.min(maxR, nr+1); }
+    return {r:nr, c:nc};
+  };
+  const move = (dr,dc)=>{ const d = alvo(dr,dc); ancoraEm(d.r,d.c); focusCell(d.r,d.c); e.preventDefault(); };
+  const sair = (dr,dc)=>{ fechaEdicao(el, alvo(dr,dc)); e.preventDefault(); };
+  /* Shift+seta estende a faixa a partir da âncora */
+  const estende = (dr,dc)=>{
+    const base = selFoc || {r, c};
+    const nr = Math.min(Math.max(0, base.r+dr), Math.max(0,maxR));
+    const nc = Math.min(Math.max(0, base.c+dc), NCOL-1);
+    if(!selAnc) selAnc = {r, c};
+    estendePara(nr, nc);
+    focusCell(nr, nc);
+    e.preventDefault();
+  };
+  const f = faixa();
+
+  if(e.shiftKey && !isInput && !e.ctrlKey && !e.metaKey && !e.altKey){
+    switch(e.key){
+      case "ArrowUp":    estende(-1,0); return;
+      case "ArrowDown":  estende(1,0);  return;
+      case "ArrowLeft":  estende(0,-1); return;
+      case "ArrowRight": estende(0,1);  return;
+      case " ":  // linha inteira, como no Excel
+        if(selAnc){ selAnc = {r:selAnc.r, c:0}; estendePara(selFoc.r, NCOL-1); }
+        else { selAnc = {r, c:0}; estendePara(r, NCOL-1); }
+        e.preventDefault(); return;
+    }
+  }
+  if((e.ctrlKey||e.metaKey) && e.key === " " && !isInput){   // coluna inteira
+    selAnc = {r:0, c: selAnc ? selAnc.c : c};
+    estendePara(Math.max(0,maxR), selFoc ? selFoc.c : c);
+    e.preventDefault(); return;
+  }
+  /* ações sobre a faixa */
+  if(f && !isInput){
+    if((e.ctrlKey||e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "c"){
+      copiaPendente = tsvDaFaixa(f);
+      copiaLinhas = null;
+      if(f.c0 === 0 && f.c1 === NCOL - 1){           // linha(s) inteira(s)
+        copiaLinhas = {texto: copiaPendente, dados: []};
+        for(let rr = f.r0; rr <= f.r1; rr++){
+          const cc = rowCampanha(rr);
+          copiaLinhas.dados.push(cc ? {obs: cc.obs || "", link: cc.link || "",
+                                       notas: Object.assign({}, cc.notas || {})} : null);
+        }
+      }
+      try{
+        const ta = document.createElement("textarea");
+        ta.value = copiaPendente; ta.setAttribute("readonly","");
+        ta.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none";
+        document.body.appendChild(ta); ta.select();
+        setTimeout(()=>{ ta.remove(); el.focus({preventScroll:true}); }, 0);
+      }catch(err){}
+      return;
+    }
+    if(e.key === "Delete" || e.key === "Backspace"){ limpaFaixa(f); e.preventDefault(); return; }
+    const n = parseInt(e.key,10);
+    if(!isNaN(n) && n >= 1 && n <= 9 && !e.ctrlKey && !e.metaKey){ aplicaStatusFaixa(f, n); e.preventDefault(); return; }
+    if(e.key === "Escape"){ ancoraEm(r,c); e.preventDefault(); return; }
+  }
+
+  // Ctrl+C na célula selecionada, como numa planilha.
+  // Deixa o navegador fazer a cópia de verdade (o evento `copy` abaixo entrega o texto):
+  // a API de área de transferência exige permissão que o artefato nem sempre tem.
+  if((e.ctrlKey||e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "c" && !isInput){
+    const camp = rowCampanha(r);
+    if(!camp) return;
+    const txt = isStatus ? S(camp.canais[el.dataset.ch]).label : (camp[el.dataset.k] || "");
+    if(!txt){ toast("Célula vazia"); e.preventDefault(); return; }
+    copiaPendente = txt;
+    // com a seleção vazia o navegador nem dispara o evento `copy`; um campo
+    // invisível já selecionado garante que ele dispare
+    try{
+      const ta = document.createElement("textarea");
+      ta.value = txt; ta.setAttribute("readonly","");
+      ta.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none";
+      document.body.appendChild(ta);
+      ta.select();
+      setTimeout(()=>{ ta.remove(); el.focus({preventScroll:true}); }, 0);
+    }catch(err){}
+    return;   // sem preventDefault — o Ctrl+C nativo segue seu curso
+  }
+  if((e.ctrlKey||e.metaKey) && e.key === "Enter"){
+    if(isInput) fechaEdicao(el, null);
+    const nc = novaLinha();
+    pendingFocus = {id:nc.id, c:0, edit:true}; render(); e.preventDefault(); return;
+  }
+  if(e.altKey || e.ctrlKey || e.metaKey) return;
+
+  if(e.key === "Tab"){
+    if(isInput){ sair(0, e.shiftKey ? -1 : 1); }
+    return;   // nos demais casos o Tab nativo já anda na ordem certa
+  }
+  switch(e.key){
+    case "ArrowUp":    isInput ? sair(-1,0) : move(-1,0); return;
+    case "ArrowDown":  isInput ? sair(1,0)  : move(1,0);  return;
+    case "ArrowLeft":
+      if(isTexto && el.selectionStart > 0) return;
+      isInput ? sair(0,-1) : move(0,-1); return;
+    case "ArrowRight":
+      if(isTexto && el.selectionStart < el.value.length) return;
+      isInput ? sair(0,1) : move(0,1); return;
+    case "Enter":
+      // igual ao Excel: Enter anda para baixo; F2, duplo clique ou digitar é que editam
+      if(isStatus){ openPop(el); e.preventDefault(); return; }
+      if(isLista){ abreLista(el); e.preventDefault(); return; }
+      if(isInput){ sair(1,0); return; }
+      move(1,0); return;
+    case "F2":
+      if(isDisplay){ abreEdicao(el, null); e.preventDefault(); }
+      return;
+    case "Escape":
+      if(isInput){ fechaEdicao(el, {r,c}, true); e.preventDefault(); }
+      else el.blur();
+      return;
+    case "Home": if(!isInput){ focusCell(r,0); e.preventDefault(); } return;
+    case "End":  if(!isInput){ focusCell(r,NCOL-1); e.preventDefault(); } return;
+  }
+  if(isLista){
+    if(e.key === " "){ abreLista(el); e.preventDefault(); return; }
+    if(e.key === "Backspace" || e.key === "Delete"){
+      const camp = rowCampanha(r);
+      if(camp && camp[el.dataset.k]){ marco(COLS[c].n.toLowerCase()); camp[el.dataset.k] = ""; }
+      pendingFocus = {id: rowIds[r], c}; render(); markDirty();
+      e.preventDefault(); return;
+    }
+    const n = parseInt(e.key,10);
+    if(!isNaN(n) && n >= 1 && n <= 9){ abreLista(el); e.preventDefault(); return; }
+    return;   // digitar letra não abre editor de texto aqui
+  }
+  if(isStatus){
+    if(e.key === " "){ openPop(el); e.preventDefault(); return; }
+    if(e.key === "Backspace" || e.key === "Delete"){ setStatus(r, el.dataset.ch, "nc", c); e.preventDefault(); return; }
+    const opts = optsDe(el.dataset.ch), n = parseInt(e.key,10);
+    if(!isNaN(n) && n>=1 && n<=opts.length){ setStatus(r, el.dataset.ch, opts[n-1], c); e.preventDefault(); return; }
+    return;
+  }
+  if(isDisplay){
+    if(e.key === "Backspace" || e.key === "Delete"){
+      const camp = rowCampanha(r);
+      if(camp){ camp[el.dataset.k] = ""; pendingFocus = {id:camp.id, c}; render(); markDirty(); }
+      e.preventDefault(); return;
+    }
+    // digitar já começa a editar, como numa planilha
+    if(e.key.length === 1){ abreEdicao(el, e.key); e.preventDefault(); }
+  }
+});
+function setStatus(r, ch, val, colIdx){
+  const id = rowIds[r]; if(!id) return;
+  popCtx = {id, ch, colIdx, anchor: gridWrap.querySelector(`[data-r="${r}"][data-c="${colIdx}"]`)};
+  aplicaStatus(id, ch, val);
+  if(val === "ajustar"){ desenhaPop(); setTimeout(()=>{ const t = pop.querySelector("#popNota"); if(t) t.focus(); }, 20); }
+  else popCtx = null;
+}
+/* O navegador rola sozinho ao dar foco, mas ele não sabe que o cabeçalho e as duas
+   primeiras colunas ficam grudados por cima — a célula ia parar embaixo deles.
+   Aqui a rolagem é feita na mão, descontando essas faixas. */
+function garanteVisivel(el){
+  if(!el || !gridWrap) return;
+  const cx = el.getBoundingClientRect(), w = gridWrap.getBoundingClientRect(), m = 6;
+  const ths = gridWrap.querySelectorAll("thead th");
+  let fixa = 0;
+  for(let i = 0; i < NSTICKY && i < ths.length; i++) fixa += ths[i].getBoundingClientRect().width;
+  const topo = ths.length ? ths[0].getBoundingClientRect().height : 0;
+  const td = el.closest("td");
+  if(!(td && td.classList.contains("sk"))){          // colunas fixas já estão sempre à vista
+    if(cx.left < w.left + fixa + m)     gridWrap.scrollLeft -= (w.left + fixa + m) - cx.left;
+    else if(cx.right > w.right - m)     gridWrap.scrollLeft += cx.right - (w.right - m);
+  }
+  if(cx.top < w.top + topo + m)         gridWrap.scrollTop  -= (w.top + topo + m) - cx.top;
+  else if(cx.bottom > w.bottom - m)     gridWrap.scrollTop  += cx.bottom - (w.bottom - m);
+}
+function focusCell(r,c){
+  const el = gridWrap.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+  if(!el) return;
+  el.focus({preventScroll:true});
+  garanteVisivel(el);
+}
+function restoreFocus(){
+  const pf = pendingFocus; pendingFocus = null;
+  if(!pf || ui.view !== "tabela") return;
+  const r = rowIds.indexOf(pf.id); if(r < 0) return;
+  const el = gridWrap.querySelector(`[data-r="${r}"][data-c="${pf.c}"]`); if(!el) return;
+  if(pf.edit && el.classList.contains("cellv")){ abreEdicao(el, null); return; }
+  el.focus({preventScroll:true});
+  if(pf.caret === "end" && el.setSelectionRange && el.type === "text"){
+    const n = el.value.length; try{ el.setSelectionRange(n,n); }catch(err){}
+  }
+}
+
+/* ===================== POPOVER / GAVETA ===================== */
+document.addEventListener("click", (e)=>{
+  const ed = e.target.closest("[data-editstatus]");
+  if(ed){ abreEditorStatus(ed.dataset.editstatus); return; }
+  const novoDia = e.target.closest("[data-novodia]");
+  if(novoDia){ novaPelaTimeline(novoDia.dataset.novodia); return; }
+  const act = e.target.closest("[data-act]");
+  if(act){ act.dataset.act==="clear" ? clearFilters() : novaCampanhaBtn(); return; }
+  const op = e.target.closest("[data-open]");
+  if(op){ openDrawer(op.dataset.open); return; }
+  if(!e.target.closest("#ctx")) fechaCtx();
+  if(!e.target.closest("#colmenu")) fechaMenuColuna();
+  const pastilha = e.target.closest("[data-abrepop]");
+  if(pastilha){
+    const cel = pastilha.closest("[data-kind='status']");
+    if(cel){ cel.focus({preventScroll:true}); openPop(cel); return; }
+  }
+  // segundo clique na célula de status já selecionada abre a lista, mesmo devagar
+  const stcel = e.target.closest("[data-kind='status']");
+  if(stcel && recliqueStatus){
+    recliqueStatus = false;
+    stcel.focus({preventScroll:true}); openPop(stcel); return;
+  }
+  // Tipo e Resp.: um clique já abre a lista (é o que se espera de um seletor)
+  const lcel = e.target.closest("[data-kind='lista']");
+  if(lcel && gridWrap.contains(lcel) && !e.shiftKey){
+    recliqueStatus = false;
+    lcel.focus({preventScroll:true}); abreLista(lcel); return;
+  }
+  recliqueStatus = false;
+  if(!e.target.closest("#pop") && !cliqueVeioDoPop) closePop();
+  cliqueVeioDoPop = false;
+  /* clicou fora da tabela: a faixa selecionada some. Antes ela ficava marcada
+     indefinidamente, e a próxima tecla agia sobre ela sem o Leo esperar. */
+  if(faixa() && !e.target.closest("#gridWrap, #pop, #ctx, #drawer, .modal")) limpaSelecao();
+});
+addEventListener("scroll", ()=>{ if(Date.now() - ctxAberto > 250) fechaCtx(); }, true);
+document.addEventListener("keydown", (e)=>{
+  /* Popup aberto e seta para o lado: fecha mantendo o valor e anda — esteja o foco
+     onde estiver. Isto precisa vir ANTES da regra de "seta sem nada selecionado":
+     quando o status é "Ajustar" (ou o canal tem comentário) o popup abre no campo
+     de texto e nenhuma opção fica focada, então a tecla não chegava ao popup e
+     acabava jogando o cursor para a primeira célula da tabela. */
+  if(pop.dataset.open && /^Arrow(Left|Right|Up|Down)$/.test(e.key)
+     && !e.ctrlKey && !e.metaKey && !e.altKey){
+    const a = document.activeElement;
+    const emTexto = a && (a.tagName === "TEXTAREA" || a.tagName === "INPUT");
+    const dentroDoPop = a && a.closest && a.closest("#pop");
+    if(!emTexto && !dentroDoPop){ setaComPopupAberto(e.key); e.preventDefault(); return; }
+  }
+  /* seta com nada selecionado: entra na primeira célula da tabela, aí já dá para navegar */
+  if(/^Arrow(Up|Down|Left|Right)$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey
+     && ui.view === "tabela" && rowIds.length){
+    const a = document.activeElement;
+    const digitando = a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA"
+                        || a.tagName === "SELECT" || a.isContentEditable);
+    const ocupado = a && a.closest && a.closest("#pop,#drawer,#ctx,#stModal,#askModal");
+    if(!digitando && !ocupado && !(a && a.closest && a.closest("[data-r]"))){
+      const alvo = celulaEm(0,0);
+      if(alvo){ ancoraEm(0,0); focusCell(0,0); e.preventDefault(); return; }
+    }
+  }
+  if(e.key === "Escape"){
+    if(askModal.dataset.open){ respondeAsk(false); return; }
+    if(colmenu.dataset.open){ fechaMenuColuna(); return; }
+    if(ctxMenu.dataset.open){ fechaCtx(); return; }
+    if(stModal.dataset.open){ fechaEditorStatus(); return; }
+    closePop(); closeDrawer(); return;
+  }
+  // Ctrl+Z / Ctrl+Shift+Z — mas dentro de um campo de texto o desfazer é o do navegador
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === "z"){
+    const a = document.activeElement;
+    const digitando = a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA");
+    if(digitando || askModal.dataset.open) return;
+    e.shiftKey ? refazer() : desfazer();
+    e.preventDefault(); return;
+  }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === "y"){
+    const a = document.activeElement;
+    if(a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA")) return;
+    refazer(); e.preventDefault();
+  }
+});
+
+let copiaPendente = null;
+/* Copiar a LINHA INTEIRA é o jeito de duplicar uma campanha. Só que Observação,
+   Link e os comentários dos canais não são colunas da tabela — não teriam como
+   viajar no texto copiado. Então a linha inteira guarda também esses três aqui,
+   e eles são reaplicados se o texto colado for exatamente o que saiu daqui. */
+let copiaLinhas = null;   // {texto, dados:[{obs, link, notas}]}
+
+function valorDaCelula(cel){
+  const camp = rowCampanha(+cel.dataset.r);
+  if(!camp) return null;
+  if(cel.dataset.kind === "status") return S(camp.canais[cel.dataset.ch]).label;
+  const col = COLS[+cel.dataset.c];
+  const v = camp[cel.dataset.k] || "";
+  return (col && col.kind === "date" && v) ? dataBR(v) : v;
+}
+/* O Ctrl+C da grade cai aqui: entrega o valor exato da célula pelo mecanismo nativo
+   do navegador, que não depende da permissão de área de transferência. */
+document.addEventListener("copy", (e)=>{
+  let txt = copiaPendente; copiaPendente = null;
+  if(txt == null){
+    const el = document.activeElement;
+    const cel = el && el.closest ? el.closest("[data-r]") : null;
+    if(!cel || cel.tagName === "INPUT" || cel.tagName === "TEXTAREA") return;
+    txt = valorDaCelula(cel);
+  }
+  if(txt == null) return;
+  try{
+    e.clipboardData.setData("text/plain", txt);
+    e.preventDefault();
+    toast(txt ? "Copiado: " + (txt.length>40 ? txt.slice(0,40)+"…" : txt) : "Célula vazia");
+  }catch(err){}
+});
+
+/* ---------- colar ---------- */
+const semAcento = s => String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").trim();
+function achaStatus(ch, txt){
+  const alvo = semAcento(txt);
+  if(!alvo) return null;
+  const lista = optsDe(ch);
+  return lista.find(k=>semAcento(S(k).label) === alvo)
+      || lista.find(k=>semAcento(k) === alvo)
+      || (Object.keys(STATUS).find(k=>semAcento(S(k).label) === alvo && lista.includes(k)))
+      || null;
+}
+function parseDataLivre(t){
+  const s = String(t||"").trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(m) return m[1]+"-"+m[2].padStart(2,"0")+"-"+m[3].padStart(2,"0");
+  m = s.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})$/);
+  if(m){
+    let a = m[3]; if(a.length === 2) a = "20"+a;
+    return a+"-"+m[2].padStart(2,"0")+"-"+m[1].padStart(2,"0");
+  }
+  return null;
+}
+function parseHora(t){
+  const m = String(t||"").trim().match(/^(\d{1,2})[:h](\d{2})/);
+  return m ? String(Math.min(23,+m[1])).padStart(2,"0")+":"+m[2] : null;
+}
+/* escreve um valor de texto numa célula, respeitando o tipo da coluna.
+   Devolve true quando o valor coube ali. */
+function poeValor(r, ci, v){
+  const camp = rowCampanha(r), col = COLS[ci];
+  if(!camp || !col) return false;
+  if(col.kind === "status"){
+    const k = achaStatus(col.k, v);
+    if(!k) return false;
+    camp.canais[col.k] = k; return true;
+  }
+  if(col.kind === "date"){
+    const d = parseDataLivre(v) || parseData(v);
+    if(!d) return false;
+    camp.data = d; return true;
+  }
+  if(col.kind === "time"){
+    const h = parseHora(v);
+    if(!h && v) return false;
+    camp.hora = h || ""; return true;
+  }
+  if(col.kind === "lista"){
+    if(!v){ camp[col.k] = ""; return true; }
+    const validas = OPCOES_LISTA[col.k]().map(o=>o.v).filter(x => x !== VAZIO && x !== OUTRO);
+    const achou = validas.find(x => semAcento(x) === semAcento(v));
+    if(achou){ camp[col.k] = achou; return true; }
+    if(col.livre){ camp[col.k] = v; return true; }   // Resp. aceita nome de fora
+    return false;                                     // Tipo não inventa valor
+  }
+  camp[col.k] = v; return true;
+}
+/* Três formas de colar:
+   · uma célula só, sem faixa selecionada → cai na célula de destino;
+   · uma célula só COM faixa selecionada → preenche a faixa inteira, como no Excel;
+   · um bloco copiado do Excel (linhas por \n, colunas por \t) → entra a partir do canto. */
+function aplicaColagem(r0, c0, texto, alvoFaixa){
+  const linhas = String(texto).replace(/\r\n?/g,"\n").split("\n");
+  while(linhas.length > 1 && linhas[linhas.length-1] === "") linhas.pop();
+  if(!linhas.length) return;
+  const umValorSo = linhas.length === 1 && linhas[0].indexOf("\t") < 0;
+  marco("colagem");
+  let ok = 0, recusados = 0, sobraram = 0;
+
+  if(alvoFaixa && umValorSo){
+    const v = linhas[0].trim();
+    for(let r = alvoFaixa.r0; r <= alvoFaixa.r1; r++)
+      for(let ci = alvoFaixa.c0; ci <= alvoFaixa.c1; ci++)
+        poeValor(r, ci, v) ? ok++ : recusados++;
+  }else{
+    linhas.forEach((linha, dr)=>{
+      const r = r0 + dr;
+      if(r >= rowIds.length){ sobraram++; return; }
+      linha.split("\t").forEach((bruto, dc)=>{
+        const ci = c0 + dc;
+        if(!COLS[ci]) return;
+        poeValor(r, ci, bruto.trim()) ? ok++ : recusados++;
+      });
+    });
+  }
+
+  /* Linha inteira colada: traz junto o que não cabe no texto. O texto precisa ser
+     exatamente o que esta aba copiou — colar de fora não dispara isto. */
+  let linhasCheias = 0;
+  if(copiaLinhas && copiaLinhas.texto === String(texto) && c0 === 0 && !alvoFaixa){
+    copiaLinhas.dados.forEach((d, dr)=>{
+      const camp = rowCampanha(r0 + dr);
+      if(camp && d){
+        camp.obs = d.obs; camp.link = d.link;
+        camp.notas = Object.assign({}, d.notas);
+        linhasCheias++;
+      }
+    });
+  }
+
+  // volta o foco para onde você colou, em vez de largar a seleção no começo da tabela
+  const idFoco = rowIds[r0];
+  if(idFoco) pendingFocus = {id: idFoco, c: c0};
+  render(); markDirty();
+  const partes = linhasCheias
+    ? [linhasCheias + (linhasCheias===1 ? " campanha duplicada" : " campanhas duplicadas") + " — com observação, link e comentários"]
+    : [ok + (ok===1 ? " célula colada" : " células coladas")];
+  if(recusados) partes.push(recusados + " sem correspondência");
+  if(sobraram) partes.push(sobraram + " linha" + (sobraram>1?"s":"") + " além do fim da tabela");
+  toast(partes.join(" · "));
+}
+document.addEventListener("paste", (e)=>{
+  const el = document.activeElement;
+  const cel = el && el.closest ? el.closest("[data-r]") : null;
+  if(!cel || !gridWrap.contains(cel)) return;
+  if(cel.tagName === "INPUT" || cel.tagName === "TEXTAREA" || cel.tagName === "SELECT") return;
+  const dados = e.clipboardData || window.clipboardData;
+  const txt = dados ? dados.getData("text/plain") : "";
+  if(!txt) return;
+  e.preventDefault();
+  // com uma faixa selecionada, o ponto de partida é o canto dela, não a célula com foco
+  const f = faixa();
+  aplicaColagem(f ? f.r0 : +cel.dataset.r, f ? f.c0 : +cel.dataset.c, txt, f);
+});
+
+async function copiaTexto(txt){
+  if(!txt){ toast("Célula vazia"); return; }
+  try{ await navigator.clipboard.writeText(txt); toast("Copiado: " + (txt.length>40 ? txt.slice(0,40)+"…" : txt)); return; }
+  catch(err){}
+  // navegador sem permissão de área de transferência: cai no método antigo
+  try{
+    const ta = document.createElement("textarea");
+    ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    toast(ok ? "Copiado" : "Não consegui copiar aqui");
+  }catch(err){ toast("Não consegui copiar aqui"); }
+}
+
+const pop = document.getElementById("pop");
+let popCtx = null;   // {id, ch, colIdx, anchor}
+/* Escolher uma opção redesenha o conteúdo do popup — e isso ARRANCA do documento
+   o botão que acabou de ser clicado. Quando o clique termina de subir até o
+   documento, `closest("#pop")` já não encontra nada e o painel concluiria que o
+   clique foi fora, fechando o popup na hora errada. Esta marca diz a verdade. */
+let cliqueVeioDoPop = false;
+
+function openPop(btn){
+  popCtx = {id: rowIds[+btn.dataset.r], ch: btn.dataset.ch, colIdx: +btn.dataset.c, anchor: btn};
+  desenhaPop();
+}
+/* Tipo e Resp. usam o MESMO popup dos status — por isso herdam de graça as
+   setas, o Esc, os atalhos 1–9 e o reposicionamento quando a grade redesenha. */
+function abreLista(cel){
+  popCtx = {id: rowIds[+cel.dataset.r], k: cel.dataset.k, colIdx: +cel.dataset.c, anchor: cel};
+  desenhaPop();
+}
+function desenhaListaPop(){
+  const {id, k, anchor} = popCtx;
+  const c = byId(id); if(!c){ closePop(); return; }
+  const atual = c[k] || "";
+  let opts = OPCOES_LISTA[k]();
+  // valor que não está na lista (vindo da planilha, do Trello ou de "Outro…")
+  // aparece no topo para não se perder de vista
+  if(atual && !opts.some(o => o.v === atual)) opts = [{v:atual, r:atual}].concat(opts);
+
+  const col = COLS.find(x => x.k === k);
+  pop.innerHTML = `<div class="ph">${esc(col.n)}</div>`
+    + opts.map(o => `<button class="popt txt" data-lista="${esc(o.v)}" role="menuitem"
+        aria-current="${o.v === atual}">${esc(o.r)}</button>`).join("");
+  pop.dataset.open = "1";
+  posicionaPop(anchor);
+  const sel = pop.querySelector('.popt[aria-current="true"]') || pop.querySelector(".popt");
+  if(sel) sel.focus({preventScroll:true});
+
+  pop.querySelectorAll("[data-lista]").forEach(b => b.onclick = async ()=>{
+    cliqueVeioDoPop = true;
+    let v = b.dataset.lista;
+    if(v === OUTRO){
+      closePop();
+      const digitado = await pergunta({
+        titulo: "Outro " + col.n.toLowerCase().replace(".",""),
+        texto: "Escreva o nome. Ele fica só nesta campanha — a lista continua com Sacra e LV.",
+        campo: "Nome", valor: (atual && !OPCOES_LISTA[k]().some(o=>o.v===atual)) ? atual : "", ok: "Usar"
+      });
+      if(digitado === null) return;
+      v = String(digitado).trim();
+    }else if(v === VAZIO) v = "";
+    const cc = byId(id); if(!cc) return;
+    if((cc[k] || "") !== v){ marco(col.n.toLowerCase()); cc[k] = v; }
+    pendingFocus = {id, c: popCtx ? popCtx.colIdx : 0};
+    closePop(); render(); markDirty();
+  });
+}
+function desenhaPop(){
+  if(popCtx && popCtx.k) return desenhaListaPop();
+  const {id, ch, anchor} = popCtx;
+  const c = byId(id); if(!c){ closePop(); return; }
+  const cur = c.canais[ch] || "nc";
+  const precisaNota = cur === "ajustar" || !!notaDe(c, ch);
+
+  pop.innerHTML = `<div class="ph">${esc(nomeCanal(ch))}
+      <button class="gear" data-editstatus="${ch}" title="Editar os status desta coluna" aria-label="Editar os status desta coluna">⚙</button></div>`
+    + optsDe(ch).map(k=>
+      `<button class="popt" data-set="${k}" role="menuitem" aria-current="${k===cur}"
+        style="--c:var(--c-${S(k).c})">${pillHTML(k,"fill")}</button>`).join("")
+    + (precisaNota ? `<div class="popnote">
+        <label for="popNota">O que precisa ajustar?</label>
+        <textarea id="popNota" placeholder="Ex.: trocar a arte do banner, o valor do giro está errado…">${esc(notaDe(c,ch))}</textarea>
+        <div class="row"><button class="btn sm primary" data-savenote="1">Salvar</button>
+          <span class="hint">Ctrl+↵</span></div></div>` : "");
+
+  pop.dataset.open = "1";
+  posicionaPop(anchor);
+  // o teclado passa a andar dentro do popup: setas trocam a opção, Enter aplica
+  /* Foca a opção atual SEMPRE, inclusive quando existe campo de comentário.
+     Antes, com "Ajustar" nenhuma opção era focada e o teclado ficava sem dono:
+     as setas escapavam para a grade e mexiam na célula em vez da lista.
+     Quem acabou de ESCOLHER "ajustar" continua caindo direto no comentário —
+     isso é feito logo depois, no clique da opção. */
+  const atual = pop.querySelector('.popt[aria-current="true"]') || pop.querySelector(".popt");
+  if(atual) atual.focus({preventScroll:true});
+
+  pop.querySelectorAll("[data-set]").forEach(b=> b.onclick = ()=>{
+    cliqueVeioDoPop = true;
+    const val = b.dataset.set;
+    aplicaStatus(id, ch, val);
+    if(val === "ajustar"){ desenhaPop(); setTimeout(()=>{ const t = pop.querySelector("#popNota"); if(t) t.focus(); }, 20); }
+    else closePop();
+  });
+  const ta = pop.querySelector("#popNota");
+  if(ta){
+    const original = notaDe(c, ch);
+    const salva = ()=>{
+      const cc = byId(id); if(!cc) return;
+      const v = ta.value.trim();
+      if(v === original) return;
+      cc.notas = cc.notas || {};
+      if(original) cc.notas[ch] = original; else delete cc.notas[ch];
+      marco("comentário");
+      if(v) cc.notas[ch] = v; else delete cc.notas[ch];
+      render(); markDirty();
+    };
+    pop.querySelector("[data-savenote]").onclick = ()=>{ cliqueVeioDoPop = true; salva(); closePop(); };
+    ta.onkeydown = (e)=>{
+      if(e.key === "Enter" && (e.ctrlKey||e.metaKey)){ salva(); closePop(); e.preventDefault(); }
+      if(e.key === "Escape"){ salva(); closePop(); e.preventDefault(); }
+    };
+    ta.onblur = salva;
+  }
+}
+function aplicaStatus(id, ch, val){
+  const c = byId(id); if(!c) return;
+  if(c.canais[ch] !== val) marco(nomeCanal(ch));
+  c.canais[ch] = val;   // o comentário é independente do status: nunca é apagado sozinho
+  const r = rowIds.indexOf(id);
+  if(r >= 0 && ui.view === "tabela") pendingFocus = {id, c: popCtx ? popCtx.colIdx : 0};
+  render(); markDirty();
+  if(openId === id) openDrawer(id);
+}
+function posicionaPop(anchor){
+  if(!anchor || !anchor.isConnected){
+    // a grade foi redesenhada: reencontra a mesma célula
+    const r = rowIds.indexOf(popCtx.id);
+    anchor = r >= 0 ? gridWrap.querySelector(`[data-r="${r}"][data-c="${popCtx.colIdx}"]`) : null;
+    if(anchor) popCtx.anchor = anchor; else return;
+  }
+  const rect = anchor.getBoundingClientRect(), p = pop.getBoundingClientRect();
+  let top = rect.bottom + 6;
+  if(top + p.height > innerHeight - 10) top = Math.max(8, rect.top - p.height - 6);
+  pop.style.top = Math.max(8, top) + "px";
+  pop.style.left = Math.min(Math.max(8, rect.left + rect.width/2 - p.width/2), innerWidth - p.width - 8) + "px";
+}
+function closePop(voltarFoco){
+  const ctx = popCtx;
+  delete pop.dataset.open; popCtx = null;
+  if(voltarFoco && ctx){
+    const r = rowIds.indexOf(ctx.id);
+    if(r >= 0) focusCell(r, ctx.colIdx);
+  }
+}
+/* Seta pressionada com o popup aberto e o foco fora dele: para os lados, sai e
+   anda; para cima e para baixo, entra na lista. A partir daí quem manda é o
+   próprio popup. */
+function setaComPopupAberto(key){
+  if(key === "ArrowLeft" || key === "ArrowRight"){
+    fechaPopEAndar(key === "ArrowLeft" ? -1 : 1); return;
+  }
+  const opcoes = [...pop.querySelectorAll(".popt")];
+  if(!opcoes.length) return;
+  opcoes[key === "ArrowDown" ? 0 : opcoes.length - 1].focus({preventScroll:true});
+}
+
+/* Sai do popup sem alterar nada e vai para a célula do lado, como numa planilha.
+   Precisa guardar o contexto antes de fechar — closePop() zera o popCtx. */
+function fechaPopEAndar(dc){
+  const ctx = popCtx; if(!ctx) return;
+  const r = rowIds.indexOf(ctx.id);
+  closePop();
+  if(r < 0) return;
+  let nr = r, nc = ctx.colIdx + dc;
+  if(nc < 0){ nc = NCOL - 1; nr = Math.max(0, r - 1); }
+  if(nc > NCOL - 1){ nc = 0; nr = Math.min(rowIds.length - 1, r + 1); }
+  ancoraEm(nr, nc); focusCell(nr, nc);
+}
+
+/* setas andam entre os status; Enter aplica; Esc volta para a célula */
+pop.addEventListener("keydown", (e)=>{
+  if(e.target.tagName === "TEXTAREA") return;      // o comentário do ajuste é campo livre
+  const opcoes = [...pop.querySelectorAll(".popt")];
+  if(!opcoes.length) return;
+  const i = opcoes.indexOf(document.activeElement.closest(".popt"));
+  // dá a volta: da primeira para a última e vice-versa
+  const vai = (n)=>{ const L = opcoes.length; opcoes[((n % L) + L) % L].focus({preventScroll:true}); e.preventDefault(); };
+  switch(e.key){
+    case "ArrowDown": vai(i < 0 ? 0 : i+1); return;
+    case "ArrowUp":   vai(i < 0 ? opcoes.length-1 : i-1); return;
+    case "Home":      vai(0); return;
+    case "End":       vai(opcoes.length-1); return;
+    case "Escape":    closePop(true); e.preventDefault(); return;
+    case "Tab":       closePop(true); e.preventDefault(); return;
+    // seta para o lado: mantém o que estava, fecha e anda para a célula vizinha
+    case "ArrowLeft":  fechaPopEAndar(-1); e.preventDefault(); return;
+    case "ArrowRight": fechaPopEAndar(1);  e.preventDefault(); return;
+  }
+  const n = parseInt(e.key,10);
+  if(!isNaN(n) && n>=1 && n<=opcoes.length){ opcoes[n-1].click(); e.preventDefault(); }
+});
+
+/* ===================== MENU DO BOTÃO DIREITO ===================== */
+/* Comunicações = tudo menos Flow e Missão (que são mecânica, não peça de comunicação). */
+const COMUNICACOES = ["email","telegram","popup","sms","inbox","push","banner"];
+const ctxMenu = document.getElementById("ctx");
+let ctxAberto = 0;
+
+/* O "ok" de cada coluna: "Concluído" quando a coluna tem esse status; senão, o único
+   status que conta como pronto. Se houver mais de um (Banner: Single e First), não dá
+   para adivinhar qual — a coluna fica de fora em vez de receber um chute. */
+function statusOkDe(ch){
+  const opts = optsDe(ch);
+  if(opts.includes("concluido")) return "concluido";
+  const prontos = opts.filter(k=>S(k).kind === "done");
+  return prontos.length === 1 ? prontos[0] : null;
+}
+function comunicacoesAplicaveis(c){
+  return COMUNICACOES.filter(ch=> S(c.canais[ch]).kind !== "skip" && !!statusOkDe(ch));
+}
+function comunicacoesAmbiguas(c){
+  return COMUNICACOES.filter(ch=> S(c.canais[ch]).kind !== "skip" && !statusOkDe(ch));
+}
+function marcaComunicacaoOk(id){
+  const c = byId(id); if(!c) return;
+  const alvos = comunicacoesAplicaveis(c);
+  const ambiguas = comunicacoesAmbiguas(c);
+  if(!alvos.length){
+    toast(ambiguas.length
+      ? "Nada a marcar automaticamente — " + ambiguas.map(nomeCanal).join(" e ") + " tem mais de um status de pronto"
+      : "Nenhuma comunicação aplicável nesta campanha");
+    return;
+  }
+  marco("comunicação ok");
+  let n = 0;
+  alvos.forEach(ch=>{
+    const ok = statusOkDe(ch);
+    if(c.canais[ch] !== ok){ c.canais[ch] = ok; n++; }
+  });
+  render(); markDirty();
+  if(openId === id) openDrawer(id);
+  const base = n ? n + (n===1 ? " comunicação marcada" : " comunicações marcadas") : "Já estava tudo marcado";
+  toast(base + (ambiguas.length ? " · " + ambiguas.map(nomeCanal).join(" e ") + " ficou por sua conta" : ""));
+}
+async function excluiCampanha(id){
+  const c = byId(id); if(!c) return;
+  const ok = await pergunta({
+    titulo:"Excluir campanha", perigo:true, ok:"Excluir",
+    texto:`"${c.nome || "Sem nome"}" sai do painel para todo mundo. Dá para desfazer com Ctrl+Z.`
+  });
+  if(!ok || !byId(id)) return;
+  marco("exclusão");
+  campanhas = campanhas.filter(x=>x.id !== id);
+  if(openId === id) closeDrawer();
+  render(); markDirty(); toast("Campanha excluída");
+}
+/* menu genérico: recebe título e lista de itens {k, label, ic, danger, off, extra} */
+function abreMenu(titulo, itens, x, y, aoEscolher){
+  ctxMenu.innerHTML = (titulo ? `<div class="ph">${esc(titulo)}</div>` : "")
+    + itens.map(i => i.k === "-" ? `<div class="sep"></div>`
+        : `<button class="txtopt${i.danger?" danger":""}" data-ctx="${i.k}"${i.off?' disabled style="opacity:.45"':""}>
+             <span class="ic">${i.ic||""}</span>${esc(i.label)}${i.extra?`<span style="margin-left:auto;color:var(--ink-3);font-size:11px">${esc(i.extra)}</span>`:""}</button>`).join("");
+  ctxMenu.dataset.open = "1";
+  ctxAberto = Date.now();
+  const b = ctxMenu.getBoundingClientRect();
+  ctxMenu.style.top  = Math.min(Math.max(8, y), innerHeight - b.height - 8) + "px";
+  ctxMenu.style.left = Math.min(Math.max(8, x), innerWidth  - b.width  - 8) + "px";
+  ctxMenu.querySelectorAll("[data-ctx]").forEach(btn=> btn.onclick = ()=>{
+    const a = btn.dataset.ctx; fechaCtx(); aoEscolher(a);
+  });
+}
+function fechaCtx(){ delete ctxMenu.dataset.open; }
+
+/* ===================== MENU DA COLUNA ===================== */
+const colmenu = document.getElementById("colmenu");
+const FUNIL = '<svg viewBox="0 0 12 12" width="9" height="9" aria-hidden="true"><path d="M1.2 2h9.6L7.1 6.4V10L4.9 8.8V6.4z" fill="currentColor"/></svg>';
+function fechaMenuColuna(){ delete colmenu.dataset.open; }
+
+function abreMenuColuna(k, x, y){
+  const col = COLS.find(c => c.k === k); if(!col) return;
+  fechaCtx(); closePop();
+  const vals = valoresDaColuna(k);
+  const sel = filtroCol[k];
+  /* Rótulos conforme o que a coluna guarda: "A a Z" não diz nada para datas
+     nem para status, cuja ordem útil é a da própria lista da coluna. */
+  const rot = col.kind === "date"   ? ["Mais antigas primeiro", "Mais recentes primeiro"]
+            : col.kind === "time"   ? ["Mais cedo primeiro", "Mais tarde primeiro"]
+            : col.kind === "status" ? ["Ordenar pela lista da coluna", "Ordenar ao contrário"]
+            :                         ["Classificar A → Z", "Classificar Z → A"];
+
+  colmenu.innerHTML = `<div class="ph">${esc(col.n)}</div>
+    <button class="txtopt" data-ord="1"><span class="ic">↑</span>${rot[0]}</button>
+    <button class="txtopt" data-ord="-1"><span class="ic">↓</span>${rot[1]}</button>
+    ${ordem && ordem.k === k ? `<button class="txtopt" data-ord="0"><span class="ic">×</span>Tirar a ordenação</button>` : ""}
+    <div class="sep"></div>
+    <div class="ph">Filtrar por valores</div>
+    <input class="fbusca" type="search" placeholder="Buscar…" autocomplete="off" aria-label="Buscar valor">
+    <div class="fatalhos"><button data-todos>Selecionar tudo</button><span>·</span>
+      <button data-nenhum>Limpar</button><span class="fconta"></span></div>
+    <div class="flista">${
+      vals.length
+        ? vals.map(v => `<label><input type="checkbox" value="${esc(v)}"${(!sel || sel.has(v)) ? " checked" : ""}>
+            <span>${v ? esc(v) : "<em>(em branco)</em>"}</span></label>`).join("")
+        : `<div style="padding:10px;font-size:12px;color:var(--ink-3)">Nada para filtrar aqui.</div>`}</div>
+    <div class="ffoot"><button class="btn sm" data-cancel>Cancelar</button>
+      <button class="btn sm primary" data-ok>Aplicar</button></div>`;
+
+  colmenu.dataset.open = "1";
+  const b = colmenu.getBoundingClientRect();
+  colmenu.style.top  = Math.min(Math.max(8, y), innerHeight - b.height - 8) + "px";
+  colmenu.style.left = Math.min(Math.max(8, x), innerWidth  - b.width  - 8) + "px";
+
+  const caixas = ()=> [...colmenu.querySelectorAll(".flista input")];
+  const visiveis = ()=> caixas().filter(i => i.closest("label").style.display !== "none");
+  const conta = ()=>{ const m = caixas().filter(i=>i.checked).length;
+    colmenu.querySelector(".fconta").textContent = m + " de " + caixas().length; };
+  conta();
+
+  colmenu.querySelectorAll("[data-ord]").forEach(b2 => b2.onclick = ()=>{
+    const d = +b2.dataset.ord;
+    ordem = d ? {k, dir:d} : null;
+    fechaMenuColuna(); render();
+  });
+  colmenu.querySelector(".fbusca").oninput = (ev)=>{
+    const q = semAcento(ev.target.value);
+    caixas().forEach(i=>{
+      const txt = semAcento(i.closest("label").textContent);
+      i.closest("label").style.display = (!q || txt.includes(q)) ? "" : "none";
+    });
+  };
+  colmenu.querySelector("[data-todos]").onclick = ()=>{ visiveis().forEach(i=>i.checked=true); conta(); };
+  colmenu.querySelector("[data-nenhum]").onclick = ()=>{ visiveis().forEach(i=>i.checked=false); conta(); };
+  colmenu.querySelector(".flista").onchange = conta;
+  colmenu.querySelector("[data-cancel]").onclick = fechaMenuColuna;
+  colmenu.querySelector("[data-ok]").onclick = ()=>{
+    const marcadas = caixas().filter(i=>i.checked).map(i=>i.value);
+    if(!caixas().length || marcadas.length === caixas().length) delete filtroCol[k];  // tudo marcado = sem filtro
+    else filtroCol[k] = new Set(marcadas);
+    fechaMenuColuna(); render();
+  };
+  setTimeout(()=>{ const f = colmenu.querySelector(".fbusca"); if(f) f.focus(); }, 20);
+}
+
+/* menu de uma campanha; `cel` é a célula sob o cursor, quando houver */
+function abreCtx(id, x, y, cel){
+  const c = byId(id); if(!c) return;
+  const aplic = comunicacoesAplicaveis(c);
+  const podeColar = !!cel;
+  const canal = (cel && cel.dataset.kind === "status") ? cel.dataset.ch : null;
+  const jaTem = canal ? !!notaDe(c, canal) : !!c.obs;
+  abreMenu(c.nome || "Sem nome", [
+    {k:"abrir",  label:"Abrir campanha", ic:"▤"},
+    {k:"copiar", label:"Copiar",         ic:"⧉"},
+    {k:"colar",  label:"Colar",          ic:"⎘", off:!podeColar},
+    {k:"-"},
+    {k:"coment", ic:"✎",
+     label:(jaTem ? "Editar comentário" : "Adicionar comentário") + (canal ? " · " + nomeCanal(canal) : "")},
+    {k:"nova",   label:"Nova campanha",  ic:"＋"},
+    {k:"ok",     label:"Comunicação ok", ic:"✓", off:!aplic.length, extra:aplic.length||""},
+    {k:"-"},
+    {k:"excluir",label:"Excluir",        ic:"✕", danger:true},
+  ], x, y, (a)=>{
+    if(a === "abrir") openDrawer(id);
+    else if(a === "copiar") copiaTexto(cel ? (valorDaCelula(cel) || "") : (byId(id)||{}).nome || "");
+    else if(a === "colar") colaEmCelula(cel);
+    else if(a === "coment") editaComentario(id, canal);
+    else if(a === "nova") novaPelaTabela();
+    else if(a === "ok") marcaComunicacaoOk(id);
+    else if(a === "excluir") excluiCampanha(id);
+  });
+}
+
+/* Comentário livre: numa coluna de status vale para aquele canal; fora dela,
+   vira a observação da campanha. Não depende do status ser "Ajustar". */
+async function editaComentario(id, canal){
+  const c = byId(id); if(!c) return;
+  const atual = canal ? notaDe(c, canal) : (c.obs || "");
+  const txt = await pergunta({
+    titulo: canal ? "Comentário · " + nomeCanal(canal) : "Observação da campanha",
+    texto: canal ? `Fica preso a ${nomeCanal(canal)} desta campanha. Aparece ao passar o mouse na célula, e a pastilha ganha um ponto.`
+                 : "Aparece na gaveta da campanha e entra na busca.",
+    campo: "Escreva aqui…", valor: atual, multilinha: true, ok: "Salvar"
+  });
+  if(txt === null) return;
+  const cc = byId(id); if(!cc) return;
+  const novo = String(txt).trim();
+  if(novo === atual) return;
+  marco("comentário");
+  if(canal){
+    cc.notas = cc.notas || {};
+    if(novo) cc.notas[canal] = novo; else delete cc.notas[canal];
+  }else cc.obs = novo;
+  render(); markDirty();
+  if(openId === id) openDrawer(id);
+  toast(novo ? "Comentário salvo" : "Comentário removido");
+}
+
+/* Colar pelo menu: a leitura da área de transferência exige permissão que o
+   artefato nem sempre tem — quando falha, abre um campo para você colar ali. */
+async function colaEmCelula(cel){
+  if(!cel) return;
+  const f = faixa();
+  const r = f ? f.r0 : +cel.dataset.r, ci = f ? f.c0 : +cel.dataset.c;
+  let txt = null;
+  try{ txt = await navigator.clipboard.readText(); }catch(e){}
+  if(txt == null || txt === ""){
+    txt = await pergunta({
+      titulo:"Colar", ok:"Colar", campo:"Cole aqui com Ctrl+V",
+      texto:"Este navegador não deixa o painel ler a área de transferência sozinho. Cole o conteúdo no campo abaixo."
+    });
+    if(txt == null || txt === "") return;
+  }
+  aplicaColagem(r, ci, txt, f);
+}
+
+gridWrap.addEventListener("contextmenu", (e)=>{
+  const cel = e.target.closest("[data-r]");
+  const linha = e.target.closest("tr");
+  e.preventDefault();
+  closePop();
+  // botão direito no cabeçalho: ordenar e filtrar aquela coluna
+  const th = e.target.closest("thead th");
+  if(th){
+    const i = [...gridWrap.querySelectorAll("thead th")].indexOf(th);
+    if(i >= 0 && i < NCOL) abreMenuColuna(COLS[i].k, e.clientX, e.clientY);
+    return;
+  }
+  if(!linha || linha.classList.contains("addrow")){
+    abreMenu("", [{k:"nova", label:"Nova campanha", ic:"＋"}], e.clientX, e.clientY, ()=>novaPelaTabela());
+    return;
+  }
+  let id = null;
+  if(cel) id = rowIds[+cel.dataset.r];
+  else { const btn = linha.querySelector("[data-open]"); if(btn) id = btn.dataset.open; }
+  if(!id) return;
+  // sem preventScroll o foco rola a grade, e o scroll fecharia o menu que acabou de abrir
+  if(cel && cel.focus) cel.focus({preventScroll:true});
+  abreCtx(id, e.clientX, e.clientY, cel);
+});
+
+/* botão direito na timeline */
+document.getElementById("viewTimeline").addEventListener("contextmenu", (e)=>{
+  e.preventDefault();
+  closePop();
+  const card = e.target.closest("[data-open]");
+  if(card){ abreCtx(card.dataset.open, e.clientX, e.clientY, null); return; }
+  const dia = e.target.closest("[data-dia]");
+  const quando = dia ? dia.dataset.dia : null;
+  abreMenu(quando ? longaData(quando) : "", [
+    {k:"nova", label: quando ? "Nova campanha neste dia" : "Nova campanha", ic:"＋"}
+  ], e.clientX, e.clientY, ()=>novaPelaTimeline(quando));
+});
+
+const drawer = document.getElementById("drawer"), scrim = document.getElementById("scrim");
+function openDrawer(id){
+  const c = byId(id); if(!c) return;
+  openId = id;
+  const s = statsOf(c);
+  document.getElementById("dTitle").textContent = c.nome || "Sem nome";
+  document.getElementById("dBody").innerHTML = `
+    <label class="f"><span>Nome da campanha</span><input class="field" data-k="nome" value="${esc(c.nome)}"></label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px">
+      <label class="f"><span>Data</span><input class="field" type="date" data-k="data" value="${esc(c.data)}"></label>
+      <label class="f"><span>Horário</span><input class="field" type="time" data-k="hora" value="${esc(c.hora||"")}"></label></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px">
+      <label class="f"><span>Tipo</span><select class="field" data-k="tipo"><option value="">—</option>${TIPOS.map(t=>`<option${t===c.tipo?" selected":""}>${t}</option>`).join("")}</select></label>
+      <label class="f"><span>Responsável</span><input class="field" data-k="resp" value="${esc(c.resp||"")}"></label></div>
+    <label class="f"><span>Link (briefing, card, arte…)</span><input class="field" data-k="link" placeholder="https://…" value="${esc(c.link||"")}"></label>
+    <label class="f"><span>Observação</span><textarea class="field" data-k="obs" placeholder="Anotações da campanha…">${esc(c.obs||"")}</textarea></label>
+    <div class="dsec">Canais · ${s.done}/${s.rel} prontos${s.blk?` · ${s.blk} com pendência`:""}</div>
+    ${CANAIS.map(ch=>{
+      const st = c.canais[ch.k]||"nc", opts = optsDe(ch.k);
+      const lista = opts.includes(st) ? opts : [st].concat(opts);
+      return `<div class="chrow"><span class="nm">${ch.n}</span>
+        <select class="field" data-ch="${ch.k}" aria-label="${ch.n}">${lista.map(o=>`<option value="${o}"${o===st?" selected":""}>${S(o).label}</option>`).join("")}</select></div>
+        ${(st==="ajustar"||notaDe(c,ch.k))?`<div class="chnote"><label>${st==="ajustar"?"O que precisa ajustar em "+esc(ch.n)+"?":"Comentário · "+esc(ch.n)}</label>
+          <textarea data-nota="${ch.k}" placeholder="Escreva aqui…">${esc(notaDe(c,ch.k))}</textarea></div>`:""}`;
+    }).join("")}
+    ${c.link?`<div style="margin-top:18px"><a class="btn" href="${esc(c.link)}" target="_blank" rel="noopener">Abrir link ↗</a></div>`:""}`;
+  const body = document.getElementById("dBody");
+  body.querySelectorAll("[data-k]").forEach(el=>{
+    el.onfocus = ()=>{ el.dataset.orig = c[el.dataset.k] || ""; };
+    el.oninput = ()=>{
+      c[el.dataset.k] = el.value;
+      if(el.dataset.k==="nome") document.getElementById("dTitle").textContent = el.value||"Sem nome";
+      renderKPIs(); dirty = true; paintSync();
+    };
+    el.onblur = ()=>{
+      const k = el.dataset.k, antigo = el.dataset.orig || "";
+      if(el.value !== antigo){ c[k] = antigo; marco(k); c[k] = el.value; }
+      render(); markDirty();
+    };
+  });
+  body.querySelectorAll("select[data-ch]").forEach(el=>{
+    el.onchange = ()=>{
+      const k = el.dataset.ch;
+      if(c.canais[k] !== el.value) marco(nomeCanal(k));
+      c.canais[k] = el.value;
+      render(); markDirty(); openDrawer(id);
+    };
+  });
+  body.querySelectorAll("[data-nota]").forEach(el=>{
+    el.onfocus = ()=>{ el.dataset.orig = notaDe(c, el.dataset.nota); };
+    el.oninput = ()=>{
+      const k = el.dataset.nota, v = el.value.trim();
+      c.notas = c.notas || {};
+      if(v) c.notas[k] = v; else delete c.notas[k];
+      dirty = true; paintSync();
+    };
+    el.onblur = ()=>{
+      const k = el.dataset.nota, antigo = el.dataset.orig || "", agora = el.value.trim();
+      if(agora !== antigo){
+        c.notas = c.notas || {};
+        if(antigo) c.notas[k] = antigo; else delete c.notas[k];
+        marco("comentário");
+        if(agora) c.notas[k] = agora; else delete c.notas[k];
+      }
+      markDirty();
+    };
+  });
+  drawer.dataset.open = "1"; drawer.setAttribute("aria-hidden","false"); scrim.dataset.open = "1";
+}
+function closeDrawer(){
+  if(!drawer.dataset.open) return;
+  delete drawer.dataset.open; drawer.setAttribute("aria-hidden","true"); delete scrim.dataset.open;
+  openId = null; render(); flushNow();
+}
+document.getElementById("dClose").onclick = closeDrawer;
+scrim.onclick = closeDrawer;
+document.getElementById("dDel").onclick = ()=>{ if(openId) excluiCampanha(openId); };
+document.getElementById("dDup").onclick = ()=>{
+  const c = byId(openId); if(!c) return;
+  marco("duplicação");
+  const n = {...c, id:uid(), nome:c.nome+" (cópia)", canais:{...c.canais}, notas:{...(c.notas||{})}};
+  campanhas.push(n); render(); markDirty(); openDrawer(n.id); toast("Campanha duplicada");
+};
+
+/* ===================== DIÁLOGO PRÓPRIO =====================
+   Dentro do artefato o confirm()/prompt() do navegador é bloqueado e volta sem
+   fazer nada — por isso as confirmações são desenhadas na própria página. */
+const askModal = document.getElementById("askModal");
+let askResolve = null;
+
+function pergunta(opts){
+  const o = opts || {};
+  return new Promise(res=>{
+    askResolve = res;
+    document.getElementById("askTitle").textContent = o.titulo || "Confirmar";
+    document.getElementById("askText").textContent = o.texto || "";
+    document.getElementById("askBody").innerHTML = !o.campo ? ""
+      : o.multilinha
+        ? `<textarea class="askinput alto" id="askInput" placeholder="${esc(o.campo)}">${esc(o.valor||"")}</textarea>`
+        : `<input class="askinput" id="askInput" value="${esc(o.valor||"")}" placeholder="${esc(o.campo)}" maxlength="60">`;
+    const yes = document.getElementById("askYes");
+    yes.textContent = o.ok || "Confirmar";
+    yes.classList.toggle("perigo", !!o.perigo);
+    document.getElementById("askNo").textContent = o.cancelar || "Cancelar";
+    askModal.dataset.open = "1";
+    const inp = document.getElementById("askInput");
+    if(inp){
+      setTimeout(()=>{ inp.focus(); inp.select(); }, 20);
+      inp.onkeydown = (e)=>{
+        const confirma = o.multilinha ? (e.key === "Enter" && (e.ctrlKey||e.metaKey)) : (e.key === "Enter");
+        if(confirma){ respondeAsk(true); e.preventDefault(); }
+        if(e.key === "Escape"){ respondeAsk(false); e.preventDefault(); }
+      };
+    }else setTimeout(()=>yes.focus(), 20);
+  });
+}
+function respondeAsk(sim){
+  const inp = document.getElementById("askInput");
+  const r = askResolve; askResolve = null;
+  delete askModal.dataset.open;
+  if(!r) return;
+  r(inp ? (sim ? inp.value.trim() : null) : !!sim);
+}
+document.getElementById("askYes").onclick = ()=>respondeAsk(true);
+document.getElementById("askNo").onclick  = ()=>respondeAsk(false);
+askModal.onclick = (e)=>{ if(e.target === askModal) respondeAsk(false); };
+
+/* ===================== DESFAZER / REFAZER ===================== */
+const UNDO_MAX = 80;
+let undoPilha = [], redoPilha = [];
+
+function marco(rotulo){
+  undoPilha.push({rotulo, dados: JSON.stringify(campanhas)});
+  if(undoPilha.length > UNDO_MAX) undoPilha.shift();
+  redoPilha.length = 0;
+  pintaUndo();
+}
+function restaura(json){
+  campanhas = JSON.parse(json).map(c=>({...c, canais:normCanais(c.canais), notas:normNotas(c.notas)}));
+}
+function desfazer(){
+  if(!undoPilha.length){ toast("Nada para desfazer"); return; }
+  const s = undoPilha.pop();
+  redoPilha.push({rotulo:s.rotulo, dados: JSON.stringify(campanhas)});
+  restaura(s.dados);
+  if(openId && !byId(openId)) closeDrawer();
+  closePop(); fechaCtx();
+  render(); markDirty(); pintaUndo();
+  toast("Desfeito" + (s.rotulo ? ": " + s.rotulo : ""));
+}
+function refazer(){
+  if(!redoPilha.length){ toast("Nada para refazer"); return; }
+  const s = redoPilha.pop();
+  undoPilha.push({rotulo:s.rotulo, dados: JSON.stringify(campanhas)});
+  restaura(s.dados);
+  if(openId && !byId(openId)) closeDrawer();
+  closePop(); fechaCtx();
+  render(); markDirty(); pintaUndo();
+  toast("Refeito" + (s.rotulo ? ": " + s.rotulo : ""));
+}
+function pintaUndo(){
+  const u = document.getElementById("btnUndo"), r = document.getElementById("btnRedo");
+  if(!u) return;
+  u.disabled = !undoPilha.length; r.disabled = !redoPilha.length;
+  u.title = undoPilha.length ? "Desfazer " + (undoPilha[undoPilha.length-1].rotulo||"") + " (Ctrl+Z)" : "Nada para desfazer";
+  r.title = redoPilha.length ? "Refazer (Ctrl+Shift+Z)" : "Nada para refazer";
+}
+
+/* ===================== EDITOR DE STATUS ===================== */
+const stModal = document.getElementById("stModal");
+let stCanal = null;
+
+function abreEditorStatus(ch){
+  stCanal = ch;
+  closePop();
+  document.getElementById("stTitle").textContent = "Status da coluna " + nomeCanal(ch);
+  document.getElementById("stSub").textContent =
+    "Esta lista vale só para " + nomeCanal(ch) + ". As outras colunas seguem as suas próprias.";
+  stModal.dataset.open = "1";
+  desenhaEditorStatus();
+}
+function desenhaEditorStatus(){
+  const opts = optsDe(stCanal);
+  document.getElementById("stBody").innerHTML =
+    `<div class="sthead"><span>Aparência</span><span>Nome</span><span>Cor</span><span>Conta como</span><span></span></div>`
+    + opts.map((k,i)=>{
+      const s = S(k);
+      return `<div class="strow" data-k="${k}">
+        <span class="prev">${pillHTML(k,"sm")}</span>
+        <input data-f="label" value="${esc(s.label)}" aria-label="Nome do status" maxlength="24">
+        <select data-f="c" aria-label="Cor">${CORES.map(o=>`<option value="${o.k}"${o.k===s.c?" selected":""}>${o.n}</option>`).join("")}</select>
+        <select data-f="kind" aria-label="Conta como">${KINDS.map(o=>`<option value="${o.k}"${o.k===s.kind?" selected":""}>${o.n}</option>`).join("")}</select>
+        <span class="acts">
+          <button data-mv="-1" title="Subir" aria-label="Subir"${i===0?" disabled":""}>↑</button>
+          <button data-mv="1" title="Descer" aria-label="Descer"${i===opts.length-1?" disabled":""}>↓</button>
+          <button class="rm" data-rm="1" title="Tirar desta coluna" aria-label="Tirar desta coluna">✕</button>
+        </span></div>`;
+    }).join("")
+    + `<div class="mnote">A ordem aqui é a ordem do atalho de teclado: o primeiro é o <b>1</b>, o segundo o <b>2</b>, e assim por diante.
+       Tirar um status daqui não apaga o que já foi marcado nas campanhas — ele só deixa de ser oferecido.
+       Renomear ou trocar a cor vale para todas as colunas que usam esse mesmo status.</div>`;
+
+  const fora = Object.keys(STATUS).filter(k=>!opts.includes(k));
+  const sel = document.getElementById("stReuse");
+  sel.innerHTML = `<option value="">Trazer status de outra coluna…</option>`
+    + fora.map(k=>`<option value="${k}">${esc(S(k).label)}</option>`).join("");
+  sel.disabled = !fora.length;
+
+  document.getElementById("stBody").querySelectorAll(".strow").forEach(row=>{
+    const k = row.dataset.k;
+    row.querySelector('[data-f="label"]').oninput = (e)=>{
+      const v = e.target.value.trim();
+      STATUS[k] = Object.assign({}, STATUS[k], {label: v || S(k).label});
+      row.querySelector(".prev").innerHTML = pillHTML(k,"sm");
+      marcaStatusSujo();
+    };
+    row.querySelector('[data-f="c"]').onchange = (e)=>{
+      STATUS[k] = Object.assign({}, STATUS[k], {c: e.target.value});
+      row.querySelector(".prev").innerHTML = pillHTML(k,"sm");
+      marcaStatusSujo();
+    };
+    row.querySelector('[data-f="kind"]').onchange = (e)=>{
+      STATUS[k] = Object.assign({}, STATUS[k], {kind: e.target.value});
+      marcaStatusSujo();
+    };
+    row.querySelectorAll("[data-mv]").forEach(b=> b.onclick = ()=>{
+      const l = colunas[stCanal], i = l.indexOf(k), j = i + (+b.dataset.mv);
+      if(j < 0 || j >= l.length) return;
+      l.splice(j, 0, l.splice(i,1)[0]);
+      marcaStatusSujo(); desenhaEditorStatus();
+    });
+    row.querySelector("[data-rm]").onclick = async ()=>{
+      const l = colunas[stCanal];
+      if(l.length <= 1){ toast("A coluna precisa de pelo menos um status"); return; }
+      const usos = campanhas.filter(c=>c.canais[stCanal] === k).length;
+      if(usos){
+        const ok = await pergunta({
+          titulo:`Tirar "${S(k).label}" de ${nomeCanal(stCanal)}`, perigo:true, ok:"Tirar da lista",
+          texto:`${usos} campanha${usos>1?"s":""} está${usos>1?"ão":""} com esse status aqui. Elas continuam como estão — ele só deixa de ser oferecido.`
+        });
+        if(!ok) return;
+      }
+      colunas[stCanal] = colunas[stCanal].filter(x=>x!==k);
+      marcaStatusSujo(); desenhaEditorStatus();
+    };
+  });
+}
+function marcaStatusSujo(){ dirty = true; paintSync(); render(); }
+
+document.getElementById("stAdd").onclick = async ()=>{
+  const nome = await pergunta({
+    titulo:"Novo status", ok:"Criar", campo:"Ex.: Aguardando arte",
+    texto:`Ele entra no fim da lista de ${nomeCanal(stCanal)}. Depois é só ajustar a cor e o "conta como".`
+  });
+  if(nome === null) return;
+  const label = String(nome).trim();
+  if(!label){ toast("Dê um nome ao status"); return; }
+  let base = label.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"") || "status";
+  let k = base, n = 2;
+  while(STATUS[k]) k = base + "_" + (n++);
+  STATUS[k] = {label, c:"info", kind:"wip"};
+  colunas[stCanal] = optsDe(stCanal).concat(k);
+  marcaStatusSujo(); desenhaEditorStatus();
+};
+document.getElementById("stReuse").onchange = (e)=>{
+  const k = e.target.value; if(!k) return;
+  colunas[stCanal] = optsDe(stCanal).concat(k);
+  marcaStatusSujo(); desenhaEditorStatus();
+};
+document.getElementById("stReset").onclick = async ()=>{
+  const ok = await pergunta({
+    titulo:"Restaurar padrão", ok:"Restaurar", perigo:true,
+    texto:`A lista de ${nomeCanal(stCanal)} volta a ser a de fábrica. Status criados por você somem desta coluna.`
+  });
+  if(!ok) return;
+  colunas[stCanal] = (COLUNAS_PADRAO[stCanal] || ["nc"]).slice();
+  marcaStatusSujo(); desenhaEditorStatus();
+};
+function fechaEditorStatus(){ delete stModal.dataset.open; stCanal = null; markDirty(); }
+document.getElementById("stClose").onclick = fechaEditorStatus;
+document.getElementById("stDone").onclick = fechaEditorStatus;
+stModal.onclick = (e)=>{ if(e.target === stModal) fechaEditorStatus(); };
+
+/* ===================== CONTROLES ===================== */
+function syncRangeButtons(){
+  document.querySelectorAll("#rangeSeg button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.r===ui.range)));
+}
+document.getElementById("viewSeg").onclick = (e)=>{
+  const b = e.target.closest("button"); if(!b) return;
+  ui.view = b.dataset.v;
+  [...e.currentTarget.children].forEach(x=>x.setAttribute("aria-pressed", String(x===b)));
+  render();
+};
+document.getElementById("rangeSeg").onclick = (e)=>{
+  const b = e.target.closest("button"); if(!b) return;
+  ui.range = b.dataset.r; ui.offset = 0;
+  if(ui.range==="custom" && !ui.from && !ui.to){
+    const r = [startOfWeek(new Date()), addD(startOfWeek(new Date()),13)];
+    ui.from = fmtD(r[0]); ui.to = fmtD(r[1]);
+  }
+  syncRangeButtons(); render();
+  if(ui.range==="custom") setTimeout(()=>document.getElementById("fFrom").focus(), 30);
+};
+document.getElementById("navPrev").onclick  = ()=>navStep(-1);
+document.getElementById("navNext").onclick  = ()=>navStep(1);
+document.getElementById("navReset").onclick = ()=>{ ui.offset = 0; render(); };
+document.getElementById("fFrom").onchange = (e)=>{ ui.from = e.target.value; render(); };
+document.getElementById("fTo").onchange   = (e)=>{ ui.to = e.target.value; render(); };
+document.getElementById("fq").oninput      = (e)=>{ ui.filters.q = e.target.value; render(); };
+document.getElementById("fTipo").onchange  = (e)=>{ ui.filters.tipo = e.target.value; render(); };
+document.getElementById("fResp").onchange  = (e)=>{ ui.filters.resp = e.target.value; render(); };
+document.getElementById("fBlock").onchange = (e)=>{ ui.filters.block = e.target.checked; render(); };
+document.getElementById("btnClear").onclick = clearFilters;
+function clearFilters(){ ui.filters = {q:"",tipo:"",resp:"",block:false}; render(); }
+/* na tabela: cria a linha e já abre a data para edição */
+function novaPelaTabela(){
+  ui.filters = {q:"",tipo:"",resp:"",block:false};
+  const c = novaLinha();
+  ui.view = "tabela";
+  document.querySelectorAll("#viewSeg button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.v==="tabela")));
+  pendingFocus = {id:c.id, c:0, edit:true}; render();
+}
+/* na timeline não há células para editar: cria e abre a gaveta */
+function novaPelaTimeline(dataISO){
+  ui.filters = {q:"",tipo:"",resp:"",block:false};
+  const c = novaLinha(dataISO);
+  render(); openDrawer(c.id);
+  setTimeout(()=>{ const el = drawer.querySelector('[data-k="nome"]'); if(el){ el.focus(); el.select(); } }, 260);
+}
+function novaCampanhaBtn(){ ui.view === "timeline" ? novaPelaTimeline() : novaPelaTabela(); }
+function longaData(iso){
+  const d = parseD(iso);
+  return DIAS[(d.getDay()+6)%7] + ", " + d.getDate() + " de " + MESES_L[d.getMonth()];
+}
+/* A legenda só abre pelo botão da esquerda. Clicar no texto da faixa não faz nada:
+   era o que abria a legenda sem querer o tempo todo. */
+(function(){
+  const sum = document.querySelector("#legend > summary");
+  const det = document.getElementById("legend");
+  if(!sum || !det) return;
+  sum.addEventListener("click", (e)=>{ if(!e.target.closest(".lgbt")) e.preventDefault(); });
+  const bt = sum.querySelector(".lgbt");
+  if(bt) bt.addEventListener("keydown", (e)=>{
+    if(e.key === "Enter" || e.key === " "){ e.preventDefault(); det.open = !det.open; }
+  });
+})();
+
+document.getElementById("btnUndo").onclick = desfazer;
+document.getElementById("btnRedo").onclick = refazer;
+document.getElementById("btnTheme").onclick = ()=>{
+  const cur = document.documentElement.dataset.theme;
+  const dark = cur ? cur === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.dataset.theme = dark ? "light" : "dark"; writeUI();
+};
+/* quem você é agora vem do login (tabela perfis), não de um campo digitado */
+
+document.getElementById("btnExport").onclick = (e)=>{
+  const b = e.currentTarget;
+  /* Sem isto o ouvinte de clique da página fecha o menu no mesmo clique que o
+     abriu — o botão está fora do #pop. É a trava que o "Ajustar" já usa. */
+  cliqueVeioDoPop = true;
+  lembraPasta();   // deixa a pasta de backup pronta antes do clique na opção
+  pop.innerHTML = `<div class="ph">Exportar</div>
+    <button class="txtopt" data-x="json" role="menuitem"><span class="ic">↓</span>JSON — backup de tudo</button>
+    <button class="txtopt" data-x="csv" role="menuitem"><span class="ic">↓</span>CSV — só o que está na tela</button>
+    ${temPasta ? `<div class="sep"></div>
+    <button class="txtopt" data-x="pasta" role="menuitem"><span class="ic">⇥</span>Salvar os dois na pasta de backup</button>` : ``}
+    <div class="sep"></div>
+    <div style="font-size:11px;color:var(--ink-3);padding:2px 9px 6px;line-height:1.45">
+      O JSON leva todas as campanhas, sem filtro, e serve para restaurar.
+      O CSV respeita o período e os filtros — serve para enviar a alguém.</div>`;
+  pop.dataset.open = "1";
+  const rect = b.getBoundingClientRect(), p = pop.getBoundingClientRect();
+  pop.style.top = (rect.bottom+6)+"px";
+  pop.style.left = Math.min(rect.left, innerWidth - p.width - 8)+"px";
+  pop.querySelectorAll("[data-x]").forEach(el=> el.onclick = ()=>{
+    cliqueVeioDoPop = true;
+    const x = el.dataset.x;
+    closePop();
+    if(x === "json") expJSON(); else if(x === "csv") expCSV(); else salvaNaPasta();
+  });
+};
+/* junta a autoria só na hora de exportar — ver `auditoria` lá em cima */
+function envelopeJSON(){
+  return {v:3, exportado:TODAY,
+          campanhas: campanhas.map(c => Object.assign({}, c, auditoria.get(c.id) || {}))};
+}
+async function expJSON(){
+  await offer("painel-campanhas-"+TODAY+".json",
+              JSON.stringify(envelopeJSON(), null, 2), "application/json");
+}
+/* o CSV sai do que está na tela — período e filtros valem aqui */
+function csvTexto(){
+  const rows = [["Data","Horário","Nome","Tipo","Responsável"].concat(CANAIS.map(c=>c.n), ["Pronto %","Observação","Link"])];
+  visible().forEach(c=>{
+    const s = statsOf(c);
+    rows.push([c.data,c.hora,c.nome,c.tipo,c.resp].concat(CANAIS.map(ch=>S(c.canais[ch.k]).label), [s.rel?s.pct+"%":"", c.obs||"", c.link||""]));
+  });
+  return "﻿" + rows.map(r=>r.map(v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`).join(",")).join("\n");
+}
+async function expCSV(){ await offer("campanhas-"+TODAY+".csv", csvTexto(), "text/csv"); }
+/* ---------- salvar direto numa pasta do computador ----------
+   Só Chrome e Edge têm essa API. O navegador pede a pasta uma vez, guarda a
+   permissão, e a partir daí o painel escreve lá dentro sem perguntar o caminho.
+   A referência da pasta só cabe no IndexedDB — localStorage não guarda handle. */
+const temPasta = !!window.showDirectoryPicker;
+let pastaBackup = null;
+
+function abreIdb(){
+  return new Promise((ok, err)=>{
+    const r = indexedDB.open("painel-crm", 1);
+    r.onupgradeneeded = ()=> r.result.createObjectStore("kv");
+    r.onsuccess = ()=> ok(r.result);
+    r.onerror   = ()=> err(r.error);
+  });
+}
+function noIdb(modo, fn){
+  return abreIdb().then(db => new Promise((ok, err)=>{
+    const req = fn(db.transaction("kv", modo).objectStore("kv"));
+    req.onsuccess = ()=> ok(req.result);
+    req.onerror   = ()=> err(req.error);
+  }));
+}
+async function lembraPasta(){
+  if(!temPasta || pastaBackup) return;
+  try{ pastaBackup = await noIdb("readonly", s => s.get("pastaBackup")) || null; }catch(e){}
+}
+async function escreveNaPasta(nome, conteudo){
+  const arq = await pastaBackup.getFileHandle(nome, {create:true});
+  const w = await arq.createWritable();
+  await w.write(conteudo);
+  await w.close();
+}
+async function salvaNaPasta(){
+  try{
+    if(!pastaBackup){
+      pastaBackup = await showDirectoryPicker({id:"painel-backup", mode:"readwrite"});
+      try{ await noIdb("readwrite", s => s.put(pastaBackup, "pastaBackup")); }catch(e){}
+    }
+    let ok = await pastaBackup.queryPermission({mode:"readwrite"});
+    if(ok === "prompt") ok = await pastaBackup.requestPermission({mode:"readwrite"});
+    if(ok !== "granted"){ toast("Sem permissão para escrever nessa pasta"); return; }
+
+    /* nome próprio: o da rotina automática é campanhas-AAAA-MM-DD.json, e um
+       não pode sobrescrever o outro */
+    await escreveNaPasta("painel-" + TODAY + ".json", JSON.stringify(envelopeJSON(), null, 2));
+    await escreveNaPasta("painel-" + TODAY + ".csv",  csvTexto());
+
+    /* o CSV sai filtrado: dizer quantas linhas ele levou evita guardar um
+       recorte achando que é a lista inteira */
+    const naTela = visible().length;
+    toast("Salvo em " + pastaBackup.name + ": JSON com " + campanhas.length + " campanhas"
+          + " · CSV com " + naTela + (naTela < campanhas.length ? " (a tela está filtrada)" : ""));
+  }catch(e){
+    if(e && (e.name === "AbortError" || e.name === "NotAllowedError")) return;  // desistiu do seletor
+    pastaBackup = null;
+    toast("Não consegui salvar na pasta: " + ((e && e.message) || e));
+  }
+}
+
+/* Baixa o arquivo de verdade. No artefato isso não era possível — o download
+   ficava a cargo do visualizador do Claude, e a saída era copiar o conteúdo.
+   Como site, um link com `download` resolve; a cópia fica só de reserva. */
+async function offer(filename, data, mime){
+  try{
+    const url = URL.createObjectURL(new Blob([data], {type: (mime||"text/plain")+";charset=utf-8"}));
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    /* tirar o link no mesmo instante do clique já cancelou download em alguns
+       navegadores — some depois */
+    setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); }, 2000);
+    toast("Baixando " + filename);
+    return;
+  }catch(e){}
+  try{ await navigator.clipboard.writeText(data); toast("Não deu para baixar — copiei o conteúdo, cole num arquivo e salve como " + filename); }
+  catch(e){ toast("Não consegui baixar nem copiar o conteúdo"); }
+}
+
+/* ===================== UTIL ===================== */
+function uid(){ return "c_"+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+function initials(n){ const p = String(n).trim().split(/\s+/); return (p.length>1?p[0][0]+p[1][0]:String(n).slice(0,2)).toUpperCase(); }
+let tt;
+function toast(msg){
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.dataset.open = "1";
+  clearTimeout(tt); tt = setTimeout(()=>delete el.dataset.open, 3000);
+}
+
+/* ===================== INÍCIO ===================== */
+readUI();
+document.querySelector(".app").style.display = "none";   // só aparece depois do login
+document.querySelectorAll("#viewSeg button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.v===ui.view)));
+syncRangeButtons();
+render();
+paintSync();
+boot();
+setInterval(()=>{ if(syncState==="ok" && !dirty) paintSync(); }, 45000);
+</script>
