@@ -1307,10 +1307,16 @@ function visible(){
   const esconde = arquivando();
   const lista = campanhas.filter(c => !(esconde && velha(c)) && inRange(c)
                                    && matchFilters(c) && passaFiltroColuna(c));
-  /* coluna "Pronto" não vive em COLS — ordena pelo % calculado em statsOf */
+  /* coluna "Pronto" não vive em COLS — ordena pelo % calculado em statsOf.
+     campanha em branco (sem nome) fica sempre por último, não importa a direção —
+     senão ela aparece misturada por ter 0% igual a uma campanha real sem nada feito */
   if(ordem && ordem.k === "_pronto"){
-    return lista.sort((a,b)=> ordem.dir * (statsOf(a).pct - statsOf(b).pct)
-        || String(a.data).localeCompare(b.data) || String(a.nome).localeCompare(b.nome));
+    return lista.sort((a,b)=>{
+      const ea = !a.nome, eb = !b.nome;
+      if(ea !== eb) return ea ? 1 : -1;
+      return ordem.dir * (statsOf(a).pct - statsOf(b).pct)
+          || String(a.data).localeCompare(b.data) || String(a.nome).localeCompare(b.nome);
+    });
   }
   const col = colunaOrdenada();
   /* célula vazia sempre por último, não importa a direção do clique — senão
