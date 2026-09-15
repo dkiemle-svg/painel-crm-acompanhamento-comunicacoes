@@ -1553,7 +1553,7 @@ function aplicaLarguras(){
   const t = gridWrap.querySelector("table.grid"); if(!t) return;
   const cols = t.querySelectorAll("colgroup col");
   let soma = 0;
-  COLS.forEach((c,i)=>{ const w = larguraDe(c); if(cols[i]) cols[i].style.width = w+"px"; soma += w; });
+  COLS.forEach((c,i)=>{ const w = larguraDe(c); if(cols[i+1]) cols[i+1].style.width = w+"px"; soma += w; });
   soma += 92 + 40;
   t.style.minWidth = soma + "px";
   t.style.setProperty("--sk1", larguraDe(COLS[0]) + "px");   // a 2ª coluna congelada acompanha a 1ª
@@ -1755,7 +1755,7 @@ function pintaSelecao(){
     }
   }
   const ths = gridWrap.querySelectorAll("thead th");
-  for(let c = f.c0; c <= f.c1; c++) if(ths[c]) ths[c].classList.add("selh");
+  for(let c = f.c0; c <= f.c1; c++) if(ths[c+1]) ths[c+1].classList.add("selh");
 }
 function atualizaRodapeSelecao(f){
   const el = document.getElementById("selInfo");
@@ -1765,15 +1765,23 @@ function atualizaRodapeSelecao(f){
   el.textContent = `${nl}×${nc} selecionadas · Ctrl+C copia · Delete limpa · 1–9 aplica status`;
 }
 
-/* seleciona a coluna inteira ao clicar no cabeçalho */
+/* seleciona a coluna inteira ao clicar no cabeçalho, e alterna a ordenação por ela:
+   1º clique ordena do maior para o menor, 2º clique (mesma coluna) inverte */
 gridWrap.addEventListener("click", (e)=>{
   const th = e.target.closest("thead th");
   if(!th || e.target.closest("[data-rz]")) return;
   const ths = [...gridWrap.querySelectorAll("thead th")];
-  const c = ths.indexOf(th);
+  const c = ths.indexOf(th) - 1;   // th 0 é "Pronto", que não tem coluna correspondente em COLS
   if(c < 0 || c >= NCOL || !rowIds.length) return;
-  if(e.shiftKey && selAnc){ estendePara(rowIds.length-1, c); }
-  else { selAnc = {r:0, c}; selFoc = {r:rowIds.length-1, c}; pintaSelecao(); }
+  if(e.shiftKey && selAnc){
+    estendePara(rowIds.length-1, c);
+    const alvo = celulaEm(0, c); if(alvo) alvo.focus({preventScroll:true});
+    return;
+  }
+  selAnc = {r:0, c}; selFoc = {r:rowIds.length-1, c};
+  const col = COLS[c];
+  ordem = (ordem && ordem.k === col.k) ? {k:col.k, dir:-ordem.dir} : {k:col.k, dir:-1};
+  render();
   const alvo = celulaEm(0, c); if(alvo) alvo.focus({preventScroll:true});
 });
 
@@ -1949,7 +1957,7 @@ gridWrap.addEventListener("pointerdown", (e)=>{
   e.preventDefault();
   const i = +alca.dataset.rz, col = COLS[i];
   const t = gridWrap.querySelector("table.grid"); if(!t) return;
-  const x0 = e.clientX, w0 = t.querySelectorAll("colgroup col")[i].getBoundingClientRect().width;
+  const x0 = e.clientX, w0 = t.querySelectorAll("colgroup col")[i+1].getBoundingClientRect().width;
   alca.classList.add("on"); document.body.classList.add("redimensionando");
   ui.larguras = ui.larguras || {};
   const mover = (ev)=>{
@@ -2153,7 +2161,7 @@ function garanteVisivel(el){
   const cx = el.getBoundingClientRect(), w = gridWrap.getBoundingClientRect(), m = 6;
   const ths = gridWrap.querySelectorAll("thead th");
   let fixa = 0;
-  for(let i = 0; i < NSTICKY && i < ths.length; i++) fixa += ths[i].getBoundingClientRect().width;
+  for(let i = 1; i <= NSTICKY && i < ths.length; i++) fixa += ths[i].getBoundingClientRect().width;
   const topo = ths.length ? ths[0].getBoundingClientRect().height : 0;
   const td = el.closest("td");
   if(!(td && td.classList.contains("sk"))){          // colunas fixas já estão sempre à vista
@@ -2848,7 +2856,7 @@ gridWrap.addEventListener("contextmenu", (e)=>{
   // botão direito no cabeçalho: ordenar e filtrar aquela coluna
   const th = e.target.closest("thead th");
   if(th){
-    const i = [...gridWrap.querySelectorAll("thead th")].indexOf(th);
+    const i = [...gridWrap.querySelectorAll("thead th")].indexOf(th) - 1;
     if(i >= 0 && i < NCOL) abreMenuColuna(COLS[i].k, e.clientX, e.clientY);
     return;
   }
