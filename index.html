@@ -696,7 +696,7 @@ const KINDS = [
 ];
 
 const CANAIS = [
-  {k:"flow",n:"Flow"},{k:"missao",n:"Missão"},{k:"email",n:"E-mail"},{k:"telegram",n:"Telegram"},
+  {k:"missao",n:"Missão"},{k:"email",n:"E-mail"},{k:"telegram",n:"Telegram"},
   {k:"popup",n:"Pop-up"},{k:"sms",n:"SMS"},{k:"inbox",n:"Inbox"},{k:"push",n:"Push"},{k:"banner",n:"Banner"},
 ];
 /* Cada coluna tem a SUA lista — mexer numa não mexe nas outras.
@@ -1504,16 +1504,17 @@ function renderGrid(){
   const podeAdicionar = !anyFilter();
   if(!list.length && !podeAdicionar){ wrap.innerHTML = blankState(); renderGridFoot(0,false,ocultasPorIdade()); return; }
 
-  let h = `<table class="grid"><colgroup>`
+  let h = `<table class="grid"><colgroup><col style="width:92px">`
     + COLS.map(c=>`<col style="width:${larguraDe(c)}px">`).join("")
-    + `<col style="width:92px"><col style="width:40px"></colgroup><thead><tr>`
+    + `<col style="width:40px"></colgroup><thead><tr>`
+    + `<th class="c">Pronto</th>`
     + COLS.map((c,i)=>{
         const mk = (filtroCol[c.k] ? `<span class="thmk" title="Coluna filtrada">${FUNIL}</span>` : "")
                  + (ordem && ordem.k === c.k ? `<span class="thmk" title="Coluna ordenada">${ordem.dir>0?"▲":"▼"}</span>` : "");
         return `<th class="${i<NSTICKY?`sk sk${i}`:""}"${c.kind==="status"&&gstart(c)?" data-gstart":""}
           title="Botão direito: ordenar e filtrar">${c.n}${mk}<span class="rz" data-rz="${i}" title="Arraste para mudar a largura · duplo clique volta ao padrão"></span></th>`;
       }).join("")
-    + `<th class="c">Pronto</th><th></th></tr></thead><tbody>`;
+    + `<th></th></tr></thead><tbody>`;
 
   let prev = null;
   list.forEach((c,r)=>{
@@ -1521,9 +1522,9 @@ function renderGrid(){
     const newDay = c.data !== prev; prev = c.data;
     const urg = urgenciaDe(c);
     h += `<tr${newDay&&r>0?" data-newday":""}${c.data===TODAY?" data-today":""}${urg?` data-urg="${urg}"`:""}>`
-      + COLS.map((col,ci)=>cellHTML(c,r,ci,col)).join("")
       + `<td class="pctc"><span class="pctwrap"><span class="mini" data-lv="${lv}"><i style="width:${s.pct}%"></i></span>
          <span class="pct">${s.rel?s.pct+"%":"—"}</span></span></td>`
+      + COLS.map((col,ci)=>cellHTML(c,r,ci,col)).join("")
       + `<td class="more"><button data-open="${c.id}" title="Observação, link e mais" aria-label="Detalhes">⋯</button></td></tr>`;
   });
   if(podeAdicionar){
