@@ -1299,7 +1299,7 @@ function cmpColuna(a, b, col){
   if(!va !== !vb) return va ? -1 : 1;                     // vazio sempre por último
   return va.localeCompare(vb, "pt", {sensitivity:"base"});
 }
-function colunaOrdenada(){ return ordem ? COLS.find(x => x.k === ordem.k) : null; }
+function colunaOrdenada(){ return ordem && ordem.k !== "_pronto" ? COLS.find(x => x.k === ordem.k) : null; }
 function quantasFiltradas(){ return Object.keys(filtroCol).length; }
 function limpaFiltrosColuna(){ filtroCol = {}; ordem = null; render(); }
 
@@ -1307,9 +1307,20 @@ function visible(){
   const esconde = arquivando();
   const lista = campanhas.filter(c => !(esconde && velha(c)) && inRange(c)
                                    && matchFilters(c) && passaFiltroColuna(c));
+  /* coluna "Pronto" não vive em COLS — ordena pelo % calculado em statsOf */
+  if(ordem && ordem.k === "_pronto"){
+    return lista.sort((a,b)=> ordem.dir * (statsOf(a).pct - statsOf(b).pct)
+        || String(a.data).localeCompare(b.data) || String(a.nome).localeCompare(b.nome));
+  }
   const col = colunaOrdenada();
-  if(col) return lista.sort((a,b)=> ordem.dir * cmpColuna(a,b,col)
-      || String(a.data).localeCompare(b.data) || String(a.nome).localeCompare(b.nome));
+  /* célula vazia sempre por último, não importa a direção do clique — senão
+     ordenar do maior para o menor jogaria as linhas sem valor lá na frente */
+  if(col) return lista.sort((a,b)=>{
+      const va = valorDe(a, col), vb = valorDe(b, col), ea = !va, eb = !vb;
+      if(ea !== eb) return ea ? 1 : -1;
+      return ordem.dir * cmpColuna(a,b,col)
+          || String(a.data).localeCompare(b.data) || String(a.nome).localeCompare(b.nome);
+    });
   return lista.sort((a,b)=>{
     // linha recém-criada (ainda sem nome) fica no fim, onde você acabou de clicar
     const na = a.nome ? 0 : 1, nb = b.nome ? 0 : 1;
@@ -1507,7 +1518,7 @@ function renderGrid(){
   let h = `<table class="grid"><colgroup><col style="width:92px">`
     + COLS.map(c=>`<col style="width:${larguraDe(c)}px">`).join("")
     + `<col style="width:40px"></colgroup><thead><tr>`
-    + `<th class="c">Pronto</th>`
+    + `<th class="c" title="Clique para ordenar por Pronto">Pronto${ordem && ordem.k === "_pronto" ? `<span class="thmk" title="Coluna ordenada">${ordem.dir>0?"▲":"▼"}</span>` : ""}</th>`
     + COLS.map((c,i)=>{
         const mk = (filtroCol[c.k] ? `<span class="thmk" title="Coluna filtrada">${FUNIL}</span>` : "")
                  + (ordem && ordem.k === c.k ? `<span class="thmk" title="Coluna ordenada">${ordem.dir>0?"▲":"▼"}</span>` : "");
@@ -1771,7 +1782,14 @@ gridWrap.addEventListener("click", (e)=>{
   const th = e.target.closest("thead th");
   if(!th || e.target.closest("[data-rz]")) return;
   const ths = [...gridWrap.querySelectorAll("thead th")];
-  const c = ths.indexOf(th) - 1;   // th 0 é "Pronto", que não tem coluna correspondente em COLS
+  const idx = ths.indexOf(th);
+  if(idx === 0){   // cabeçalho "Pronto": não tem coluna em COLS, só ordena — nada para selecionar
+    if(!rowIds.length || e.shiftKey) return;
+    ordem = (ordem && ordem.k === "_pronto") ? {k:"_pronto", dir:-ordem.dir} : {k:"_pronto", dir:-1};
+    render();
+    return;
+  }
+  const c = idx - 1;   // demais th: idx 0 é "Pronto", por isso o -1
   if(c < 0 || c >= NCOL || !rowIds.length) return;
   if(e.shiftKey && selAnc){
     estendePara(rowIds.length-1, c);
