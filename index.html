@@ -3502,13 +3502,12 @@ const sonhoWrap = document.getElementById("sonhoWrap");
 const CANAIS_SONHO = ["RCS","Wapp","RCS/Wapp","SMS","E-mail","Push"];
 /* t: text · canal · date · num · inv (valor investido) · calc · link · seq */
 const SCOLS = [
-  {k:"seq",             n:"ID",                    t:"seq",  w:56,  sk:0},
-  {k:"nome",            n:"Nome da campanha",      t:"text", w:210, sk:1},
-  {k:"canal",           n:"Canal",                 t:"canal",w:108},
-  {k:"segmento",        n:"Segmento / público",    t:"text", w:300},
-  {k:"data_inicio",     n:"Início",                t:"date", w:132},
+  {k:"data_inicio",     n:"Início",                t:"date", w:132, sk:0},
   {k:"data_fim",        n:"Fim",                   t:"date", w:132},
   {k:"periodo",         n:"Período (dias)",        t:"calc", w:116,  f:"int", dica:"Fim − Início"},
+  {k:"nome",            n:"Nome da campanha",      t:"text", w:210},
+  {k:"canal",           n:"Canal",                 t:"canal",w:108},
+  {k:"segmento",        n:"Segmento / público",    t:"text", w:300},
   {k:"qtd_teste",       n:"Qtd. grupo teste",      t:"num",  w:130, d:0},
   {k:"qtd_controle",    n:"Qtd. grupo controle",   t:"num",  w:146, d:0},
   {k:"custo_envio",     n:"Custo por envio (R$)",  t:"num",  w:156, d:2, dica:"Opcional: se preencher, o Valor investido vira Qtd. teste × este custo"},
@@ -3756,7 +3755,7 @@ function renderSonho(){
   // tabela
   const sw = sonhoWrap, y = sw.scrollTop, x = sw.scrollLeft;
   const larg = SCOLS.reduce((a, c) => a + c.w, 74);
-  let h = `<table class="grid sg" style="--sk1:${SCOL.seq.w}px;min-width:${larg}px"><colgroup>`
+  let h = `<table class="grid sg" style="min-width:${larg}px"><colgroup>`
     + SCOLS.map(c => `<col style="width:${c.w}px">`).join("") + `<col style="width:74px"></colgroup><thead><tr>`
     + SCOLS.map(c => {
         const mk = sOrdem && sOrdem.k === c.k ? `<span class="thmk" title="Coluna ordenada">${sOrdem.dir > 0 ? "▲" : "▼"}</span>` : "";
