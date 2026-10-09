@@ -64,6 +64,35 @@ button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;background:none;border:none}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* ---- marca / Sonho da Sorte ---- */
+.brandsel{height:33px;font-weight:600;font-size:13px;min-width:154px;color:var(--ink)}
+#viewSonho{flex-direction:column;gap:15px}
+table.grid.sg td.gc{height:50px;padding:5px 4px}
+table.grid.sg thead th.sth{cursor:pointer;user-select:none}
+table.grid.sg thead th.sth:hover{color:var(--ink)}
+table.grid.sg thead th.calcth{color:color-mix(in srgb,var(--accent) 80%,var(--ink-3))}
+.fx{margin-left:5px;font-style:italic;font-weight:600;opacity:.8;cursor:help;text-transform:none}
+.sci{width:100%;height:34px;border:1px solid transparent;background:transparent;border-radius:7px;padding:0 8px;
+  font:inherit;font-size:13px;color:var(--ink);outline:none;text-overflow:ellipsis}
+.sci:hover{background:var(--surface-3)}
+.sci:focus{background:var(--surface);box-shadow:0 0 0 2px var(--accent)}
+.sci.nome{font-weight:550;letter-spacing:-.012em}
+.sci.num{font-family:var(--mono);font-size:11.5px;letter-spacing:-.02em;text-align:right}
+.sci.auto,.sci[readonly].auto{color:var(--ink-2);background:color-mix(in srgb,var(--accent) 8%,transparent);cursor:default}
+.sci::placeholder{color:var(--ink-3);opacity:.5}
+select.sci{appearance:none;cursor:pointer}
+.sc{font-family:var(--mono);font-size:11.5px;text-align:right;padding:0 10px;color:var(--ink-2);white-space:nowrap}
+.sc.pos{color:var(--c-good);font-weight:600}
+.sc.neg{color:var(--c-alert);font-weight:600}
+.lk{display:flex;align-items:center;gap:2px}
+.lkgo{flex:0 0 auto;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;
+  color:var(--accent);font-size:14px;text-decoration:none}
+.lkgo:hover{background:var(--accent-soft)}
+td.sact{white-space:nowrap;text-align:center}
+td.sact button{width:28px;height:28px;border-radius:7px;color:var(--ink-3);font-size:13px}
+td.sact button:hover{background:var(--surface-3);color:var(--ink)}
+td.sact button[data-sdel]:hover{color:var(--c-alert)}
+
 ::-webkit-scrollbar{width:11px;height:11px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:99px;border:3px solid var(--ground)}
@@ -547,7 +576,13 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
 
 <div class="app">
   <div class="topbar">
-    <div class="brand"><h1>Painel de Campanhas</h1><span class="tag" id="brandCount">—</span></div>
+    <div class="brand"><h1>Painel de Campanhas</h1>
+      <select class="field brandsel" id="brandSel" aria-label="Marca">
+        <option value="bet">Bet da Sorte</option>
+        <option value="top">Top Bet</option>
+        <option value="sonho">Sonho da Sorte</option>
+      </select>
+      <span class="tag" id="brandCount">—</span></div>
     <div class="tb">
       <div class="seg" id="viewSeg" role="group" aria-label="Visão">
         <button data-v="tabela" aria-pressed="true">Tabela</button>
@@ -567,14 +602,14 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
 
   <div id="bannerHost"></div>
 
-  <div class="kpis">
+  <div class="kpis" id="betKpis">
     <div class="kpi"><div class="lab">Campanhas no período</div><div class="val" id="k1">0</div><div class="foot" id="k1f"></div></div>
     <div class="kpi ok"><div class="lab">Progresso</div><div class="val" id="k2">0<small>%</small></div><div class="bar"><i id="k2bar"></i></div><div class="foot" id="k2f"></div></div>
     <div class="kpi warn"><div class="lab">Pendências</div><div class="val" id="k3">0</div><div class="foot" id="k3f"></div></div>
     <div class="kpi"><div class="lab">Esta semana</div><div class="val" id="k4">0</div><div class="foot" id="k4f"></div></div>
   </div>
 
-  <div class="toolbar">
+  <div class="toolbar" id="betToolbar">
     <button class="btn icon sm" id="navPrev" title="Anterior" aria-label="Anterior">‹</button>
     <span class="wklabel" id="wkLabel">—</span>
     <button class="btn icon sm" id="navNext" title="Próximo" aria-label="Próximo">›</button>
@@ -605,6 +640,36 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
     <div class="card"><div class="grid-wrap" id="gridWrap"></div><div class="gridfoot" id="gridFoot"></div></div>
   </div>
   <div id="viewTimeline" style="display:none"></div>
+
+  <div id="viewSonho" style="display:none">
+    <div class="kpis" id="sonhoKpis">
+      <div class="kpi"><div class="lab">Investido</div><div class="val" id="sk1">—</div><div class="foot" id="sk1f"></div></div>
+      <div class="kpi ok"><div class="lab">Receita gerada</div><div class="val" id="sk2">—</div><div class="foot" id="sk2f"></div></div>
+      <div class="kpi"><div class="lab">ROAS geral</div><div class="val" id="sk3">—</div><div class="foot" id="sk3f"></div></div>
+      <div class="kpi"><div class="lab">Uplift médio</div><div class="val" id="sk4">—</div><div class="foot" id="sk4f"></div></div>
+    </div>
+    <div class="toolbar">
+      <button class="btn icon sm" id="sNavPrev" title="Anterior" aria-label="Anterior">‹</button>
+      <span class="wklabel" id="sWkLabel">—</span>
+      <button class="btn icon sm" id="sNavNext" title="Próximo" aria-label="Próximo">›</button>
+      <button class="btn sm" id="sNavReset" title="Voltar para o período atual">⟲</button>
+      <div class="seg" id="sRangeSeg" role="group" aria-label="Período">
+        <button data-r="semana" aria-pressed="false">Semana</button>
+        <button data-r="mes" aria-pressed="false">Mês</button>
+        <button data-r="tudo" aria-pressed="true">Tudo</button>
+        <button data-r="custom" aria-pressed="false">Datas…</button>
+      </div>
+      <span class="custom" id="sCustomBox">
+        <input type="date" id="sFrom" aria-label="Data inicial"><span>até</span><input type="date" id="sTo" aria-label="Data final">
+      </span>
+      <span class="vsep"></span>
+      <input class="field search" id="sQ" type="search" placeholder="Buscar campanha…" aria-label="Buscar campanha">
+      <select class="field" id="sCanal" aria-label="Filtrar por canal"></select>
+      <button class="btn sm" id="sBtnClear">Limpar</button>
+      <button class="btn primary sm" id="sAddTop" style="margin-left:auto">＋ Nova campanha</button>
+    </div>
+    <div class="card"><div class="grid-wrap" id="sonhoWrap"></div><div class="gridfoot" id="sonhoFoot"></div></div>
+  </div>
 </div>
 
 <div class="pop" id="pop" role="menu"></div>
@@ -771,13 +836,15 @@ function normNotas(src){
 /* ===================== ESTADO ===================== */
 const UIKEY = "painel-ui-v3", MEKEY = "painel-eu";
 let campanhas = [], meta = {}, me = "", openId = null;
-let ui = {view:"tabela", range:"semana", offset:0, from:"", to:"", larguras:{}, filters:{q:"",tipo:"",resp:"",block:false}};
+let ui = {view:"tabela", marca:"bet", range:"semana", offset:0, from:"", to:"", larguras:{}, filters:{q:"",tipo:"",resp:"",block:false}};
 let pendingScroll = null, pendingFocus = null, seenBefore = false;
 
 function readUI(){
   try{
     const d = JSON.parse(localStorage.getItem(UIKEY)||"{}");
     if(d.view === "tabela" || d.view === "timeline") ui.view = d.view;
+    if(d.marca === "bet" || d.marca === "top" || d.marca === "sonho") ui.marca = d.marca;
+    if(d.sonho && typeof d.sonho === "object") sui = Object.assign(sui, d.sonho);
     if(d.range) ui.range = d.range;
     // sem isto, cada gravação recarregava a tela e jogava você de volta na semana atual
     if(typeof d.offset === "number" && isFinite(d.offset)) ui.offset = d.offset;
@@ -793,7 +860,7 @@ function readUI(){
 }
 function writeUI(){
   try{
-    localStorage.setItem(UIKEY, JSON.stringify({view:ui.view, range:ui.range, offset:ui.offset,
+    localStorage.setItem(UIKEY, JSON.stringify({view:ui.view, marca:ui.marca, sonho:sui, range:ui.range, offset:ui.offset,
       from:ui.from, to:ui.to,
       larguras:ui.larguras, filters:ui.filters, seen:true, theme:document.documentElement.dataset.theme || ""}));
   }catch(e){}
@@ -851,20 +918,23 @@ function guardaAuditoria(linhas){
 /* ---------- tradução entre o painel e a tabela ---------- */
 function linhaDb(c){
   return {
-    id: c.id, data: c.data || null, hora: c.hora || "", nome: c.nome || "",
+    id: c.id, marca: c.marca === "top" ? "top" : "bet",
+    data: c.data || null, hora: c.hora || "", nome: c.nome || "",
     tipo: c.tipo || "", resp: c.resp || "", obs: c.obs || "", link: c.link || "",
     canais: c.canais || {}, notas: c.notas || {}
   };
 }
 function daLinha(r){
   return {
-    id: r.id, data: r.data || "", hora: r.hora || "", nome: r.nome || "",
+    id: r.id, marca: r.marca === "top" ? "top" : "bet",
+    data: r.data || "", hora: r.hora || "", nome: r.nome || "",
     tipo: r.tipo || "", resp: r.resp || "", obs: r.obs || "", link: r.link || "",
     canais: normCanais(r.canais), notas: normNotas(r.notas)
   };
 }
 function fotografa(){
   gravado = new Map(campanhas.map(c => [c.id, JSON.stringify(linhaDb(c))]));
+  sonhoGravado = new Map(sonho.map(c => [c.id, JSON.stringify(sonhoDb(c))]));
 }
 
 /* só grava as definições de status que fogem do padrão de fábrica */
@@ -903,6 +973,19 @@ async function doSave(){
         .update({excluida_em: new Date().toISOString()}).eq("id", id);
       if(error) throw error;
     }
+    // 2b) Sonho da Sorte: mesma regra — grava só a linha que mudou, exclusão é lógica
+    const sMudadas = sonho.filter(c => sonhoGravado.get(c.id) !== JSON.stringify(sonhoDb(c)));
+    if(sMudadas.length){
+      const {error} = await sb.from("sonho_campanhas").upsert(sMudadas.map(sonhoDb));
+      if(error) throw error;
+      sMudadas.forEach(c => sonhoMeus.set(c.id, JSON.stringify(sonhoDb(c))));
+    }
+    const sSumidas = [...sonhoGravado.keys()].filter(id => !sonho.some(c => c.id === id));
+    for(const id of sSumidas){
+      const {error} = await sb.from("sonho_campanhas")
+        .update({excluida_em: new Date().toISOString()}).eq("id", id);
+      if(error) throw error;
+    }
     // 3) listas de status, só quando você mexeu nelas
     const cfg = JSON.stringify({colunas, status_defs: defsCustom()});
     if(cfg !== cfgGravada){
@@ -935,6 +1018,7 @@ function ligaAoVivo(){
   sb.channel("painel")
     .on("postgres_changes", {event:"*", schema:"public", table:"campanhas"}, chegouCampanha)
     .on("postgres_changes", {event:"*", schema:"public", table:"config"},    chegouConfig)
+    .on("postgres_changes", {event:"*", schema:"public", table:"sonho_campanhas"}, chegouSonho)
     .subscribe();
 }
 /* Não redesenha por cima de quem está digitando: espera o campo fechar.
@@ -950,6 +1034,8 @@ function podeAplicar(){
   if(document.getElementById("stModal").dataset.open) return false;    // editor de status
   if(document.getElementById("lgModal") && document.getElementById("lgModal").dataset.open) return false;
   if(document.getElementById("drawer").dataset.open) return false;     // gaveta da campanha
+  const ae = document.activeElement;                                    // célula da Sonho em edição
+  if(ae && ae.closest && ae.closest("#sonhoWrap") && /^(INPUT|SELECT)$/.test(ae.tagName)) return false;
   return true;
 }
 function adiaAplicacao(){
@@ -1011,21 +1097,25 @@ async function recarregaDoBanco(){
   if(error) return;
   campanhas = data.map(daLinha);
   guardaAuditoria(data);
+  const son = await sb.from("sonho_campanhas").select("*").is("excluida_em", null);
+  if(!son.error) sonho = (son.data || []).map(sonhoDaLinha);
   fotografa();
   render(); paintSync();
 }
 
 async function carrega(){
-  const [camp, cfg, perfil] = await Promise.all([
+  const [camp, cfg, perfil, son] = await Promise.all([
     sb.from("campanhas").select("*").is("excluida_em", null),
     sb.from("config").select("*").eq("id", 1).maybeSingle(),
-    sb.from("perfis").select("email,nome,papel")
+    sb.from("perfis").select("email,nome,papel"),
+    sb.from("sonho_campanhas").select("*").is("excluida_em", null)
   ]);
   if(camp.error) throw camp.error;
 
   if(cfg.data) aplicaConfig(cfg.data);
   campanhas = (camp.data || []).map(daLinha);
   guardaAuditoria(camp.data);
+  sonho = son.error ? [] : (son.data || []).map(sonhoDaLinha);
   fotografa();
 
   // quem você é vem do login, não de um campo digitado
@@ -1035,7 +1125,7 @@ async function carrega(){
   me = (meu && meu.nome) || euSou.split("@")[0];
   canWrite = !meu ? false : meu.papel === "editor";
 
-  if(!seenBefore && campanhas.length && !visible().length){
+  if(!seenBefore && ui.marca !== "sonho" && campanhas.length && !visible().length){
     ui.range = "mes";
     if(!visible().length) ui.range = "tudo";
     syncRangeButtons();
@@ -1251,13 +1341,15 @@ function arquivando(){ return !verAntigas && ui.range === "tudo" && !ui.filters.
 function velha(c){ return !!c.data && c.data < limiteArquivo(); }
 function ocultasPorIdade(){
   if(!arquivando()) return 0;
-  return campanhas.filter(c=> velha(c) && matchFilters(c)).length;
+  return daMarca().filter(c=> velha(c) && matchFilters(c)).length;
 }
 
 /* ===================== FILTRO E ORDEM POR COLUNA =====================
    Convive com os filtros da barra de cima em vez de disputar com eles: o painel
    aplica primeiro aqueles e, sobre o que sobrou, aplica estes. O filtro de coluna
    só consegue TIRAR linhas — nunca traz de volta o que a barra já escondeu. */
+/* Bet da Sorte e Top Bet vivem na mesma tabela, separadas pela coluna "marca" */
+function daMarca(){ return campanhas.filter(c => (c.marca || "bet") === ui.marca); }
 let ordem = null;        // {k, dir:1|-1}
 let filtroCol = {};      // {k: Set(valores permitidos)}
 
@@ -1280,7 +1372,7 @@ function passaFiltroColuna(c, exceto){
    que acabou de excluir. */
 function valoresDaColuna(k){
   const col = COLS.find(x => x.k === k), esconde = arquivando();
-  const base = campanhas.filter(c => !(esconde && velha(c)) && inRange(c)
+  const base = daMarca().filter(c => !(esconde && velha(c)) && inRange(c)
                                   && matchFilters(c) && passaFiltroColuna(c, k));
   return [...new Set(base.map(c => valorDe(c, col)))]
     .sort((a,b) => (!a) - (!b) || a.localeCompare(b, "pt", {sensitivity:"base"}));
@@ -1305,7 +1397,7 @@ function limpaFiltrosColuna(){ filtroCol = {}; ordem = null; render(); }
 
 function visible(){
   const esconde = arquivando();
-  const lista = campanhas.filter(c => !(esconde && velha(c)) && inRange(c)
+  const lista = daMarca().filter(c => !(esconde && velha(c)) && inRange(c)
                                    && matchFilters(c) && passaFiltroColuna(c));
   /* coluna "Pronto" não vive em COLS — ordena pelo % calculado em statsOf.
      campanha em branco (sem nome) fica sempre por último, não importa a direção —
@@ -1359,6 +1451,8 @@ function pillHTML(k, mod, nota, abre){
 
 /* ===================== RENDER ===================== */
 function render(){
+  aplicaMarcaUI();
+  if(ui.marca === "sonho"){ renderSonho(); writeUI(); return; }
   renderLegend(); renderKPIs(); renderFilters();
   document.getElementById("wkLabel").textContent = rangeLabel();
   const fixed = ui.range==="tudo" || ui.range==="custom";
@@ -1366,7 +1460,7 @@ function render(){
   document.getElementById("navNext").disabled = fixed;
   document.getElementById("navReset").disabled = fixed || ui.offset===0;
   document.getElementById("customBox").toggleAttribute("data-on", ui.range==="custom");
-  document.getElementById("brandCount").textContent = campanhas.length + " campanhas";
+  document.getElementById("brandCount").textContent = daMarca().length + " campanhas";
   document.getElementById("viewTabela").style.display   = ui.view==="timeline" ? "none" : "";
   document.getElementById("viewTimeline").style.display = ui.view==="timeline" ? "flex" : "none";
   if(ui.view==="timeline") renderTimeline(); else renderGrid();
@@ -1391,7 +1485,7 @@ function renderKPIs(){
   /* Este cartão não segue o período navegado — é sempre a semana corrente,
      senão ele zera toda vez que você olha outro mês. Os filtros de busca valem. */
   const wa = fmtD(startOfWeek(new Date())), wb = fmtD(addD(startOfWeek(new Date()),6));
-  const semana = campanhas.filter(c=>matchFilters(c) && c.data >= wa && c.data <= wb)
+  const semana = daMarca().filter(c=>matchFilters(c) && c.data >= wa && c.data <= wb)
     .sort((a,b)=>String(a.data).localeCompare(b.data) || String(a.hora||"~").localeCompare(b.hora||"~"));
   const hoje = semana.filter(c=>c.data===TODAY);
   const adiante = semana.filter(c=>c.data > TODAY);
@@ -1414,8 +1508,8 @@ function renderKPIs(){
     :                  "resto da semana livre";
 }
 function renderFilters(){
-  fillSel("fTipo", [...new Set(campanhas.map(c=>c.tipo).filter(Boolean))].sort(), ui.filters.tipo, "Todos os tipos");
-  fillSel("fResp", [...new Set(campanhas.map(c=>c.resp).filter(Boolean))].sort(), ui.filters.resp, "Todos responsáveis");
+  fillSel("fTipo", [...new Set(daMarca().map(c=>c.tipo).filter(Boolean))].sort(), ui.filters.tipo, "Todos os tipos");
+  fillSel("fResp", [...new Set(daMarca().map(c=>c.resp).filter(Boolean))].sort(), ui.filters.resp, "Todos responsáveis");
   document.getElementById("fBlock").checked = ui.filters.block;
   const q = document.getElementById("fq"); if(q.value !== ui.filters.q) q.value = ui.filters.q;
   const ff = document.getElementById("fFrom"), ft = document.getElementById("fTo");
@@ -1674,7 +1768,7 @@ function rowCampanha(r){ return byId(rowIds[r]); }
    e já gravada — mesmo sem nome. */
 function novaLinha(dataISO){
   marco("nova campanha");
-  const c = {id:uid(), data:dataISO||TODAY, hora:"", nome:"", tipo:"", resp:"", canais:canaisVazios(), notas:{}, obs:"", link:""};
+  const c = {id:uid(), marca: ui.marca === "top" ? "top" : "bet", data:dataISO||TODAY, hora:"", nome:"", tipo:"", resp:"", canais:canaisVazios(), notas:{}, obs:"", link:""};
   campanhas.push(c);
   markDirty();
   // se o período em uso escondesse a linha recém-criada, abre o histórico inteiro
@@ -2265,7 +2359,7 @@ document.addEventListener("keydown", (e)=>{
   }
   /* seta com nada selecionado: entra na primeira célula da tabela, aí já dá para navegar */
   if(/^Arrow(Up|Down|Left|Right)$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey
-     && ui.view === "tabela" && rowIds.length){
+     && ui.view === "tabela" && ui.marca !== "sonho" && rowIds.length){
     const a = document.activeElement;
     const digitando = a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA"
                         || a.tagName === "SELECT" || a.isContentEditable);
@@ -2284,6 +2378,7 @@ document.addEventListener("keydown", (e)=>{
   }
   // Ctrl+Z / Ctrl+Shift+Z — mas dentro de um campo de texto o desfazer é o do navegador
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === "z"){
+    if(ui.marca === "sonho") return;      // a Sonho não tem desfazer; dentro do campo vale o do navegador
     const a = document.activeElement;
     const digitando = a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA");
     if(digitando || askModal.dataset.open) return;
@@ -2291,6 +2386,7 @@ document.addEventListener("keydown", (e)=>{
     e.preventDefault(); return;
   }
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === "y"){
+    if(ui.marca === "sonho") return;
     const a = document.activeElement;
     if(a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA")) return;
     refazer(); e.preventDefault();
@@ -3294,8 +3390,9 @@ document.getElementById("btnExport").onclick = (e)=>{
 };
 /* junta a autoria só na hora de exportar — ver `auditoria` lá em cima */
 function envelopeJSON(){
-  return {v:3, exportado:TODAY,
-          campanhas: campanhas.map(c => Object.assign({}, c, auditoria.get(c.id) || {}))};
+  return {v:4, exportado:TODAY,
+          campanhas: campanhas.map(c => Object.assign({}, c, auditoria.get(c.id) || {})),
+          sonho: sonho.map(sonhoDb)};
 }
 async function expJSON(){
   await offer("painel-campanhas-"+TODAY+".json",
@@ -3303,6 +3400,7 @@ async function expJSON(){
 }
 /* o CSV sai do que está na tela — período e filtros valem aqui */
 function csvTexto(){
+  if(ui.marca === "sonho") return csvSonho();
   const rows = [["Data","Horário","Nome","Tipo","Responsável"].concat(CANAIS.map(c=>c.n), ["Pronto %","Observação","Link"])];
   visible().forEach(c=>{
     const s = statsOf(c);
@@ -3310,7 +3408,7 @@ function csvTexto(){
   });
   return "﻿" + rows.map(r=>r.map(v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`).join(",")).join("\n");
 }
-async function expCSV(){ await offer("campanhas-"+TODAY+".csv", csvTexto(), "text/csv"); }
+async function expCSV(){ await offer((ui.marca === "sonho" ? "sonho-" : "campanhas-")+TODAY+".csv", csvTexto(), "text/csv"); }
 /* ---------- salvar direto numa pasta do computador ----------
    Só Chrome e Edge têm essa API. O navegador pede a pasta uma vez, guarda a
    permissão, e a partir daí o painel escreve lá dentro sem perguntar o caminho.
@@ -3360,9 +3458,9 @@ async function salvaNaPasta(){
 
     /* o CSV sai filtrado: dizer quantas linhas ele levou evita guardar um
        recorte achando que é a lista inteira */
-    const naTela = visible().length;
-    toast("Salvo em " + pastaBackup.name + ": JSON com " + campanhas.length + " campanhas"
-          + " · CSV com " + naTela + (naTela < campanhas.length ? " (a tela está filtrada)" : ""));
+    const naTela = ui.marca === "sonho" ? sVisible().length : visible().length;
+    toast("Salvo em " + pastaBackup.name + ": JSON com " + (campanhas.length + sonho.length) + " campanhas"
+          + " · CSV com " + naTela + (naTela < (ui.marca === "sonho" ? sonho.length : campanhas.length) ? " (a tela está filtrada)" : ""));
   }catch(e){
     if(e && (e.name === "AbortError" || e.name === "NotAllowedError")) return;  // desistiu do seletor
     pastaBackup = null;
@@ -3387,6 +3485,525 @@ async function offer(filename, data, mime){
   }catch(e){}
   try{ await navigator.clipboard.writeText(data); toast("Não deu para baixar — copiei o conteúdo, cole num arquivo e salve como " + filename); }
   catch(e){ toast("Não consegui baixar nem copiar o conteúdo"); }
+}
+
+/* ===================== SONHO DA SORTE =====================
+   Marca com planilha própria: as colunas vêm da planilha "Sonho Disparos - CRM"
+   e as fórmulas dela viraram colunas calculadas aqui (Período, Conv. %, Uplift,
+   ROAS, Ticket médio). Os dados ficam na tabela sonho_campanhas, separada das
+   campanhas da Bet da Sorte / Top Bet, mas usam o mesmo salvamento e o mesmo canal
+   ao vivo. */
+let sonho = [];
+let sonhoGravado = new Map();   // foto das linhas já salvas, por id
+const sonhoMeus = new Map();    // o que ESTA aba acabou de gravar (para reconhecer o eco)
+let sOrdem = null;              // {k, dir:1|-1}
+const sonhoWrap = document.getElementById("sonhoWrap");
+
+const CANAIS_SONHO = ["RCS","Wapp","RCS/Wapp","SMS","E-mail","Push"];
+/* t: text · canal · date · num · inv (valor investido) · calc · link · seq */
+const SCOLS = [
+  {k:"seq",             n:"ID",                    t:"seq",  w:56,  sk:0},
+  {k:"nome",            n:"Nome da campanha",      t:"text", w:210, sk:1},
+  {k:"canal",           n:"Canal",                 t:"canal",w:108},
+  {k:"segmento",        n:"Segmento / público",    t:"text", w:300},
+  {k:"data_inicio",     n:"Início",                t:"date", w:132},
+  {k:"data_fim",        n:"Fim",                   t:"date", w:132},
+  {k:"periodo",         n:"Período (dias)",        t:"calc", w:116,  f:"int", dica:"Fim − Início"},
+  {k:"qtd_teste",       n:"Qtd. grupo teste",      t:"num",  w:130, d:0},
+  {k:"qtd_controle",    n:"Qtd. grupo controle",   t:"num",  w:146, d:0},
+  {k:"custo_envio",     n:"Custo por envio (R$)",  t:"num",  w:156, d:2, dica:"Opcional: se preencher, o Valor investido vira Qtd. teste × este custo"},
+  {k:"valor_investido", n:"Valor investido (R$)",  t:"inv",  w:156, d:2},
+  {k:"conv_teste",      n:"Conversões teste",      t:"num",  w:136, d:0},
+  {k:"conv_controle",   n:"Conversões controle",   t:"num",  w:150, d:0},
+  {k:"pt",              n:"Conv. teste (%)",       t:"calc", w:128, f:"pct", dica:"Conversões teste ÷ Qtd. teste"},
+  {k:"pc",              n:"Conv. controle (%)",    t:"calc", w:146, f:"pct", dica:"Conversões controle ÷ Qtd. controle"},
+  {k:"uplift",          n:"Uplift (p.p.)",         t:"calc", w:116, f:"pp",  dica:"Conv. teste % − Conv. controle %, em pontos percentuais"},
+  {k:"receita",         n:"Receita gerada (R$)",   t:"num",  w:156, d:2},
+  {k:"receita_cnt",     n:"Receita cnt (R$)",      t:"num",  w:140, d:2},
+  {k:"roas",            n:"ROAS",                  t:"calc", w:84,  f:"x",   dica:"Receita gerada ÷ Valor investido"},
+  {k:"ticket",          n:"Ticket médio (R$)",     t:"calc", w:140, f:"brl", dica:"Receita gerada ÷ Conversões teste"},
+  {k:"ticketc",         n:"Ticket M. cnt (R$)",    t:"calc", w:150, f:"brl", dica:"Receita cnt ÷ Conversões controle"},
+  {k:"obs",             n:"Observações",           t:"text", w:220},
+  {k:"copy_link",       n:"Copy do disparo",       t:"link", w:170},
+  {k:"arte_link",       n:"Arte do disparo",       t:"link", w:170},
+];
+const SCOL = Object.fromEntries(SCOLS.map(c=>[c.k, c]));
+
+/* estado da barra de cima da Sonho — cada marca guarda o seu período e filtros */
+let sui = {range:"tudo", offset:0, from:"", to:"", q:"", canal:""};
+
+/* ---------- números ---------- */
+const nvS = v => (v === null || v === undefined || v === "" || !isFinite(Number(v))) ? null : Number(v);
+const fmtN = (v, min, max) => v == null ? "" :
+  v.toLocaleString("pt-BR", {minimumFractionDigits:min, maximumFractionDigits:(max == null ? min : max)});
+const fmtBRL = v => v == null ? "—" : "R$ " + fmtN(v, 2);
+/* aceita 1.234,56 · 1234,56 · 1234.56 · R$ 1.234,56 · 12% — e também contas: =33308*2 */
+function parseNum(txt){
+  let s = String(txt == null ? "" : txt).trim();
+  if(!s) return {ok:true, v:null};
+  if(s[0] === "="){
+    const e = s.slice(1).replace(/\s/g,"").replace(/,/g,".");
+    if(!/^[0-9+\-*\/().]+$/.test(e)) return {ok:false};
+    try{
+      const r = Function('"use strict";return (' + e + ')')();
+      return isFinite(r) ? {ok:true, v:Math.round(r*1e6)/1e6} : {ok:false};
+    }catch(err){ return {ok:false}; }
+  }
+  s = s.replace(/R\$|%|\s/g, "");
+  if(s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+  else if(/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
+  if(!/^-?(\d+\.?\d*|\.\d+)$/.test(s)) return {ok:false};
+  const v = Number(s);
+  return isFinite(v) ? {ok:true, v} : {ok:false};
+}
+
+/* ---------- fórmulas da planilha ---------- */
+function sInv(c){
+  const q = nvS(c.qtd_teste), k = nvS(c.custo_envio);
+  return (k != null && q != null) ? Math.round(q * k * 100) / 100 : nvS(c.valor_investido);
+}
+function sCalc(c){
+  const qt = nvS(c.qtd_teste), qc = nvS(c.qtd_controle), ct = nvS(c.conv_teste), cc = nvS(c.conv_controle);
+  const rec = nvS(c.receita), rc = nvS(c.receita_cnt), inv = sInv(c);
+  const pt = (qt && ct != null) ? ct / qt : null;
+  const pc = (qc && cc != null) ? cc / qc : null;
+  return {
+    inv,
+    periodo: (c.data_inicio && c.data_fim) ? Math.round((parseD(c.data_fim) - parseD(c.data_inicio)) / 86400000) : null,
+    pt, pc,
+    uplift: (pt != null && pc != null) ? (pt - pc) * 100 : null,
+    roas:    (inv && rec != null) ? rec / inv : null,
+    ticket:  (ct && rec != null)  ? rec / ct  : null,
+    ticketc: (cc && rc != null)   ? rc / cc   : null
+  };
+}
+function fmtCalc(f, v){
+  if(v == null) return "—";
+  if(f === "int") return fmtN(v, 0);
+  if(f === "pct") return fmtN(v * 100, 2, 2) + "%";
+  if(f === "pp")  return (v > 0 ? "+" : "") + fmtN(v, 2, 2) + " p.p.";
+  if(f === "x")   return fmtN(v, 2, 2) + "x";
+  return fmtBRL(v);
+}
+function corCalc(f, v){
+  if(v == null) return "";
+  if(f === "pp") return v > 0 ? " pos" : (v < 0 ? " neg" : "");
+  if(f === "x")  return v >= 1 ? " pos" : " neg";
+  return "";
+}
+
+/* ---------- tradução entre o painel e a tabela ---------- */
+function sonhoDb(c){
+  return {
+    id:c.id, seq:(c.seq == null ? null : c.seq), nome:c.nome || "", canal:c.canal || "", segmento:c.segmento || "",
+    data_inicio:c.data_inicio || null, data_fim:c.data_fim || null,
+    qtd_teste:nvS(c.qtd_teste), qtd_controle:nvS(c.qtd_controle),
+    custo_envio:nvS(c.custo_envio), valor_investido:nvS(c.valor_investido),
+    conv_teste:nvS(c.conv_teste), conv_controle:nvS(c.conv_controle),
+    receita:nvS(c.receita), receita_cnt:nvS(c.receita_cnt),
+    obs:c.obs || "", copy_link:c.copy_link || "", arte_link:c.arte_link || ""
+  };
+}
+function sonhoDaLinha(r){
+  return {
+    id:r.id, seq:(r.seq == null ? null : Number(r.seq)), nome:r.nome || "", canal:r.canal || "", segmento:r.segmento || "",
+    data_inicio:r.data_inicio || null, data_fim:r.data_fim || null,
+    qtd_teste:nvS(r.qtd_teste), qtd_controle:nvS(r.qtd_controle),
+    custo_envio:nvS(r.custo_envio), valor_investido:nvS(r.valor_investido),
+    conv_teste:nvS(r.conv_teste), conv_controle:nvS(r.conv_controle),
+    receita:nvS(r.receita), receita_cnt:nvS(r.receita_cnt),
+    obs:r.obs || "", copy_link:r.copy_link || "", arte_link:r.arte_link || ""
+  };
+}
+/* com custo por envio preenchido, o valor investido grava junto o resultado da conta */
+function sSyncInv(c){
+  const q = nvS(c.qtd_teste), k = nvS(c.custo_envio);
+  if(k != null && q != null) c.valor_investido = Math.round(q * k * 100) / 100;
+}
+function chegouSonho(p){
+  const r = p.new && p.new.id ? p.new : p.old;
+  if(!r) return;
+  if(p.new && p.new.id){
+    const enviei = sonhoMeus.get(p.new.id);
+    if(enviei && enviei === JSON.stringify(sonhoDb(sonhoDaLinha(p.new)))){ sonhoMeus.delete(p.new.id); return; }
+  }
+  if(!podeAplicar()){ adiaAplicacao(); return; }
+  aplicaSonho(p);
+}
+function aplicaSonho(p){
+  const r = p.new, id = (p.new && p.new.id) || (p.old && p.old.id);
+  const fora = !r || r.excluida_em;
+  const i = sonho.findIndex(c => c.id === id);
+  if(fora){ if(i >= 0) sonho.splice(i, 1); sonhoGravado.delete(id); }
+  else{
+    const n = sonhoDaLinha(r);
+    if(i >= 0) sonho[i] = n; else sonho.push(n);
+    sonhoGravado.set(id, JSON.stringify(sonhoDb(n)));
+  }
+  if(ui.marca === "sonho") render();
+  meta = {por: nomeDe(r && r.alterado_por), em: (r && r.alterado_em) || new Date().toISOString()};
+  paintSync();
+}
+
+/* ---------- seleção ---------- */
+function sRangeDates(){
+  const t = new Date(); t.setHours(0,0,0,0);
+  switch(sui.range){
+    case "semana": { const a = addD(startOfWeek(t), sui.offset*7); return [a, addD(a,6)]; }
+    case "mes":    { const m = new Date(t.getFullYear(), t.getMonth()+sui.offset, 1);
+                     return [m, new Date(m.getFullYear(), m.getMonth()+1, 0)]; }
+    case "custom": { if(!sui.from && !sui.to) return null;
+                     let a = sui.from ? parseD(sui.from) : parseD("1900-01-01");
+                     let b = sui.to ? parseD(sui.to) : parseD("2999-12-31");
+                     if(a > b){ const x = a; a = b; b = x; } return [a, b]; }
+    default: return null;
+  }
+}
+function sRangeLabel(){
+  const r = sRangeDates();
+  if(!r) return sui.range === "custom" ? "Escolha as datas" : "Todo o histórico";
+  if(sui.range === "mes") return MESES_L[r[0].getMonth()] + " de " + r[0].getFullYear();
+  return shortD(r[0]) + " – " + shortD(r[1]) + " de " + r[1].getFullYear();
+}
+/* a campanha entra no período se qualquer dia dela cair dentro dele */
+function sInRange(c){
+  const r = sRangeDates(); if(!r) return true;
+  if(!c.data_inicio && !c.data_fim) return true;
+  const a = parseD(c.data_inicio || c.data_fim), b = parseD(c.data_fim || c.data_inicio);
+  return a <= r[1] && b >= r[0];
+}
+function sMatch(c){
+  if(sui.canal && c.canal !== sui.canal) return false;
+  if(sui.q){
+    const t = (c.nome + " " + c.segmento + " " + c.obs + " " + c.canal).toLowerCase();
+    if(!t.includes(sui.q.toLowerCase())) return false;
+  }
+  return true;
+}
+function sValor(c, k){
+  const col = SCOL[k];
+  if(col.t === "calc") return sCalc(c)[k];
+  if(k === "valor_investido") return sInv(c);
+  if(col.t === "num") return nvS(c[k]);
+  if(k === "seq") return c.seq;
+  return c[k] || "";
+}
+function sVisible(){
+  const lista = sonho.filter(c => sInRange(c) && sMatch(c));
+  const porSeq = (a, b) => (a.seq || 0) - (b.seq || 0) || String(a.id).localeCompare(b.id);
+  if(!sOrdem) return lista.sort(porSeq);
+  /* célula vazia sempre por último, nas duas direções */
+  return lista.sort((a, b) => {
+    const va = sValor(a, sOrdem.k), vb = sValor(b, sOrdem.k);
+    const ea = va === null || va === undefined || va === "", eb = vb === null || vb === undefined || vb === "";
+    if(ea !== eb) return ea ? 1 : -1;
+    if(ea && eb) return porSeq(a, b);
+    const cmp = (typeof va === "number" && typeof vb === "number") ? va - vb
+              : String(va).localeCompare(String(vb), "pt", {sensitivity:"base"});
+    return sOrdem.dir * cmp || porSeq(a, b);
+  });
+}
+
+/* ---------- desenho ---------- */
+const MARCAS_NOME = {bet:"Bet da Sorte", top:"Top Bet", sonho:"Sonho da Sorte"};
+function aplicaMarcaUI(){
+  const s = ui.marca === "sonho";
+  const mostra = (id, on, disp) => { const el = document.getElementById(id); if(el) el.style.display = on ? (disp || "") : "none"; };
+  mostra("betKpis", !s); mostra("betToolbar", !s); mostra("legend", !s);
+  mostra("viewSeg", !s, "inline-flex");
+  mostra("btnUndo", !s, "inline-flex"); mostra("btnRedo", !s, "inline-flex");
+  mostra("viewSonho", s, "flex");
+  if(s){ mostra("viewTabela", false); mostra("viewTimeline", false); }
+  const sel = document.getElementById("brandSel");
+  if(sel && sel.value !== ui.marca) sel.value = ui.marca;
+  document.title = "Painel de Campanhas · " + (MARCAS_NOME[ui.marca] || "");
+}
+function setMarca(m){
+  if(!MARCAS_NOME[m] || m === ui.marca) return;
+  flushNow();
+  closePop(); fechaCtx(); fechaMenuColuna();
+  if(openId) closeDrawer();
+  undoPilha.length = 0; redoPilha.length = 0; pintaUndo();
+  filtroCol = {}; ordem = null; limpaSelecao();
+  ui.filters = {q:"", tipo:"", resp:"", block:false};
+  ui.marca = m;
+  render();
+}
+function renderSonho(){
+  const edita = canWrite !== false;
+  const list = sVisible();
+  // barra de cima
+  document.getElementById("sWkLabel").textContent = sRangeLabel();
+  const fixo = sui.range === "tudo" || sui.range === "custom";
+  document.getElementById("sNavPrev").disabled = fixo;
+  document.getElementById("sNavNext").disabled = fixo;
+  document.getElementById("sNavReset").disabled = fixo || sui.offset === 0;
+  document.getElementById("sCustomBox").toggleAttribute("data-on", sui.range === "custom");
+  document.querySelectorAll("#sRangeSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.r === sui.range)));
+  const fa = document.getElementById("sFrom"), ft = document.getElementById("sTo");
+  if(fa.value !== sui.from) fa.value = sui.from;
+  if(ft.value !== sui.to) ft.value = sui.to;
+  const q = document.getElementById("sQ"); if(q.value !== sui.q) q.value = sui.q;
+  const canais = [...new Set(CANAIS_SONHO.concat(sonho.map(c => c.canal).filter(Boolean)))];
+  const sc = document.getElementById("sCanal");
+  sc.innerHTML = `<option value="">Todos os canais</option>` + canais.map(o => `<option${o === sui.canal ? " selected" : ""}>${esc(o)}</option>`).join("");
+  sc.value = sui.canal || "";
+  document.getElementById("sAddTop").style.display = edita ? "" : "none";
+  document.getElementById("brandCount").textContent = sonho.length + " campanhas";
+
+  renderSonhoKPIs(list);
+
+  // tabela
+  const sw = sonhoWrap, y = sw.scrollTop, x = sw.scrollLeft;
+  const larg = SCOLS.reduce((a, c) => a + c.w, 74);
+  let h = `<table class="grid sg" style="--sk1:${SCOL.seq.w}px;min-width:${larg}px"><colgroup>`
+    + SCOLS.map(c => `<col style="width:${c.w}px">`).join("") + `<col style="width:74px"></colgroup><thead><tr>`
+    + SCOLS.map(c => {
+        const mk = sOrdem && sOrdem.k === c.k ? `<span class="thmk" title="Coluna ordenada">${sOrdem.dir > 0 ? "▲" : "▼"}</span>` : "";
+        const fx = c.t === "calc" ? `<span class="fx" title="${esc(c.dica || "Calculado automaticamente")}">ƒ</span>` : "";
+        const tt = c.dica ? esc(c.dica) + " — clique para ordenar" : "Clique para ordenar";
+        return `<th class="sth${c.sk != null ? ` sk sk${c.sk}` : ""}${c.t === "calc" ? " calcth" : ""}" data-sk="${c.k}" title="${tt}">${esc(c.n)}${fx}${mk}</th>`;
+      }).join("") + `<th></th></tr></thead><tbody>`;
+  list.forEach(c => {
+    const k = sCalc(c);
+    h += `<tr data-sid="${esc(c.id)}">` + SCOLS.map(col => sCelula(c, col, k, edita)).join("")
+      + `<td class="sact">${edita ? `<button data-sdup="${esc(c.id)}" title="Duplicar campanha" aria-label="Duplicar">⧉</button><button data-sdel="${esc(c.id)}" title="Excluir campanha" aria-label="Excluir">✕</button>` : ""}</td></tr>`;
+  });
+  if(edita) h += `<tr class="addrow"><td colspan="${SCOLS.length + 1}"><button class="addbtn" id="sAdd">+ adicionar campanha</button></td></tr>`;
+  h += `</tbody></table>`;
+  if(!list.length) h = `<div class="blank"><span class="big">${sonho.length ? "Nenhuma campanha neste período" : "Ainda não há campanhas do Sonho da Sorte"}</span>
+    <p>${sonho.length ? "Mude o período ou limpe a busca para ver o resto." : "Crie a primeira campanha."}</p>
+    ${edita ? `<button class="btn primary" id="sAdd">＋ Nova campanha</button>` : ""}</div>`;
+  sw.innerHTML = h;
+  sw.scrollTop = y; sw.scrollLeft = x;
+
+  const filtrando = sui.q || sui.canal;
+  const n = list.length;
+  document.getElementById("sonhoFoot").innerHTML =
+    `<span>${n} campanha${n === 1 ? "" : "s"} no período</span><span class="vsep"></span>
+     <span>Clique no cabeçalho para ordenar · <b>ƒ</b> = coluna calculada sozinha · <kbd>Enter</kbd> / <kbd>↓</kbd> desce para a linha de baixo ·
+     na célula numérica dá para digitar uma conta, como <kbd>=33308*2</kbd></span>`
+    + (sOrdem ? `<button class="btn sm" id="sLimpaOrdem">Tirar ordenação</button>` : "")
+    + (filtrando ? `<button class="btn sm" id="sLimpa">Limpar filtros</button>` : "");
+}
+function sCelula(c, col, k, edita){
+  const ro = edita ? "" : " readonly";
+  const id = esc(c.id), kk = col.k;
+  const base = `class="gc${col.sk != null ? ` sk sk${col.sk}` : ""}"`;
+  switch(col.t){
+    case "seq":
+      return `<td ${base.replace('class="gc', 'class="gc pad')}><div class="cellv num"><span>${c.seq == null ? "" : c.seq}</span></div></td>`;
+    case "text":
+      return `<td ${base}><input class="sci${kk === "nome" ? " nome" : ""}" data-sid="${id}" data-sk="${kk}" value="${esc(c[kk] || "")}" title="${esc(c[kk] || "")}"
+        placeholder="${kk === "nome" ? "Nome da campanha" : "—"}"${ro}></td>`;
+    case "canal": {
+      const ops = CANAIS_SONHO.includes(c.canal) || !c.canal ? CANAIS_SONHO : CANAIS_SONHO.concat([c.canal]);
+      return `<td ${base}><select class="sci" data-sid="${id}" data-sk="canal"${edita ? "" : " disabled"}>
+        <option value=""${c.canal ? "" : " selected"}>—</option>${ops.map(o => `<option${o === c.canal ? " selected" : ""}>${esc(o)}</option>`).join("")}</select></td>`;
+    }
+    case "date":
+      return `<td ${base}><input class="sci num" type="date" data-sid="${id}" data-sk="${kk}" value="${esc(c[kk] || "")}"${ro}></td>`;
+    case "num": {
+      const v = nvS(c[kk]);
+      return `<td ${base}><input class="sci num" inputmode="decimal" data-sid="${id}" data-sk="${kk}" placeholder="—"
+        value="${v == null ? "" : fmtN(v, col.d, 2)}"${ro}></td>`;
+    }
+    case "inv": {
+      const auto = nvS(c.custo_envio) != null && nvS(c.qtd_teste) != null;
+      const v = auto ? sInv(c) : nvS(c.valor_investido);
+      return `<td ${base}><input class="sci num${auto ? " auto" : ""}" inputmode="decimal" data-sid="${id}" data-sk="valor_investido" placeholder="—"
+        title="${auto ? "Calculado: Qtd. teste × Custo por envio" : "Valor digitado"}"
+        value="${v == null ? "" : fmtN(v, 2, 2)}"${auto || !edita ? " readonly" : ""}></td>`;
+    }
+    case "calc": {
+      const v = k[kk];
+      return `<td ${base}><div class="sc${corCalc(col.f, v)}" data-sc="${kk}">${fmtCalc(col.f, v)}</div></td>`;
+    }
+    case "link": {
+      const v = c[kk] || "", ok = /^https?:\/\//i.test(v);
+      return `<td ${base}><div class="lk"><input class="sci" data-sid="${id}" data-sk="${kk}" value="${esc(v)}" title="${esc(v)}" placeholder="Colar link"${ro}>
+        ${ok ? `<a class="lkgo" href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="Abrir link" aria-label="Abrir link">↗</a>` : ""}</div></td>`;
+    }
+  }
+  return `<td ${base}></td>`;
+}
+function renderSonhoKPIs(list){
+  let inv = 0, rec = 0, recC = 0, invComRec = 0, recComInv = 0, nUp = 0, somaUp = 0;
+  list.forEach(c => {
+    const k = sCalc(c), r = nvS(c.receita), rc = nvS(c.receita_cnt);
+    if(k.inv != null) inv += k.inv;
+    if(r != null) rec += r;
+    if(rc != null) recC += rc;
+    if(k.inv && r != null){ invComRec += k.inv; recComInv += r; }
+    if(k.uplift != null){ nUp++; somaUp += k.uplift; }
+  });
+  const roas = invComRec ? recComInv / invComRec : null;
+  const up = nUp ? somaUp / nUp : null;
+  const set = (id, h) => { document.getElementById(id).innerHTML = h; };
+  set("sk1", fmtBRL(inv));
+  set("sk1f", list.length + " campanha" + (list.length === 1 ? "" : "s") + " no período");
+  set("sk2", fmtBRL(rec));
+  set("sk2f", "grupo controle: " + fmtBRL(recC));
+  set("sk3", roas == null ? "—" : fmtN(roas, 2, 2) + "<small>x</small>");
+  set("sk3f", roas == null ? "Preencha investimento e receita" : "receita ÷ investido · " + (roas >= 1 ? "no azul" : "abaixo de 1x"));
+  set("sk4", up == null ? "—" : (up > 0 ? "+" : "") + fmtN(up, 2, 2) + "<small> p.p.</small>");
+  set("sk4f", up == null ? "Preencha teste e controle" : "média de " + nUp + " campanha" + (nUp === 1 ? "" : "s") + " com teste × controle");
+  document.getElementById("sk3").parentNode.classList.toggle("ok", roas != null && roas >= 1);
+  document.getElementById("sk4").parentNode.classList.toggle("ok", up != null && up > 0);
+}
+/* depois de editar uma célula: refaz só as colunas calculadas da linha, sem
+   redesenhar a tabela (redesenhar tiraria o cursor do campo e reordenaria a linha) */
+function atualizaLinhaSonho(c, editado){
+  const tr = sonhoWrap.querySelector(`tr[data-sid="${CSS.escape(c.id)}"]`);
+  if(tr){
+    const k = sCalc(c);
+    tr.querySelectorAll("[data-sc]").forEach(el => {
+      const col = SCOL[el.dataset.sc], v = k[col.k];
+      el.textContent = fmtCalc(col.f, v);
+      el.className = "sc" + corCalc(col.f, v);
+    });
+    const inp = tr.querySelector('[data-sk="valor_investido"]');
+    if(inp && inp !== editado){
+      const auto = nvS(c.custo_envio) != null && nvS(c.qtd_teste) != null;
+      const v = auto ? sInv(c) : nvS(c.valor_investido);
+      inp.value = v == null ? "" : fmtN(v, 2, 2);
+      inp.defaultValue = inp.value;
+      inp.readOnly = auto || canWrite === false;
+      inp.classList.toggle("auto", auto);
+      inp.title = auto ? "Calculado: Qtd. teste × Custo por envio" : "Valor digitado";
+    }
+  }
+  renderSonhoKPIs(sVisible());
+}
+
+/* ---------- edição ---------- */
+function novaSonho(base){
+  const seq = Math.max(0, ...sonho.map(c => c.seq || 0)) + 1;
+  const c = Object.assign({id:uid(), seq, nome:"", canal:"", segmento:"", data_inicio:TODAY, data_fim:null,
+    qtd_teste:null, qtd_controle:null, custo_envio:null, valor_investido:null,
+    conv_teste:null, conv_controle:null, receita:null, receita_cnt:null, obs:"", copy_link:"", arte_link:""}, base || {});
+  sonho.push(c);
+  markDirty();
+  if(!sVisible().some(x => x.id === c.id)){
+    sui.range = "tudo"; sui.offset = 0; sui.from = ""; sui.to = ""; sui.q = ""; sui.canal = "";
+    toast("Filtros limpos — a campanha nova ficaria fora do período");
+  }
+  render();
+  setTimeout(() => {
+    const el = sonhoWrap.querySelector(`input[data-sid="${CSS.escape(c.id)}"][data-sk="nome"]`);
+    if(el){ el.scrollIntoView({block:"nearest"}); el.focus(); }
+  }, 30);
+  return c;
+}
+async function excluiSonho(id){
+  const c = sonho.find(x => x.id === id); if(!c) return;
+  const ok = await pergunta({titulo:"Excluir campanha", perigo:true, ok:"Excluir",
+    texto:`"${c.nome || "Sem nome"}" sai do painel para todo mundo. Esta marca ainda não tem Ctrl+Z.`});
+  if(!ok) return;
+  sonho = sonho.filter(x => x.id !== id);
+  render(); markDirty(); toast("Campanha excluída");
+}
+function duplicaSonho(id){
+  const c = sonho.find(x => x.id === id); if(!c) return;
+  novaSonho(Object.assign({}, c, {id:uid(), seq:undefined, nome:(c.nome || "") + " (cópia)"}));
+}
+function confirmaCelulaSonho(el){
+  const c = sonho.find(x => x.id === el.dataset.sid); if(!c) return;
+  const k = el.dataset.sk, col = SCOL[k] || SCOL.valor_investido;
+  if(canWrite === false) return;
+  let v;
+  if(col.t === "num" || col.t === "inv"){
+    const r = parseNum(el.value);
+    if(!r.ok){ toast("Não entendi esse número"); el.value = el.defaultValue; return; }
+    v = r.v;
+    if(v != null && v < 0){ toast("Use um valor maior ou igual a zero"); el.value = el.defaultValue; return; }
+    el.value = v == null ? "" : fmtN(v, col.d == null ? 2 : col.d, col.d == null ? 2 : Math.max(col.d, 2));
+  }else if(col.t === "date"){
+    v = el.value || null;
+  }else{
+    v = el.value.trim();
+    if(col.t === "link" && v && !/^https?:\/\//i.test(v) && /^[\w.-]+\.[a-z]{2,}/i.test(v)){ v = "https://" + v; el.value = v; }
+  }
+  if(c[k] === v || (c[k] == null && v == null) ) { el.defaultValue = el.value; return; }
+  c[k] = v;
+  if(k === "custo_envio" || k === "qtd_teste") sSyncInv(c);
+  el.defaultValue = el.value;
+  if(col.t === "text" || col.t === "link") el.title = v || "";
+  atualizaLinhaSonho(c, el);
+  markDirty();
+}
+sonhoWrap.addEventListener("change", (e)=>{
+  const el = e.target.closest("[data-sk]");
+  if(el && el.dataset.sid) confirmaCelulaSonho(el);
+});
+sonhoWrap.addEventListener("focusin", (e)=>{
+  const el = e.target;
+  if(el.tagName === "INPUT" && el.type !== "date" && !el.readOnly) setTimeout(()=>{ try{ el.select(); }catch(err){} }, 0);
+});
+sonhoWrap.addEventListener("keydown", (e)=>{
+  const el = e.target;
+  if(!el.dataset || !el.dataset.sk || !el.dataset.sid) return;
+  if(e.key === "Escape" && el.tagName === "INPUT"){ el.value = el.defaultValue; el.blur(); return; }
+  const desce = e.key === "Enter" || e.key === "ArrowDown", sobe = e.key === "ArrowUp";
+  if((desce || sobe) && el.tagName === "INPUT" && !(el.type === "date" && e.key !== "Enter")){
+    const tr = el.closest("tr");
+    const prox = sobe ? tr.previousElementSibling : tr.nextElementSibling;
+    e.preventDefault();
+    confirmaCelulaSonho(el);
+    const alvo = prox && prox.querySelector(`[data-sk="${el.dataset.sk}"]`);
+    if(alvo) alvo.focus();
+  }
+});
+sonhoWrap.addEventListener("click", (e)=>{
+  const th = e.target.closest("th[data-sk]");
+  if(th){
+    const k = th.dataset.sk;
+    sOrdem = (sOrdem && sOrdem.k === k) ? {k, dir:-sOrdem.dir} : {k, dir:-1};   // 1º clique: maior → menor
+    render(); return;
+  }
+  const d = e.target.closest("[data-sdel]"); if(d){ excluiSonho(d.dataset.sdel); return; }
+  const u = e.target.closest("[data-sdup]"); if(u){ duplicaSonho(u.dataset.sdup); return; }
+  if(e.target.closest("#sAdd")){ novaSonho(); return; }
+});
+document.getElementById("sonhoFoot").addEventListener("click", (e)=>{
+  if(e.target.closest("#sLimpaOrdem")){ sOrdem = null; render(); }
+  if(e.target.closest("#sLimpa")){ sui.q = ""; sui.canal = ""; render(); }
+});
+document.getElementById("sAddTop").onclick = ()=> novaSonho();
+document.getElementById("sRangeSeg").onclick = (e)=>{
+  const b = e.target.closest("button"); if(!b) return;
+  sui.range = b.dataset.r; sui.offset = 0;
+  if(sui.range === "custom" && !sui.from && !sui.to){
+    sui.from = fmtD(addD(new Date(), -30)); sui.to = fmtD(new Date());
+  }
+  render();
+  if(sui.range === "custom") setTimeout(()=>document.getElementById("sFrom").focus(), 30);
+};
+document.getElementById("sNavPrev").onclick  = ()=>{ if(sui.range !== "tudo" && sui.range !== "custom"){ sui.offset--; render(); } };
+document.getElementById("sNavNext").onclick  = ()=>{ if(sui.range !== "tudo" && sui.range !== "custom"){ sui.offset++; render(); } };
+document.getElementById("sNavReset").onclick = ()=>{ sui.offset = 0; render(); };
+document.getElementById("sFrom").onchange = (e)=>{ sui.from = e.target.value; render(); };
+document.getElementById("sTo").onchange   = (e)=>{ sui.to = e.target.value; render(); };
+document.getElementById("sQ").oninput     = (e)=>{ sui.q = e.target.value; render(); };
+document.getElementById("sCanal").onchange= (e)=>{ sui.canal = e.target.value; render(); };
+document.getElementById("sBtnClear").onclick = ()=>{ sui.q = ""; sui.canal = ""; render(); };
+document.getElementById("brandSel").onchange = (e)=> setMarca(e.target.value);
+
+/* CSV da Sonho — respeita período e busca, como o da Bet */
+function csvSonho(){
+  const head = SCOLS.map(c => c.n);
+  const rows = [head];
+  sVisible().forEach(c => {
+    const k = sCalc(c);
+    rows.push(SCOLS.map(col => {
+      if(col.t === "calc"){ const v = k[col.k]; return v == null ? "" : (col.f === "pct" ? fmtN(v*100,2,2)+"%" : fmtN(v,2,2)); }
+      if(col.k === "valor_investido"){ const v = k.inv; return v == null ? "" : fmtN(v,2,2); }
+      if(col.t === "num"){ const v = nvS(c[col.k]); return v == null ? "" : fmtN(v,0,2); }
+      if(col.t === "date") return c[col.k] ? dataBR(c[col.k]) : "";
+      return c[col.k] == null ? "" : c[col.k];
+    }));
+  });
+  return "﻿" + rows.map(r => r.map(v => `"${String(v == null ? "" : v).replace(/"/g,'""')}"`).join(",")).join("\n");
 }
 
 /* ===================== UTIL ===================== */
