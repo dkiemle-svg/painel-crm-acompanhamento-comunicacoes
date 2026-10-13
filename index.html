@@ -555,6 +555,51 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
   .app{padding:14px 12px 70px} .kpis{grid-template-columns:1fr} .tl-grid{grid-template-columns:1fr}
   .brand{width:100%} .sync .who{margin-left:0;width:100%}
 }
+/* ---- Push · Sonho ---- */
+#viewPush{flex-direction:column;gap:12px}
+#pKpis{grid-template-columns:repeat(4,1fr)}
+.pv-note{font-size:12px;color:var(--ink-3);line-height:1.45;padding:0 2px}
+.pv-pad{padding:14px 16px}
+.pv-hd{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.pv-hd h3{margin:0;font-size:14px;font-weight:600;letter-spacing:-.01em}
+.pv-hd .field,.pv-hd .pv-sub{margin-left:auto}
+.pv-sub{font-size:12px;color:var(--ink-3);margin-bottom:6px}
+.pv-row{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.pv-row>div{min-width:0}
+.pv-row3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.pv-row3 .card{min-width:0}
+.pv-wrap{overflow:auto}
+.pv-main{max-height:calc(100vh - 290px)}
+.pv-tbl{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
+.pv-tbl th{position:sticky;top:0;z-index:1;background:var(--surface-2);text-align:right;font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.pv-main .pv-tbl th{cursor:pointer;user-select:none}
+.pv-main .pv-tbl th:hover,.pv-tbl th.on{color:var(--ink)}
+.pv-tbl th small{display:block;font-size:10px;letter-spacing:0;text-transform:none;font-weight:400;margin-top:2px}
+.pv-tbl td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pv-tbl th.l,.pv-tbl td.l{text-align:left}
+.pv-main .pv-tbl tbody tr:hover td{background:var(--surface-2)}
+.pv-tbl tfoot td{position:sticky;bottom:0;background:var(--surface-2);font-weight:600;border-top:1px solid var(--line-2);border-bottom:0}
+.pv-nm{font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+.pv-off td{opacity:.55}
+.pv-st{display:inline-flex;align-items:center;gap:6px}
+.pv-st i{width:8px;height:8px;border-radius:99px;display:inline-block}
+.pv-empty{color:var(--ink-3);font-size:13px;padding:12px 0}
+.pv-err{color:var(--c-alert)}
+.pv-cmpw{margin:0 -4px}
+.pv-cmp td:first-child{font-weight:500}
+.pv-var{font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink-3)}
+.pv-var.up{color:var(--c-good)}
+.pv-var.dn{color:var(--c-alert)}
+.pv-top{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.pv-top li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.pv-top li:last-child{border-bottom:0}
+.pv-tn{font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+.pv-ts{color:var(--ink-3);font-size:12px}
+.pv-top b{font-variant-numeric:tabular-nums}
+.pv-bar{fill-opacity:.85}
+.pv-col:hover .pv-bar{fill-opacity:1}
+.pv-tip{position:fixed;display:none;z-index:50;pointer-events:none;background:var(--ink);color:var(--surface);padding:7px 10px;border-radius:var(--r-2);font-size:12px;line-height:1.4;white-space:pre-line;box-shadow:var(--sh-2)}
+@media (max-width:1000px){#pKpis{grid-template-columns:repeat(2,1fr)}.pv-row,.pv-row3{grid-template-columns:1fr}}
 </style>
 
 <div class="login" id="login" hidden>
@@ -581,6 +626,7 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
         <option value="bet">Bet da Sorte</option>
         <option value="top">Top Bet</option>
         <option value="sonho">Sonho da Sorte</option>
+        <option value="push">Push · Sonho</option>
       </select>
       <span class="tag" id="brandCount">—</span></div>
     <div class="tb">
@@ -640,6 +686,43 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
     <div class="card"><div class="grid-wrap" id="gridWrap"></div><div class="gridfoot" id="gridFoot"></div></div>
   </div>
   <div id="viewTimeline" style="display:none"></div>
+
+  <div id="viewPush" style="display:none">
+    <div class="toolbar">
+      <span class="seg" id="pRangeSeg" role="group" aria-label="Período">
+        <button data-pr="tudo" aria-pressed="true">Tudo</button>
+        <button data-pr="30d" aria-pressed="false">30 dias</button>
+        <button data-pr="7d" aria-pressed="false">7 dias</button>
+        <button data-pr="custom" aria-pressed="false">Personalizado</button>
+      </span>
+      <span id="pCustomBox" style="display:none;align-items:center;gap:6px">
+        <input type="date" id="pFrom" class="field" aria-label="Data inicial"><span>até</span><input type="date" id="pTo" class="field" aria-label="Data final">
+      </span>
+      <span class="vsep"></span>
+      <input class="field search" id="pQ" type="search" placeholder="Buscar push…" aria-label="Buscar push">
+      <select class="field" id="pStatus" aria-label="Status">
+        <option value="enviados">Somente enviados</option>
+        <option value="todos">Incluir agendados</option>
+      </select>
+      <button class="btn sm" id="pBtnClear">Limpar</button>
+      <span class="tag" id="pStamp" style="margin-left:auto"></span>
+      <button class="btn sm" id="pReload">↻ Recarregar</button>
+      <button class="btn sm" id="pCsv">⭳ CSV</button>
+    </div>
+    <div class="kpis" id="pKpis"></div>
+    <div class="pv-note" id="pNote"></div>
+    <div class="card pv-pad" id="pCmp"></div>
+    <div class="card pv-pad" id="pChartsCard">
+      <div class="pv-hd"><h3>Evolução</h3><select class="field" id="pChartMetric" aria-label="Métrica dos gráficos"></select></div>
+      <div class="pv-row">
+        <div><div class="pv-sub">Por dia de envio</div><div id="pChartDay"></div></div>
+        <div><div class="pv-sub">Por horário de envio</div><div id="pChartHour"></div></div>
+      </div>
+    </div>
+    <div class="pv-row3" id="pTops"></div>
+    <div class="card"><div class="pv-wrap pv-main" id="pTable"></div><div class="gridfoot" id="pFoot"></div></div>
+    <div class="pv-tip" id="pTip"></div>
+  </div>
 
   <div id="viewSonho" style="display:none">
     <div class="kpis" id="sonhoKpis">
@@ -843,7 +926,7 @@ function readUI(){
   try{
     const d = JSON.parse(localStorage.getItem(UIKEY)||"{}");
     if(d.view === "tabela" || d.view === "timeline") ui.view = d.view;
-    if(d.marca === "bet" || d.marca === "top" || d.marca === "sonho") ui.marca = d.marca;
+    if(d.marca === "bet" || d.marca === "top" || d.marca === "sonho" || d.marca === "push") ui.marca = d.marca;
     if(d.sonho && typeof d.sonho === "object") sui = Object.assign(sui, d.sonho);
     if(d.range) ui.range = d.range;
     // sem isto, cada gravação recarregava a tela e jogava você de volta na semana atual
@@ -1125,7 +1208,7 @@ async function carrega(){
   me = (meu && meu.nome) || euSou.split("@")[0];
   canWrite = !meu ? false : meu.papel === "editor";
 
-  if(!seenBefore && ui.marca !== "sonho" && campanhas.length && !visible().length){
+  if(!seenBefore && ui.marca !== "sonho" && ui.marca !== "push" && campanhas.length && !visible().length){
     ui.range = "mes";
     if(!visible().length) ui.range = "tudo";
     syncRangeButtons();
@@ -1453,6 +1536,7 @@ function pillHTML(k, mod, nota, abre){
 function render(){
   aplicaMarcaUI();
   if(ui.marca === "sonho"){ renderSonho(); writeUI(); return; }
+  if(ui.marca === "push"){ renderPush(); writeUI(); return; }
   renderLegend(); renderKPIs(); renderFilters();
   document.getElementById("wkLabel").textContent = rangeLabel();
   const fixed = ui.range==="tudo" || ui.range==="custom";
@@ -2359,7 +2443,7 @@ document.addEventListener("keydown", (e)=>{
   }
   /* seta com nada selecionado: entra na primeira célula da tabela, aí já dá para navegar */
   if(/^Arrow(Up|Down|Left|Right)$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey
-     && ui.view === "tabela" && ui.marca !== "sonho" && rowIds.length){
+     && ui.view === "tabela" && ui.marca !== "sonho" && ui.marca !== "push" && rowIds.length){
     const a = document.activeElement;
     const digitando = a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA"
                         || a.tagName === "SELECT" || a.isContentEditable);
@@ -2378,7 +2462,7 @@ document.addEventListener("keydown", (e)=>{
   }
   // Ctrl+Z / Ctrl+Shift+Z — mas dentro de um campo de texto o desfazer é o do navegador
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === "z"){
-    if(ui.marca === "sonho") return;      // a Sonho não tem desfazer; dentro do campo vale o do navegador
+    if(ui.marca === "sonho" || ui.marca === "push") return;      // a Sonho não tem desfazer; dentro do campo vale o do navegador
     const a = document.activeElement;
     const digitando = a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA");
     if(digitando || askModal.dataset.open) return;
@@ -2386,7 +2470,7 @@ document.addEventListener("keydown", (e)=>{
     e.preventDefault(); return;
   }
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === "y"){
-    if(ui.marca === "sonho") return;
+    if(ui.marca === "sonho" || ui.marca === "push") return;
     const a = document.activeElement;
     if(a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA")) return;
     refazer(); e.preventDefault();
@@ -3704,15 +3788,344 @@ function sVisible(){
 }
 
 /* ---------- desenho ---------- */
-const MARCAS_NOME = {bet:"Bet da Sorte", top:"Top Bet", sonho:"Sonho da Sorte"};
+/* ================= Push · Sonho (dados do CleverTap) ================= */
+const P_BASE = "2026-09-07";   // início da base de comparação
+const P_OP   = "2026-10-07";   // início da nossa operação
+const P_TZ   = "America/Sao_Paulo";
+const pui = {rows:[], loaded:false, loading:false, err:"", at:0, range:"tudo", from:"", to:"", q:"",
+             status:"enviados", metric:"entregues", sort:{k:"inicio", d:-1}, bound:false, entered:false};
+const pFmtParts = new Intl.DateTimeFormat("en-CA", {timeZone:P_TZ, year:"numeric", month:"2-digit", day:"2-digit",
+                                                      hour:"2-digit", minute:"2-digit", hourCycle:"h23"});
+function pParts(d){ const o = {}; pFmtParts.formatToParts(d).forEach(p => o[p.type] = p.value); return o; }
+const pNF  = new Intl.NumberFormat("pt-BR");
+const pNFc = new Intl.NumberFormat("pt-BR", {notation:"compact", maximumFractionDigits:1});
+function pInt(n){ return n == null ? "—" : pNF.format(Math.round(n)); }
+function pDec(n, d){ d = d == null ? 1 : d; return n == null ? "—" : n.toLocaleString("pt-BR", {minimumFractionDigits:d, maximumFractionDigits:d}); }
+function pPct(n, d){ return n == null ? "—" : pDec(n, d == null ? 2 : d) + "%"; }
+function pCmp(n){ return pNFc.format(n); }
+function pDM(d){ return d ? d.slice(8) + "/" + d.slice(5, 7) : "—"; }
+const P_STATUS = {COMPLETED:["Enviado","var(--c-good)"], SCHEDULED:["Agendado","var(--c-info)"], STOPPED:["Interrompido","var(--c-warn)"]};
+
+function pAgg(l){
+  const a = {n:l.length, enviados:0, entregues:0, visualizados:0, clicados:0, conv_total:0, conv_unicas:0};
+  l.forEach(r => { a.enviados += r.enviados; a.entregues += r.entregues; a.visualizados += r.visualizados;
+                   a.clicados += r.clicados; a.conv_total += r.conv_total; a.conv_unicas += r.conv_unicas; });
+  a.entrega   = a.enviados  ? 100 * a.entregues    / a.enviados  : null;
+  a.visu      = a.entregues ? 100 * a.visualizados / a.entregues : null;
+  a.ctr       = a.entregues ? 100 * a.clicados     / a.entregues : null;
+  a.conv_rate = a.entregues ? 100 * a.conv_total   / a.entregues : null;
+  a.un_ent    = a.entregues ? 100 * a.conv_unicas  / a.entregues : null;
+  a.un_clk    = a.clicados  ? 100 * a.conv_unicas  / a.clicados  : null;
+  return a;
+}
+function pPrep(r){
+  ["enviados","entregues","visualizados","clicados","conv_total","conv_unicas"].forEach(k => r[k] = Number(r[k]) || 0);
+  const dt = new Date(r.enviado_em), ok = !isNaN(dt), p = ok ? pParts(dt) : null;
+  r._t = ok ? dt.getTime() : null;
+  r._d = ok ? p.year + "-" + p.month + "-" + p.day : "";
+  r._h = ok ? parseInt(p.hour, 10) : null;
+  r._lbl = ok ? p.day + "/" + p.month + " " + p.hour + ":" + p.minute : "—";
+  r._sent = r.status !== "SCHEDULED" && r.enviados > 0;
+  r.m = pAgg([r]);
+  return r;
+}
+
+async function pushCarrega(){
+  if(pui.loading || !sb) return;
+  pui.loading = true; pui.err = "";
+  if(ui.marca === "push") render();
+  try{
+    const all = []; let from = 0;
+    for(;;){
+      const {data, error} = await sb.from("push_sonho").select("*")
+        .gte("enviado_em", P_BASE + "T00:00:00-03:00").order("enviado_em", {ascending:false}).range(from, from + 999);
+      if(error) throw error;
+      all.push(...data);
+      if(data.length < 1000) break;
+      from += 1000;
+    }
+    pui.rows = all.map(pPrep); pui.loaded = true; pui.at = Date.now();
+  }catch(e){ pui.err = (e && e.message) || String(e); }
+  pui.loading = false;
+  if(ui.marca === "push") render();
+}
+
+function pFiltered(){
+  const q = pui.q.trim().toLowerCase(), hoje = pParts(new Date());
+  const today = hoje.year + "-" + hoje.month + "-" + hoje.day;
+  const ago = n => { const d = new Date(today + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() - n); return d.toISOString().slice(0, 10); };
+  let from = "", to = "";
+  if(pui.range === "30d") from = ago(30);
+  else if(pui.range === "7d") from = ago(7);
+  else if(pui.range === "custom"){ from = pui.from; to = pui.to; }
+  return pui.rows.filter(r => {
+    if(pui.status === "enviados" && !r._sent) return false;
+    if(q && r.nome.toLowerCase().indexOf(q) < 0) return false;
+    if(from && r._d < from) return false;
+    if(to && r._d > to) return false;
+    return true;
+  });
+}
+
+/* ---- colunas da tabela ---- */
+const P_COLS = [
+  {k:"inicio", l:"Enviado em", left:true, get:r => r._t, cell:r => esc(r._lbl)},
+  {k:"nome", l:"Push", left:true, get:r => r.nome, cell:r => '<span class="pv-nm">' + esc(r.nome) + '</span>'},
+  {k:"status", l:"Status", left:true, get:r => r.status, cell:r => { const s = P_STATUS[r.status] || [r.status || "—", "var(--ink-3)"];
+      return '<span class="pv-st"><i style="background:' + s[1] + '"></i>' + esc(s[0]) + '</span>'; }},
+  {k:"enviados", l:"Enviados", get:r => r.enviados, cell:r => pInt(r.enviados)},
+  {k:"entregues", l:"Entregues", get:r => r.entregues, cell:r => pInt(r.entregues)},
+  {k:"entrega", l:"% Entrega", get:r => r.m.entrega, cell:r => pPct(r.m.entrega, 1)},
+  {k:"visualizados", l:"Visualizados", get:r => r.visualizados, cell:r => pInt(r.visualizados)},
+  {k:"clicados", l:"Cliques", get:r => r.clicados, cell:r => pInt(r.clicados)},
+  {k:"ctr", l:"CTR", get:r => r.m.ctr, cell:r => pPct(r.m.ctr)},
+  {k:"conv_total", l:"Conv. totais", get:r => r.conv_total, cell:r => pInt(r.conv_total)},
+  {k:"conv_unicas", l:"Conv. únicas", get:r => r.conv_unicas, cell:r => pInt(r.conv_unicas)},
+  {k:"conv_rate", l:"Conv. rate", get:r => r.m.conv_rate, cell:r => pPct(r.m.conv_rate)},
+  {k:"un_clk", l:"Únicas ÷ clique", get:r => r.m.un_clk, cell:r => pPct(r.m.un_clk, 1)}
+];
+
+/* ---- métricas dos gráficos ---- */
+const P_METRICS = {
+  enviados:    {l:"Enviados",          v:a => a.enviados,    f:pInt,                 ax:pCmp},
+  entregues:   {l:"Entregues",         v:a => a.entregues,   f:pInt,                 ax:pCmp},
+  clicados:    {l:"Cliques",           v:a => a.clicados,    f:pInt,                 ax:pCmp},
+  conv_unicas: {l:"Conversões únicas", v:a => a.conv_unicas, f:pInt,                 ax:pCmp},
+  conv_total:  {l:"Conversões totais", v:a => a.conv_total,  f:pInt,                 ax:pCmp},
+  ctr:         {l:"CTR",               v:a => a.ctr,         f:n => pPct(n),         ax:n => pDec(n, 1) + "%"},
+  conv_rate:   {l:"Conv. rate",        v:a => a.conv_rate,   f:n => pPct(n),         ax:n => pDec(n, 1) + "%"},
+  entrega:     {l:"% Entrega",         v:a => a.entrega,     f:n => pPct(n, 1),      ax:n => pDec(n, 0) + "%"}
+};
+
+function pNice(v){
+  if(!(v > 0)) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  const c = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+  for(let i = 0; i < c.length; i++) if(c[i] * p >= v) return c[i] * p;
+  return 10 * p;
+}
+function pBars(items, W, fa, titulo){
+  const H = 220, L = 48, R = 8, T = 10, B = 26, iw = W - L - R, ih = H - T - B;
+  const max = pNice(Math.max.apply(null, [0].concat(items.map(i => i.v || 0))));
+  const bw = iw / items.length, gap = Math.min(3, bw * 0.2);
+  const every = Math.max(1, Math.ceil(items.length / Math.max(1, Math.floor(iw / 44))));
+  let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="' + esc(titulo) + '">';
+  [0, 0.5, 1].forEach(f => {
+    const y = T + ih - ih * f;
+    s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '" stroke="var(--line)"/>' +
+         '<text x="' + (L - 6) + '" y="' + (y + 3.5) + '" text-anchor="end" font-size="10" fill="var(--ink-3)" font-family="var(--mono)">' + esc(fa(max * f)) + '</text>';
+  });
+  items.forEach((it, i) => {
+    const x = L + i * bw;
+    s += '<g class="pv-col">';
+    if(it.v != null && it.v > 0){
+      const h = Math.max(1, ih * it.v / max);
+      s += '<rect class="pv-bar" x="' + (x + gap / 2) + '" y="' + (T + ih - h) + '" width="' + Math.max(1, bw - gap) + '" height="' + h + '" rx="2" fill="var(--accent)"/>';
+    }
+    s += '<rect x="' + x + '" y="' + T + '" width="' + bw + '" height="' + (ih + B) + '" fill="transparent" data-pt="' + esc(it.tip) + '"/></g>';
+    if(i % every === 0) s += '<text x="' + (x + bw / 2) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="10" fill="var(--ink-3)" font-family="var(--mono)">' + esc(it.x) + '</text>';
+  });
+  return s + "</svg>";
+}
+
+function pCharts(list){
+  const M = P_METRICS[pui.metric] || P_METRICS.entregues;
+  const wd = document.getElementById("pChartDay"), wh = document.getElementById("pChartHour");
+  if(!wd || !wh) return;
+  const valid = list.filter(r => r._d);
+  if(!valid.length){ wd.innerHTML = wh.innerHTML = '<div class="pv-empty">Sem pushes no filtro atual.</div>'; return; }
+  // por dia (dias sem envio entram como vazio)
+  const byD = {}; valid.forEach(r => (byD[r._d] = byD[r._d] || []).push(r));
+  const days = Object.keys(byD).sort();
+  const cur = new Date(days[0] + "T12:00:00Z"), end = new Date(days[days.length - 1] + "T12:00:00Z"), di = [];
+  while(cur <= end){
+    const d = cur.toISOString().slice(0, 10), l = byD[d];
+    const a = l ? pAgg(l) : null, v = a ? M.v(a) : null;
+    di.push({x:pDM(d), v, tip:pDM(d) + "\n" + M.l + ": " + (a ? M.f(v) : "sem envio") + (a ? "\n" + a.n + " push" + (a.n > 1 ? "es" : "") : "")});
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  const w1 = Math.max(280, wd.clientWidth || 560), w2 = Math.max(280, wh.clientWidth || 560);
+  wd.innerHTML = pBars(di, w1, M.ax, M.l + " por dia");
+  const byH = {}; valid.forEach(r => { if(r._h != null) (byH[r._h] = byH[r._h] || []).push(r); });
+  const hi = [];
+  for(let h = 0; h < 24; h++){
+    const l = byH[h], a = l ? pAgg(l) : null, v = a ? M.v(a) : null;
+    hi.push({x:h + "h", v, tip:h + "h–" + h + "h59\n" + M.l + ": " + (a ? M.f(v) : "sem envio") + (a ? "\n" + a.n + " push" + (a.n > 1 ? "es" : "") : "")});
+  }
+  wh.innerHTML = pBars(hi, w2, M.ax, M.l + " por horário");
+}
+
+function pKpis(a){
+  const por = (v, n) => n ? pDec(v / n, 0) : "—";
+  const k = (cls, lab, val, foot) => '<div class="kpi' + (cls ? " " + cls : "") + '"><div class="lab">' + lab + '</div><div class="val">' + val + '</div><div class="foot">' + foot + '</div></div>';
+  return k("", "Enviados", pInt(a.enviados), pInt(a.n) + " push" + (a.n === 1 ? "" : "es")) +
+         k("", "Entregues", pInt(a.entregues), pPct(a.entrega, 1) + " dos enviados") +
+         k("", "Visualizados", pInt(a.visualizados), pPct(a.visu, 1) + " dos entregues") +
+         k("", "Cliques", pInt(a.clicados), "média " + por(a.clicados, a.n) + " por push") +
+         k("", "CTR", pPct(a.ctr), "cliques ÷ entregues") +
+         k("ok", "Conversões totais", pInt(a.conv_total), "média " + por(a.conv_total, a.n) + " por push") +
+         k("ok", "Conversões únicas", pInt(a.conv_unicas), pPct(a.un_clk, 1) + " dos cliques") +
+         k("ok", "Conv. rate", pPct(a.conv_rate), "conv. totais ÷ entregues");
+}
+
+function pCompare(){
+  const base = pui.rows.filter(r => r._sent);
+  const A = base.filter(r => r._d >= P_BASE && r._d < P_OP), B = base.filter(r => r._d >= P_OP);
+  const dias = (l, ini) => { if(!l.length) return 0; const f = l.reduce((m, r) => r._d > m ? r._d : m, ""); return Math.round((new Date(f + "T12:00:00Z") - new Date(ini + "T12:00:00Z")) / 864e5) + 1; };
+  const dA = Math.round((new Date(P_OP + "T12:00:00Z") - new Date(P_BASE + "T12:00:00Z")) / 864e5), dB = dias(B, P_OP);
+  const a = pAgg(A), b = pAgg(B);
+  const per = (x, key, n) => n ? x[key] / n : null;
+  const R = [ // [rótulo, valorA, valorB, formatação, tipo(pct = variação %, pp = pontos percentuais)]
+    ["Pushes por dia", dA ? a.n / dA : null, dB ? b.n / dB : null, v => pDec(v, 1), "pct"],
+    ["Enviados por push", per(a, "enviados", a.n), per(b, "enviados", b.n), v => pInt(v), "pct"],
+    ["Taxa de entrega", a.entrega, b.entrega, v => pPct(v, 1), "pp"],
+    ["CTR", a.ctr, b.ctr, v => pPct(v), "pp"],
+    ["Cliques por push", per(a, "clicados", a.n), per(b, "clicados", b.n), v => pInt(v), "pct"],
+    ["Conv. únicas por push", per(a, "conv_unicas", a.n), per(b, "conv_unicas", b.n), v => pDec(v, 0), "pct"],
+    ["Conv. totais por push", per(a, "conv_total", a.n), per(b, "conv_total", b.n), v => pDec(v, 0), "pct"],
+    ["Conv. rate (totais ÷ entregues)", a.conv_rate, b.conv_rate, v => pPct(v), "pp"],
+    ["Conv. únicas ÷ entregues", a.un_ent, b.un_ent, v => pPct(v), "pp"],
+    ["Conv. únicas ÷ cliques", a.un_clk, b.un_clk, v => pPct(v, 1), "pp"]
+  ];
+  const varCell = (x, y, tipo) => {
+    if(x == null || y == null) return '<span class="pv-var">—</span>';
+    let d, txt;
+    if(tipo === "pp"){ d = y - x; txt = (d >= 0 ? "+" : "−") + pDec(Math.abs(d), 2) + " p.p."; }
+    else { if(!x) return '<span class="pv-var">—</span>'; d = 100 * (y - x) / x; txt = (d >= 0 ? "+" : "−") + pDec(Math.abs(d), 1) + "%"; }
+    const flat = Math.abs(d) < 0.05, up = d > 0;
+    return '<span class="pv-var ' + (flat ? "" : up ? "up" : "dn") + '">' + (flat ? "– estável" : (up ? "▲ " : "▼ ") + txt) + "</span>";
+  };
+  let h = '<div class="pv-hd"><h3>Antes × depois da nossa operação</h3><span class="pv-sub">comparativo sobre os pushes já enviados, sem os filtros acima</span></div>' +
+    '<div class="pv-wrap pv-cmpw"><table class="pv-tbl pv-cmp"><thead><tr><th class="l">Métrica</th>' +
+    '<th>Antes · ' + pDM(P_BASE) + " a 06/10<small>" + a.n + " pushes · " + dA + " dias</small></th>" +
+    '<th>Nossa operação · desde ' + pDM(P_OP) + "<small>" + b.n + " pushes · " + dB + " dia" + (dB === 1 ? "" : "s") + "</small></th><th>Variação</th></tr></thead><tbody>";
+  R.forEach(r => { h += '<tr><td class="l">' + r[0] + "</td><td>" + (r[1] == null ? "—" : r[3](r[1])) + "</td><td>" + (r[2] == null ? "—" : r[3](r[2])) + "</td><td>" + varCell(r[1], r[2], r[4]) + "</td></tr>"; });
+  return h + "</tbody></table></div>";
+}
+
+function pTops(list){
+  const ok = list.filter(r => r._sent && r.entregues >= 1000);
+  const box = (titulo, key, fmt, sub) => {
+    const t = ok.slice().sort((x, y) => (y.m[key] != null ? y.m[key] : y[key]) - (x.m[key] != null ? x.m[key] : x[key])).slice(0, 5);
+    let h = '<div class="card pv-pad"><div class="pv-hd"><h3>' + titulo + '</h3></div><ol class="pv-top">';
+    t.forEach(r => { const v = r.m[key] != null ? r.m[key] : r[key];
+      h += '<li><span class="pv-tn">' + esc(r._lbl) + '</span><span class="pv-ts">' + sub(r) + '</span><b>' + fmt(v) + '</b></li>'; });
+    if(!t.length) h += '<li class="pv-empty">Sem dados no filtro.</li>';
+    return h + "</ol></div>";
+  };
+  return box("Mais conversões únicas", "conv_unicas", pInt, r => pInt(r.entregues) + " entregues") +
+         box("Maior CTR", "ctr", v => pPct(v), r => pInt(r.clicados) + " cliques") +
+         box("Maior conv. rate", "conv_rate", v => pPct(v), r => pInt(r.conv_total) + " conv. totais");
+}
+
+function pTable(list){
+  const s = pui.sort, col = P_COLS.find(c => c.k === s.k) || P_COLS[0];
+  const rows = list.slice().sort((x, y) => {
+    const a = col.get(x), b = col.get(y);
+    if(a == null && b == null) return 0; if(a == null) return 1; if(b == null) return -1;
+    return (typeof a === "string" ? a.localeCompare(b, "pt-BR") : a - b) * s.d;
+  });
+  const tot = pAgg(list.filter(r => r._sent));
+  let h = '<table class="pv-tbl"><thead><tr>' + P_COLS.map(c => '<th class="' + (c.left ? "l " : "") + (c.k === s.k ? "on" : "") + '" data-ps="' + c.k + '" aria-sort="' +
+    (c.k === s.k ? (s.d > 0 ? "ascending" : "descending") : "none") + '">' + c.l + (c.k === s.k ? (s.d > 0 ? " ↑" : " ↓") : "") + "</th>").join("") + "</tr></thead><tbody>";
+  rows.forEach(r => { h += "<tr" + (r._sent ? "" : ' class="pv-off"') + ">" + P_COLS.map(c => '<td class="' + (c.left ? "l" : "") + '">' + c.cell(r) + "</td>").join("") + "</tr>"; });
+  if(!rows.length) h += '<tr><td class="l pv-empty" colspan="' + P_COLS.length + '">Nenhum push encontrado.</td></tr>';
+  h += '</tbody><tfoot><tr><td class="l">Total (enviados)</td><td class="l">' + pInt(tot.n) + ' pushes</td><td class="l"></td><td>' + pInt(tot.enviados) + "</td><td>" + pInt(tot.entregues) + "</td><td>" +
+    pPct(tot.entrega, 1) + "</td><td>" + pInt(tot.visualizados) + "</td><td>" + pInt(tot.clicados) + "</td><td>" + pPct(tot.ctr) + "</td><td>" + pInt(tot.conv_total) + "</td><td>" +
+    pInt(tot.conv_unicas) + "</td><td>" + pPct(tot.conv_rate) + "</td><td>" + pPct(tot.un_clk, 1) + "</td></tr></tfoot></table>";
+  return h;
+}
+
+function pCsv(){
+  const l = pFiltered().slice().sort((x, y) => (x._t || 0) - (y._t || 0));
+  const num = v => v == null ? "" : String(Math.round(v * 100) / 100).replace(".", ",");
+  const cel = v => { v = String(v == null ? "" : v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const rows = [["Enviado em","Push","Status","Enviados","Entregues","Visualizados","Cliques","CTR %","Conv. totais","Conv. únicas","Conv. rate %","Únicas ÷ clique %","Criado por"]];
+  l.forEach(r => rows.push([r._lbl, r.nome, (P_STATUS[r.status] || [r.status])[0], r.enviados, r.entregues, r.visualizados, r.clicados,
+                            num(r.m.ctr), r.conv_total, r.conv_unicas, num(r.m.conv_rate), num(r.m.un_clk), r.criado_por || ""]));
+  const blob = new Blob(["﻿" + rows.map(r => r.map(cel).join(";")).join("\r\n")], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = "push-sonho_" + new Date().toISOString().slice(0, 10) + ".csv";
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  toast("CSV exportado (" + l.length + " pushes)");
+}
+
+function pushBind(){
+  pui.bound = true;
+  const $ = id => document.getElementById(id);
+  $("pRangeSeg").addEventListener("click", e => { const b = e.target.closest("button[data-pr]"); if(!b) return; pui.range = b.dataset.pr; render(); });
+  $("pFrom").addEventListener("change", e => { pui.from = e.target.value; pui.range = "custom"; render(); });
+  $("pTo").addEventListener("change", e => { pui.to = e.target.value; pui.range = "custom"; render(); });
+  $("pQ").addEventListener("input", e => { pui.q = e.target.value; render(); });
+  $("pStatus").addEventListener("change", e => { pui.status = e.target.value; render(); });
+  $("pChartMetric").innerHTML = Object.keys(P_METRICS).map(k => '<option value="' + k + '">' + P_METRICS[k].l + "</option>").join("");
+  $("pChartMetric").addEventListener("change", e => { pui.metric = e.target.value; render(); });
+  $("pBtnClear").addEventListener("click", () => { pui.q = ""; pui.from = pui.to = ""; pui.range = "tudo"; pui.status = "enviados"; render(); });
+  $("pReload").addEventListener("click", () => pushCarrega());
+  $("pCsv").addEventListener("click", pCsv);
+  $("pTable").addEventListener("click", e => {
+    const th = e.target.closest("th[data-ps]"); if(!th) return;
+    const k = th.dataset.ps;
+    pui.sort = pui.sort.k === k ? {k, d:-pui.sort.d} : {k, d:(k === "nome" || k === "status") ? 1 : -1};
+    render();
+  });
+  const tip = $("pTip");
+  $("pChartsCard").addEventListener("mousemove", e => {
+    const t = e.target.closest("[data-pt]");
+    if(!t){ tip.style.display = "none"; return; }
+    tip.textContent = t.getAttribute("data-pt"); tip.style.display = "block";
+    const w = tip.offsetWidth, x = Math.min(e.clientX + 14, window.innerWidth - w - 8);
+    tip.style.left = Math.max(8, x) + "px"; tip.style.top = (e.clientY + 14) + "px";
+  });
+  $("pChartsCard").addEventListener("mouseleave", () => { tip.style.display = "none"; });
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if(ui.marca === "push" && pui.loaded) pCharts(pFiltered()); }, 150); });
+}
+
+function renderPush(){
+  const $ = id => document.getElementById(id);
+  if(!$("viewPush")) return;
+  if(!pui.bound) pushBind();
+  if(!pui.entered){ pui.entered = true; if(sb && !pui.loading && (!pui.loaded || Date.now() - pui.at > 60000)) pushCarrega(); }
+  // barra de cima
+  document.querySelectorAll("#pRangeSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.pr === pui.range)));
+  $("pCustomBox").style.display = pui.range === "custom" ? "inline-flex" : "none";
+  if($("pFrom").value !== pui.from) $("pFrom").value = pui.from;
+  if($("pTo").value !== pui.to) $("pTo").value = pui.to;
+  if($("pQ").value !== pui.q) $("pQ").value = pui.q;
+  $("pStatus").value = pui.status; $("pChartMetric").value = pui.metric;
+  $("pReload").disabled = pui.loading;
+  $("pReload").textContent = pui.loading ? "Carregando…" : "↻ Recarregar";
+  const at = pui.rows.reduce((m, r) => r.atualizado_em > m ? r.atualizado_em : m, "");
+  $("pStamp").textContent = at ? "Clever · atualizado " + (() => { const p = pParts(new Date(at)); return p.day + "/" + p.month + " " + p.hour + ":" + p.minute; })() : "";
+  const vazio = (msg) => { ["pKpis","pCmp","pTops","pTable"].forEach(i => $(i).innerHTML = ""); $("pChartDay").innerHTML = $("pChartHour").innerHTML = ""; $("pNote").innerHTML = msg; $("pFoot").textContent = ""; $("brandCount").textContent = ""; };
+  if(!pui.loaded){
+    vazio(pui.err ? '<span class="pv-err">Não foi possível carregar os pushes: ' + esc(pui.err) + ' — use “Recarregar”.</span>' : "Carregando pushes…");
+    return;
+  }
+  const list = pFiltered(), a = pAgg(list.filter(r => r._sent));
+  $("brandCount").textContent = pInt(pui.rows.filter(r => r._sent).length) + " pushes";
+  $("pNote").innerHTML = "Fonte: CleverTap · Conversions · evento <b>Vendas</b> · atribuição por clique (último toque). “Visualizados” espelha “Entregues” no Clever. " +
+    "Pushes recentes ainda acumulam conversões, então os últimos dias tendem a ficar subestimados.";
+  $("pKpis").innerHTML = pKpis(a);
+  $("pCmp").innerHTML = pCompare();
+  pCharts(list);
+  $("pTops").innerHTML = pTops(list);
+  $("pTable").innerHTML = pTable(list);
+  const ag = list.filter(r => !r._sent).length;
+  $("pFoot").textContent = pInt(list.length) + " campanhas no filtro" + (ag ? " (" + ag + " agendada(s)/sem envio, fora dos totais)" : "") + " · base desde " + pDM(P_BASE) + "/2026";
+}
+/* ================= fim Push · Sonho ================= */
+
+const MARCAS_NOME = {bet:"Bet da Sorte", top:"Top Bet", sonho:"Sonho da Sorte", push:"Push · Sonho"};
 function aplicaMarcaUI(){
   const s = ui.marca === "sonho";
   const mostra = (id, on, disp) => { const el = document.getElementById(id); if(el) el.style.display = on ? (disp || "") : "none"; };
-  mostra("betKpis", !s); mostra("betToolbar", !s); mostra("legend", !s);
-  mostra("viewSeg", !s, "inline-flex");
-  mostra("btnUndo", !s, "inline-flex"); mostra("btnRedo", !s, "inline-flex");
-  mostra("viewSonho", s, "flex");
-  if(s){ mostra("viewTabela", false); mostra("viewTimeline", false); }
+  const p = ui.marca === "push", x = s || p; if(!p) pui.entered = false;
+  mostra("betKpis", !x); mostra("betToolbar", !x); mostra("legend", !x);
+  mostra("viewSeg", !x, "inline-flex");
+  mostra("btnUndo", !x, "inline-flex"); mostra("btnRedo", !x, "inline-flex");
+  mostra("viewSonho", s, "flex"); mostra("viewPush", p, "flex");
+  if(x){ mostra("viewTabela", false); mostra("viewTimeline", false); }
   const sel = document.getElementById("brandSel");
   if(sel && sel.value !== ui.marca) sel.value = ui.marca;
   document.title = "Painel de Campanhas · " + (MARCAS_NOME[ui.marca] || "");
