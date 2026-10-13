@@ -3831,7 +3831,7 @@ function pPrep(r){
 }
 
 async function pushCarrega(){
-  if(pui.loading || !sb) return;
+  if(pui.loading || !sb || !euSou) return;
   pui.loading = true; pui.err = "";
   if(ui.marca === "push") render();
   try{
@@ -4085,7 +4085,7 @@ function renderPush(){
   const $ = id => document.getElementById(id);
   if(!$("viewPush")) return;
   if(!pui.bound) pushBind();
-  if(!pui.entered){ pui.entered = true; if(sb && !pui.loading && (!pui.loaded || Date.now() - pui.at > 60000)) pushCarrega(); }
+  if(!pui.entered && sb && euSou){ pui.entered = true; if(!pui.loading && (!pui.loaded || Date.now() - pui.at > 60000)) pushCarrega(); }
   // barra de cima
   document.querySelectorAll("#pRangeSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.pr === pui.range)));
   $("pCustomBox").style.display = pui.range === "custom" ? "inline-flex" : "none";
