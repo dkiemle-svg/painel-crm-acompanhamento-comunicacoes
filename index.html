@@ -599,6 +599,29 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
 .pv-bar{fill-opacity:.85}
 .pv-col:hover .pv-bar{fill-opacity:1}
 .pv-tip{position:fixed;display:none;z-index:50;pointer-events:none;background:var(--ink);color:var(--surface);padding:7px 10px;border-radius:var(--r-2);font-size:12px;line-height:1.4;white-space:pre-line;box-shadow:var(--sh-2)}
+.pv-sec{display:flex;flex-direction:column;gap:12px}
+.pv-chips{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.pv-chip{border:1px solid var(--line);border-radius:var(--r-2);padding:10px 12px;background:var(--surface-2)}
+.pv-chip .lab{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.pv-chip .v{font-size:20px;font-weight:600;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.pv-top b small{font-size:11px;font-weight:500;margin-left:4px}
+.pv-heat{display:grid;gap:3px;font-size:11px}
+.pv-hh{text-align:center;color:var(--ink-3);font-family:var(--mono);font-size:10px}
+.pv-hw{color:var(--ink-3);font-family:var(--mono);font-size:10px;align-self:center}
+.pv-hc{height:30px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;font-size:11px;font-weight:500}
+.pv-hc.none{background:var(--surface-3);opacity:.45}
+.pv-hc.few{outline:1px dashed var(--ink-3);outline-offset:-2px}
+.pv-legend{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11px;color:var(--ink-3)}
+.pv-legend i{width:90px;height:8px;border-radius:99px;background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 10%,var(--surface)),var(--accent))}
+.pv-ideas{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.pv-idea{border:1px solid var(--line);border-left:3px solid var(--ink-3);border-radius:var(--r-2);padding:10px 12px;background:var(--surface-2)}
+.pv-idea.good{border-left-color:var(--c-good)}
+.pv-idea.warn{border-left-color:var(--c-warn)}
+.pv-idea.info{border-left-color:var(--c-info)}
+.pv-ik{font-family:var(--mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-bottom:3px}
+.pv-idea b{font-size:13.5px}
+.pv-idea p{margin:5px 0 0;font-size:12.5px;line-height:1.5;color:var(--ink-2)}
+@media (max-width:1000px){.pv-chips{grid-template-columns:repeat(2,1fr)}.pv-ideas{grid-template-columns:1fr}}
 @media (max-width:1000px){#pKpis{grid-template-columns:repeat(2,1fr)}.pv-row,.pv-row3{grid-template-columns:1fr}}
 </style>
 
@@ -689,6 +712,8 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
 
   <div id="viewPush" style="display:none">
     <div class="toolbar">
+      <span class="seg" id="pTabs" role="group" aria-label="Seção"><button data-ptab="dash" aria-pressed="true">Dashboard</button><button data-ptab="ins" aria-pressed="false">Insights</button></span>
+      <span class="vsep"></span>
       <span class="seg" id="pRangeSeg" role="group" aria-label="Período">
         <button data-pr="tudo" aria-pressed="true">Tudo</button>
         <button data-pr="30d" aria-pressed="false">30 dias</button>
@@ -709,7 +734,7 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
       <button class="btn sm" id="pReload">↻ Recarregar</button>
       <button class="btn sm" id="pCsv">⭳ CSV</button>
     </div>
-    <div class="kpis" id="pKpis"></div>
+    <div id="pDash" class="pv-sec"><div class="kpis" id="pKpis"></div>
     <div class="pv-note" id="pNote"></div>
     <div class="card pv-pad" id="pCmp"></div>
     <div class="card pv-pad" id="pChartsCard">
@@ -721,6 +746,8 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
     </div>
     <div class="pv-row3" id="pTops"></div>
     <div class="card"><div class="pv-wrap pv-main" id="pTable"></div><div class="gridfoot" id="pFoot"></div></div>
+    </div>
+    <div id="pIns" class="pv-sec" style="display:none"></div>
     <div class="pv-tip" id="pTip"></div>
   </div>
 
@@ -3793,7 +3820,7 @@ const P_BASE = "2026-09-07";   // início da base de comparação
 const P_OP   = "2026-10-07";   // início da nossa operação
 const P_TZ   = "America/Sao_Paulo";
 const pui = {rows:[], loaded:false, loading:false, err:"", at:0, range:"tudo", from:"", to:"", q:"",
-             status:"enviados", metric:"entregues", sort:{k:"inicio", d:-1}, bound:false, entered:false};
+             status:"enviados", metric:"entregues", tab:"dash", heat:"conv_rate", sort:{k:"inicio", d:-1}, bound:false, entered:false};
 const pFmtParts = new Intl.DateTimeFormat("en-CA", {timeZone:P_TZ, year:"numeric", month:"2-digit", day:"2-digit",
                                                       hour:"2-digit", minute:"2-digit", hourCycle:"h23"});
 function pParts(d){ const o = {}; pFmtParts.formatToParts(d).forEach(p => o[p.type] = p.value); return o; }
@@ -4053,6 +4080,11 @@ function pCsv(){
 function pushBind(){
   pui.bound = true;
   const $ = id => document.getElementById(id);
+  $("pTabs").addEventListener("click", e => { const b = e.target.closest("button[data-ptab]"); if(!b) return; pui.tab = b.dataset.ptab; render(); });
+  $("pIns").addEventListener("change", e => { if(e.target.id === "pHeatMetric"){ pui.heat = e.target.value; render(); } });
+  const tp = $("pTip");
+  $("pIns").addEventListener("mousemove", e => { const t = e.target.closest("[data-pt]"); if(!t){ tp.style.display = "none"; return; } tp.textContent = t.getAttribute("data-pt"); tp.style.display = "block"; const w = tp.offsetWidth, x = Math.min(e.clientX + 14, window.innerWidth - w - 8); tp.style.left = Math.max(8, x) + "px"; tp.style.top = (e.clientY + 14) + "px"; });
+  $("pIns").addEventListener("mouseleave", () => { tp.style.display = "none"; });
   $("pRangeSeg").addEventListener("click", e => { const b = e.target.closest("button[data-pr]"); if(!b) return; pui.range = b.dataset.pr; render(); });
   $("pFrom").addEventListener("change", e => { pui.from = e.target.value; pui.range = "custom"; render(); });
   $("pTo").addEventListener("change", e => { pui.to = e.target.value; pui.range = "custom"; render(); });
@@ -4081,6 +4113,149 @@ function pushBind(){
   let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if(ui.marca === "push" && pui.loaded) pCharts(pFiltered()); }, 150); });
 }
 
+/* ---- Insights (horários quentes/frios, variações, dicas) ---- */
+const P_WD = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"], P_WDO = [1,2,3,4,5,6,0];
+function pAgo(n){ const h = pParts(new Date()), d = new Date(h.year + "-" + h.month + "-" + h.day + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() - n); return d.toISOString().slice(0, 10); }
+function pWd(r){ return new Date(r._d + "T12:00:00Z").getUTCDay(); }
+function pGroup(l, f){ const m = {}; l.forEach(r => { const k = f(r); if(k != null) (m[k] = m[k] || []).push(r); }); return m; }
+function pRel(x, g){ return x == null || !g ? null : 100 * (x / g - 1); }
+function pSgn(n, d){ return n == null ? "—" : (n >= 0 ? "+" : "−") + pDec(Math.abs(n), d == null ? 1 : d); }
+function pMature(){ const lim = Date.now() - 864e5; return pui.rows.filter(r => r._sent && r._t != null && r._t < lim); }
+
+function pHotCold(M){
+  const g = pGroup(M, r => r._h), rows = Object.keys(g).map(h => ({h:+h, a:pAgg(g[h])})).filter(x => x.a.n >= 3 && x.a.conv_rate != null);
+  rows.sort((x, y) => y.a.conv_rate - x.a.conv_rate);
+  const k = Math.min(3, Math.floor(rows.length / 2));
+  return {hot:rows.slice(0, k), cold:rows.slice(rows.length - k).reverse(), n:rows.length};
+}
+
+function pChips(){
+  const base = pMature(), s7 = pAgo(7), s14 = pAgo(14);
+  const a = pAgg(base.filter(r => r._d >= s7)), b = pAgg(base.filter(r => r._d >= s14 && r._d < s7));
+  const chip = (lab, x, y, fmt, tipo) => {
+    let d = "—", cls = "";
+    if(x != null && y != null && (tipo === "pp" || y)){
+      const v = tipo === "pp" ? x - y : 100 * (x - y) / y, flat = Math.abs(v) < 0.05;
+      cls = flat ? "" : v > 0 ? "up" : "dn";
+      d = flat ? "– estável" : (v > 0 ? "▲ " : "▼ ") + pSgn(v, tipo === "pp" ? 2 : 1) + (tipo === "pp" ? " p.p." : "%");
+    }
+    return '<div class="pv-chip"><div class="lab">' + lab + '</div><div class="v">' + (x == null ? "—" : fmt(x)) + '</div><div class="pv-var ' + cls + '">' + d + '</div><div class="pv-ts">antes: ' + (y == null ? "—" : fmt(y)) + "</div></div>";
+  };
+  const per = (z, k) => z.n ? z[k] / z.n : null;
+  return '<div class="pv-chips">' +
+    chip("Pushes por dia", a.n / 7, b.n / 7, v => pDec(v, 1), "pct") +
+    chip("Entregues por push", per(a, "entregues"), per(b, "entregues"), v => pInt(v), "pct") +
+    chip("Taxa de entrega", a.entrega, b.entrega, v => pPct(v, 1), "pp") +
+    chip("CTR", a.ctr, b.ctr, v => pPct(v), "pp") +
+    chip("Conv. rate", a.conv_rate, b.conv_rate, v => pPct(v), "pp") +
+    chip("Conv. únicas por push", per(a, "conv_unicas"), per(b, "conv_unicas"), v => pDec(v, 0), "pct") +
+    "</div>";
+}
+
+function pHeat(M){
+  const MT = {conv_rate:["Conv. rate", a => a.conv_rate], ctr:["CTR", a => a.ctr], un_ent:["Conv. únicas ÷ entregues", a => a.un_ent]};
+  const m = MT[pui.heat] || MT.conv_rate;
+  const g = pGroup(M, r => r._h == null ? null : r._h + "|" + pWd(r));
+  const hs = Array.from(new Set(M.filter(r => r._h != null).map(r => r._h))).sort((x, y) => x - y);
+  if(!hs.length) return '<div class="pv-empty">Sem dados suficientes.</div>';
+  const cell = {}; let lo = Infinity, hi = -Infinity;
+  P_WDO.forEach(w => hs.forEach(h => { const l = g[h + "|" + w]; if(!l) return; const a = pAgg(l), v = m[1](a); if(v == null) return;
+    cell[h + "|" + w] = {a, v}; if(v < lo) lo = v; if(v > hi) hi = v; }));
+  let s = '<div class="pv-heat" style="grid-template-columns:40px repeat(' + hs.length + ',minmax(30px,1fr))"><span></span>' + hs.map(h => '<span class="pv-hh">' + h + "h</span>").join("");
+  P_WDO.forEach(w => {
+    s += '<span class="pv-hw">' + P_WD[w] + "</span>";
+    hs.forEach(h => {
+      const c = cell[h + "|" + w];
+      if(!c){ s += '<span class="pv-hc none"></span>'; return; }
+      const t = hi > lo ? (c.v - lo) / (hi - lo) : 0.5, pct = Math.round(10 + 80 * t);
+      s += '<span class="pv-hc' + (c.a.n < 3 ? " few" : "") + '" style="background:color-mix(in srgb,var(--accent) ' + pct + '%,var(--surface));color:' + (t > 0.55 ? "#fff" : "var(--ink-2)") +
+           '" data-pt="' + esc(P_WD[w] + " " + h + "h\n" + m[0] + ": " + pPct(c.v) + "\n" + c.a.n + " push" + (c.a.n > 1 ? "es" : "") + " · " + pInt(c.a.entregues) + " entregues" + (c.a.n < 3 ? "\n(amostra pequena)" : "")) + '">' + pDec(c.v, 1) + "</span>";
+    });
+  });
+  return s + "</div>" +
+    '<div class="pv-legend"><span>menor</span><i></i><span>maior</span><span class="pv-ts">· cor = ' + esc(m[0]) + " · células tracejadas têm menos de 3 pushes</span></div>";
+}
+
+function pTips(M, hc){
+  const out = [], G = pAgg(M);
+  const add = (tone, h, d) => out.push({tone, h, d});
+  const hrs = a => a.map(x => x.h + "h").join(", ");
+  if(hc.hot.length){
+    const x = hc.hot[0];
+    add("good", "Janela quente: " + x.h + "h", "Pushes às " + x.h + "h convertem " + pPct(x.a.conv_rate) + " (" + pSgn(pRel(x.a.conv_rate, G.conv_rate), 0) + "% vs a média de " + pPct(G.conv_rate) + ") com CTR de " + pPct(x.a.ctr) + ", em " + x.a.n + " pushes. Concentre as ofertas de maior valor perto dessa janela.");
+  }
+  if(hc.cold.length){
+    const x = hc.cold[0];
+    add("warn", "Janela fria: " + x.h + "h", "Às " + x.h + "h a conv. rate é " + pPct(x.a.conv_rate) + " (" + pSgn(pRel(x.a.conv_rate, G.conv_rate), 0) + "% vs a média), em " + x.a.n + " pushes. Teste mover esses disparos para " + hrs(hc.hot) + " ou reduzir o volume nesse horário.");
+  }
+  const agendados = pui.rows.filter(r => r.status === "SCHEDULED" && r._t > Date.now());
+  if(agendados.length && hc.cold.length){
+    const cold = new Set(hc.cold.map(x => x.h)), noFrio = agendados.filter(r => cold.has(r._h));
+    if(noFrio.length) add("warn", noFrio.length + " de " + agendados.length + " agendados caem em horário frio", "Os pushes agendados às " + hrs(hc.cold) + " tendem a render menos. Considere reagendar para " + hrs(hc.hot) + " (ex.: " + noFrio.slice(0, 3).map(r => r._lbl).join(", ") + ").");
+    else add("good", "Agenda alinhada com os melhores horários", "Nenhum dos " + agendados.length + " pushes agendados cai nos horários frios (" + hrs(hc.cold) + ").");
+  }
+  const gw = pGroup(M, r => pWd(r)), wr = Object.keys(gw).map(w => ({w:+w, a:pAgg(gw[w])})).filter(x => x.a.n >= 3 && x.a.conv_rate != null).sort((x, y) => y.a.conv_rate - x.a.conv_rate);
+  if(wr.length >= 4){
+    const b = wr[0], p = wr[wr.length - 1];
+    add("info", "Melhor e pior dia da semana", P_WD[b.w] + " lidera com conv. rate de " + pPct(b.a.conv_rate) + " (" + pSgn(pRel(b.a.conv_rate, G.conv_rate), 0) + "% vs média); " + P_WD[p.w] + " fica no fim com " + pPct(p.a.conv_rate) + " (" + pSgn(pRel(p.a.conv_rate, G.conv_rate), 0) + "%). Redistribua o volume dos dias fracos para os fortes.");
+  }
+  const bd = pGroup(M, r => r._d), ds = Object.keys(bd).map(d => ({n:bd[d].length, l:bd[d]}));
+  if(ds.length >= 10){
+    const ns = ds.map(x => x.n).sort((x, y) => x - y), med = ns[Math.floor(ns.length / 2)];
+    const hi = ds.filter(x => x.n > med), lo = ds.filter(x => x.n <= med);
+    if(hi.length >= 4 && lo.length >= 4){
+      const ah = pAgg([].concat.apply([], hi.map(x => x.l))), al = pAgg([].concat.apply([], lo.map(x => x.l))), r = pRel(ah.ctr, al.ctr);
+      if(r != null && r <= -5) add("warn", "Sinal de fadiga em dias com muitos pushes", "Em dias com mais de " + med + " pushes o CTR é " + pPct(ah.ctr) + " contra " + pPct(al.ctr) + " nos demais (" + pSgn(r, 0) + "%). Teste limitar a " + med + " pushes por dia e priorizar as janelas quentes.");
+      else if(r != null) add("info", "Sem sinal claro de fadiga", "Dias com mais de " + med + " pushes mantêm CTR parecido (" + pPct(ah.ctr) + " vs " + pPct(al.ctr) + "). Há espaço para testar mais envios, mas nos horários quentes.");
+    }
+  }
+  if(M.length >= 20){
+    const med = M.map(r => r.enviados).sort((x, y) => x - y)[Math.floor(M.length / 2)];
+    const sm = pAgg(M.filter(r => r.enviados <= med)), lg = pAgg(M.filter(r => r.enviados > med)), r = pRel(sm.conv_rate, lg.conv_rate);
+    if(r != null && r >= 8) add("info", "Públicos menores convertem melhor", "Pushes com até " + pInt(med) + " envios têm conv. rate de " + pPct(sm.conv_rate) + " contra " + pPct(lg.conv_rate) + " nos maiores (" + pSgn(r, 0) + "%). Vale segmentar mais em vez de disparar para toda a base.");
+    else if(r != null && r <= -8) add("info", "Públicos maiores convertem melhor", "Pushes acima de " + pInt(med) + " envios têm conv. rate de " + pPct(lg.conv_rate) + " contra " + pPct(sm.conv_rate) + " nos menores. Ampliar o alcance dos melhores conteúdos pode compensar.");
+  }
+  if(G.entrega != null && G.entrega < 85) add("warn", "Só " + pPct(G.entrega, 1) + " dos envios são entregues", pInt(G.enviados - G.entregues) + " envios não chegaram. Higienizar a base (tokens inativos e opt-outs) melhora a eficiência e deixa os indicadores mais reais.");
+  const s7 = pAgo(7), s14 = pAgo(14), a7 = pAgg(M.filter(r => r._d >= s7)), b7 = pAgg(M.filter(r => r._d >= s14 && r._d < s7));
+  if(a7.n >= 5 && b7.n >= 5){
+    [["CTR", a7.ctr, b7.ctr], ["Conv. rate", a7.conv_rate, b7.conv_rate]].forEach(x => {
+      const r = pRel(x[1], x[2]);
+      if(r != null && r <= -10) add("warn", x[0] + " caiu " + pDec(Math.abs(r), 0) + "% na semana", x[0] + " foi de " + pPct(x[2]) + " para " + pPct(x[1]) + " (últimos 7 dias × 7 anteriores). Revise copy, segmentos e horários dos pushes recentes.");
+      else if(r != null && r >= 10) add("good", x[0] + " subiu " + pDec(r, 0) + "% na semana", x[0] + " foi de " + pPct(x[2]) + " para " + pPct(x[1]) + ". Identifique o que mudou (horário, segmento, copy) e padronize.");
+    });
+  }
+  const A = pAgg(M.filter(r => r._d < P_OP)), B = pAgg(M.filter(r => r._d >= P_OP));
+  if(A.n >= 3 && B.n >= 3){
+    const dc = B.conv_rate - A.conv_rate, up = dc >= 0;
+    add(up ? "good" : "warn", "Desde " + pDM(P_OP) + " (nossa operação)", "Conv. rate " + pPct(A.conv_rate) + " → " + pPct(B.conv_rate) + " (" + pSgn(dc, 2) + " p.p.), CTR " + pPct(A.ctr) + " → " + pPct(B.ctr) + ", " + pDec(A.n / Math.max(1, Math.round((new Date(P_OP + "T12:00:00Z") - new Date(P_BASE + "T12:00:00Z")) / 864e5)), 1) + " → " + pDec(B.n / Math.max(1, Math.round((new Date(pAgo(1) + "T12:00:00Z") - new Date(P_OP + "T12:00:00Z")) / 864e5) + 1), 1) + " pushes/dia. " + (up ? "Mantenha o que está funcionando." : "Compare horários e segmentos dos pushes de antes e depois."));
+  }
+  const top = M.slice().sort((x, y) => y.conv_unicas - x.conv_unicas)[0];
+  if(top) add("info", "Campeão: " + top._lbl, pInt(top.conv_unicas) + " conversões únicas, CTR de " + pPct(top.m.ctr) + " e conv. rate de " + pPct(top.m.conv_rate) + ". Reaproveite copy, segmento e horário, e rode como teste A/B em outro horário.");
+  if(hc.hot.length && hc.cold.length) add("info", "Ideia: teste A/B de horário", "Duplique um push campeão e dispare uma versão às " + hc.hot[0].h + "h e outra às " + hc.cold[0].h + "h para isolar o efeito do horário do efeito do conteúdo.");
+  return out;
+}
+
+function pInsights(){
+  const M = pMature();
+  if(M.length < 10) return '<div class="card pv-pad"><div class="pv-empty">Poucos pushes para gerar insights (' + M.length + ").</div></div>";
+  const hc = pHotCold(M), G = pAgg(M);
+  const lst = (arr, cls, titulo, sub) => {
+    let h = '<div class="card pv-pad"><div class="pv-hd"><h3>' + titulo + '</h3><span class="pv-sub">' + sub + '</span></div><ol class="pv-top">';
+    arr.forEach(x => { h += '<li><span class="pv-tn">' + x.h + 'h</span><span class="pv-ts">CTR ' + pPct(x.a.ctr) + " · " + x.a.n + ' pushes · ' + pInt(x.a.entregues) + ' entregues</span><b class="pv-var ' + cls + '">' + pPct(x.a.conv_rate) + " <small>" + pSgn(pRel(x.a.conv_rate, G.conv_rate), 0) + "%</small></b></li>"; });
+    if(!arr.length) h += '<li class="pv-empty">Dados insuficientes (mínimo de 3 pushes por horário).</li>';
+    return h + "</ol></div>";
+  };
+  const tips = pTips(M, hc), lab = {good:"Oportunidade", warn:"Atenção", info:"Ideia"};
+  const sel = (k, l) => '<option value="' + k + '"' + (pui.heat === k ? " selected" : "") + ">" + l + "</option>";
+  return '<div class="card pv-pad"><div class="pv-hd"><h3>Variação da métrica global</h3><span class="pv-sub">últimos 7 dias × 7 dias anteriores</span></div>' + pChips() + "</div>" +
+    '<div class="pv-row">' + lst(hc.hot, "up", "Horários quentes", "maior conv. rate · variação vs média") + lst(hc.cold, "dn", "Horários frios", "menor conv. rate · variação vs média") + "</div>" +
+    '<div class="card pv-pad"><div class="pv-hd"><h3>Mapa de calor · dia × horário</h3><select class="field" id="pHeatMetric" aria-label="Métrica do mapa">' +
+      sel("conv_rate", "Conv. rate") + sel("ctr", "CTR") + sel("un_ent", "Conv. únicas ÷ entregues") + "</select></div>" + pHeat(M) + "</div>" +
+    '<div class="card pv-pad"><div class="pv-hd"><h3>Dicas e ideias</h3><span class="pv-sub">geradas automaticamente a partir dos dados</span></div><div class="pv-ideas">' +
+      tips.map(t => '<div class="pv-idea ' + t.tone + '"><div class="pv-ik">' + lab[t.tone] + "</div><b>" + esc(t.h) + "</b><p>" + esc(t.d) + "</p></div>").join("") + "</div></div>" +
+    '<div class="pv-note">Base dos insights: ' + pInt(M.length) + " pushes enviados há mais de 24h (os mais recentes ainda estão acumulando conversões), desde " + pDM(P_BASE) + ". Rankings exigem ao menos 3 pushes por horário ou dia; amostras pequenas indicam tendência, não certeza.</div>";
+}
+
 function renderPush(){
   const $ = id => document.getElementById(id);
   if(!$("viewPush")) return;
@@ -4098,10 +4273,16 @@ function renderPush(){
   const at = pui.rows.reduce((m, r) => r.atualizado_em > m ? r.atualizado_em : m, "");
   $("pStamp").textContent = at ? "Clever · atualizado " + (() => { const p = pParts(new Date(at)); return p.day + "/" + p.month + " " + p.hour + ":" + p.minute; })() : "";
   const vazio = (msg) => { ["pKpis","pCmp","pTops","pTable"].forEach(i => $(i).innerHTML = ""); $("pChartDay").innerHTML = $("pChartHour").innerHTML = ""; $("pNote").innerHTML = msg; $("pFoot").textContent = ""; $("brandCount").textContent = ""; };
-  if(!pui.loaded){
+  if(!pui.loaded){ $("pDash").style.display = ""; $("pIns").style.display = "none";
     vazio(pui.err ? '<span class="pv-err">Não foi possível carregar os pushes: ' + esc(pui.err) + ' — use “Recarregar”.</span>' : "Carregando pushes…");
     return;
   }
+  $("brandCount").textContent = pInt(pui.rows.filter(r => r._sent).length) + " pushes";
+  const insTab = pui.tab === "ins";
+  $("pDash").style.display = insTab ? "none" : ""; $("pIns").style.display = insTab ? "" : "none";
+  ["pRangeSeg","pQ","pStatus","pBtnClear","pCsv"].forEach(id => { $(id).style.display = insTab ? "none" : ""; });
+  document.querySelectorAll("#pTabs button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.ptab === pui.tab)));
+  if(insTab){ $("pCustomBox").style.display = "none"; $("pIns").innerHTML = pInsights(); return; }
   const list = pFiltered(), a = pAgg(list.filter(r => r._sent));
   $("brandCount").textContent = pInt(pui.rows.filter(r => r._sent).length) + " pushes";
   $("pNote").innerHTML = "Fonte: CleverTap · Conversions · evento <b>Vendas</b> · atribuição por clique (último toque). “Visualizados” espelha “Entregues” no Clever. " +
