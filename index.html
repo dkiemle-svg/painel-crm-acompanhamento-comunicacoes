@@ -71,6 +71,18 @@ table.grid.sg td.gc{height:50px;padding:5px 4px}
 table.grid.sg thead th.sth{cursor:pointer;user-select:none}
 table.grid.sg thead th.sth:hover{color:var(--ink)}
 table.grid.sg thead th.calcth{color:color-mix(in srgb,var(--accent) 80%,var(--ink-3))}
+table.grid thead th.g-sc{box-shadow:inset 0 3px 0 #4f7cff}
+table.grid thead th.g-an{box-shadow:inset 0 3px 0 #e0902a}
+table.grid.sg td.g-sc{background:color-mix(in srgb,#4f7cff 4%,var(--surface))}
+table.grid.sg td.g-an{background:color-mix(in srgb,#e0902a 4%,var(--surface))}
+table.grid.sg th.gs,table.grid.sg td.gs{border-left:1px solid var(--line)}
+.gtag{display:block;font-size:8.5px;letter-spacing:.12em;margin-bottom:3px;font-weight:700}
+.g-sc .gtag{color:#4f7cff}.g-an .gtag{color:#e0902a}
+.sklab{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:-7px}
+.sdt{width:9px;height:9px;min-width:9px;border-radius:3px;display:inline-block;flex:none}
+.sdt.sc{background:#4f7cff}.sdt.an{background:#e0902a}
+.sleg{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line);font-size:12px;color:var(--ink-3)}
+.sleg span{display:inline-flex;align-items:center;gap:7px}
 .fx{margin-left:5px;font-style:italic;font-weight:600;opacity:.8;cursor:help;text-transform:none}
 .sci{width:100%;height:34px;border:1px solid transparent;background:transparent;border-radius:7px;padding:0 8px;
   font:inherit;font-size:13px;color:var(--ink);outline:none;text-overflow:ellipsis}
@@ -648,7 +660,7 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
       <select class="field brandsel" id="brandSel" aria-label="Marca">
         <option value="bet">Bet da Sorte</option>
         <option value="top">Top Bet</option>
-        <option value="sonho">Sonho da Sorte</option>
+        <option value="sonho">RCS - SONHO DA SORTE</option>
         <option value="push">Push · Sonho</option>
       </select>
       <span class="tag" id="brandCount">—</span></div>
@@ -752,6 +764,14 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
   </div>
 
   <div id="viewSonho" style="display:none">
+    <div class="sklab"><i class="sdt sc"></i>Shortcode · envio RCS (planilha da plataforma)</div>
+    <div class="kpis" id="sonhoKpis2">
+      <div class="kpi"><div class="lab">Destinos</div><div class="val" id="sk5">—</div><div class="foot" id="sk5f"></div></div>
+      <div class="kpi"><div class="lab">Taxa de sucesso</div><div class="val" id="sk6">—</div><div class="foot" id="sk6f"></div></div>
+      <div class="kpi"><div class="lab">CTR (cliques ÷ sucesso)</div><div class="val" id="sk7">—</div><div class="foot" id="sk7f"></div></div>
+      <div class="kpi"><div class="lab">Taxa de resposta</div><div class="val" id="sk8">—</div><div class="foot" id="sk8f"></div></div>
+    </div>
+    <div class="sklab"><i class="sdt an"></i>Análise pós-comunicação · compras, receita e controle</div>
     <div class="kpis" id="sonhoKpis">
       <div class="kpi"><div class="lab">Investido</div><div class="val" id="sk1">—</div><div class="foot" id="sk1f"></div></div>
       <div class="kpi ok"><div class="lab">Receita gerada</div><div class="val" id="sk2">—</div><div class="foot" id="sk2f"></div></div>
@@ -774,11 +794,10 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
       </span>
       <span class="vsep"></span>
       <input class="field search" id="sQ" type="search" placeholder="Buscar campanha…" aria-label="Buscar campanha">
-      <select class="field" id="sCanal" aria-label="Filtrar por canal"></select>
       <button class="btn sm" id="sBtnClear">Limpar</button>
       <button class="btn primary sm" id="sAddTop" style="margin-left:auto">＋ Nova campanha</button>
     </div>
-    <div class="card"><div class="grid-wrap" id="sonhoWrap"></div><div class="gridfoot" id="sonhoFoot"></div></div>
+    <div class="card"><div class="sleg"><span><i class="sdt sc"></i><b>Shortcode</b>&nbsp;vem da planilha/relatório da plataforma de disparo</span><span><i class="sdt an"></i><b>Análise pós-comunicação</b>&nbsp;preenchido a partir do comportamento depois do envio (compras, grupo controle, receita)</span></div><div class="grid-wrap" id="sonhoWrap"></div><div class="gridfoot" id="sonhoFoot"></div></div>
   </div>
 </div>
 
@@ -3611,32 +3630,46 @@ let sOrdem = null;              // {k, dir:1|-1}
 const sonhoWrap = document.getElementById("sonhoWrap");
 
 const CANAIS_SONHO = ["RCS","Wapp","RCS/Wapp","SMS","E-mail","Push"];
-/* t: text · canal · date · num · inv (valor investido) · calc · link · seq */
+/* t: text · date · num · inv (valor investido) · calc · link · seq
+   g: de onde vem o dado — id (identificação) · sc (Shortcode, relatório do RCS) · an (análise pós-comunicação) */
 const SCOLS = [
-  {k:"data_inicio",     n:"Início",                t:"date", w:132, sk:0},
-  {k:"data_fim",        n:"Fim",                   t:"date", w:132},
-  {k:"periodo",         n:"Período (dias)",        t:"calc", w:116,  f:"int", dica:"Fim − Início"},
-  {k:"nome",            n:"Nome da campanha",      t:"text", w:210},
-  {k:"canal",           n:"Canal",                 t:"canal",w:108},
-  {k:"segmento",        n:"Segmento / público",    t:"text", w:300},
-  {k:"qtd_teste",       n:"Qtd. grupo teste",      t:"num",  w:130, d:0},
-  {k:"qtd_controle",    n:"Qtd. grupo controle",   t:"num",  w:146, d:0},
-  {k:"custo_envio",     n:"Custo por envio (R$)",  t:"num",  w:156, d:2, dica:"Opcional: se preencher, o Valor investido vira Qtd. teste × este custo"},
-  {k:"valor_investido", n:"Valor investido (R$)",  t:"inv",  w:156, d:2},
-  {k:"conv_teste",      n:"Conversões teste",      t:"num",  w:136, d:0},
-  {k:"conv_controle",   n:"Conversões controle",   t:"num",  w:150, d:0},
-  {k:"pt",              n:"Conv. teste (%)",       t:"calc", w:128, f:"pct", dica:"Conversões teste ÷ Qtd. teste"},
-  {k:"pc",              n:"Conv. controle (%)",    t:"calc", w:146, f:"pct", dica:"Conversões controle ÷ Qtd. controle"},
-  {k:"uplift",          n:"Uplift (p.p.)",         t:"calc", w:116, f:"pp",  dica:"Conv. teste % − Conv. controle %, em pontos percentuais"},
-  {k:"receita",         n:"Receita gerada (R$)",   t:"num",  w:156, d:2},
-  {k:"receita_cnt",     n:"Receita cnt (R$)",      t:"num",  w:140, d:2},
-  {k:"roas",            n:"ROAS",                  t:"calc", w:84,  f:"x",   dica:"Receita gerada ÷ Valor investido"},
-  {k:"ticket",          n:"Ticket médio (R$)",     t:"calc", w:140, f:"brl", dica:"Receita gerada ÷ Conversões teste"},
-  {k:"ticketc",         n:"Ticket M. cnt (R$)",    t:"calc", w:150, f:"brl", dica:"Receita cnt ÷ Conversões controle"},
-  {k:"obs",             n:"Observações",           t:"text", w:220},
-  {k:"copy_link",       n:"Copy do disparo",       t:"link", w:170},
-  {k:"arte_link",       n:"Arte do disparo",       t:"link", w:170},
+  {k:"data_inicio",     n:"Data do disparo",       t:"date", w:140, sk:0, g:"id"},
+  {k:"hora",            n:"Hora",                  t:"text", w:78,  g:"id"},
+  {k:"nome",            n:"Nome da campanha",      t:"text", w:220, g:"id"},
+  {k:"sc_id",           n:"ID Shortcode",          t:"text", w:104, g:"sc"},
+  {k:"titulo",          n:"Título da peça",        t:"text", w:240, g:"sc"},
+  {k:"corpo",           n:"Mensagem",              t:"text", w:320, g:"sc"},
+  {k:"cta",             n:"CTA",                   t:"text", w:136, g:"sc"},
+  {k:"sc_destinos",     n:"Destinos",              t:"num",  w:108, d:0, g:"sc", dica:"Total de destinos do envio (inclui reenvios; não são pessoas únicas)"},
+  {k:"sc_sucesso",      n:"Sucesso",               t:"num",  w:100, d:0, g:"sc", dica:"Contador de sucesso do painel Shortcode (não infere leitura)"},
+  {k:"sc_falhas",       n:"Falhas RCS",            t:"num",  w:112, d:0, g:"sc"},
+  {k:"sc_respostas",    n:"Respostas",             t:"num",  w:108, d:0, g:"sc"},
+  {k:"sc_cliques",      n:"Cliques",               t:"num",  w:96,  d:0, g:"sc"},
+  {k:"sc_fallback",     n:"Fallback SMS",          t:"num",  w:120, d:0, g:"sc", dica:"Contagem da aba Fallback SMS do Shortcode (não confirma entrega de SMS)"},
+  {k:"p_suc",           n:"% Sucesso",             t:"calc", w:108, f:"pct", g:"sc", dica:"Sucesso ÷ Destinos"},
+  {k:"ctr",             n:"CTR",                   t:"calc", w:88,  f:"pct", g:"sc", dica:"Cliques ÷ Sucesso"},
+  {k:"p_resp",          n:"% Respostas",           t:"calc", w:116, f:"pct", g:"sc", dica:"Respostas ÷ Sucesso"},
+  {k:"segmento",        n:"Segmento / público",    t:"text", w:300, g:"an"},
+  {k:"qtd_teste",       n:"Qtd. grupo teste",      t:"num",  w:130, d:0, g:"an"},
+  {k:"qtd_controle",    n:"Qtd. grupo controle",   t:"num",  w:146, d:0, g:"an"},
+  {k:"custo_envio",     n:"Custo por envio (R$)",  t:"num",  w:156, d:2, g:"an", dica:"Opcional: se preencher, o Valor investido vira Qtd. teste × este custo"},
+  {k:"valor_investido", n:"Valor investido (R$)",  t:"inv",  w:156, d:2, g:"an"},
+  {k:"conv_teste",      n:"Conversões teste",      t:"num",  w:136, d:0, g:"an"},
+  {k:"conv_controle",   n:"Conversões controle",   t:"num",  w:150, d:0, g:"an"},
+  {k:"pt",              n:"Conv. teste (%)",       t:"calc", w:128, f:"pct", g:"an", dica:"Conversões teste ÷ Qtd. teste"},
+  {k:"pc",              n:"Conv. controle (%)",    t:"calc", w:146, f:"pct", g:"an", dica:"Conversões controle ÷ Qtd. controle"},
+  {k:"uplift",          n:"Uplift (p.p.)",         t:"calc", w:116, f:"pp",  g:"an", dica:"Conv. teste % − Conv. controle %, em pontos percentuais"},
+  {k:"receita",         n:"Receita gerada (R$)",   t:"num",  w:156, d:2, g:"an"},
+  {k:"receita_cnt",     n:"Receita cnt (R$)",      t:"num",  w:140, d:2, g:"an"},
+  {k:"roas",            n:"ROAS",                  t:"calc", w:84,  f:"x",   g:"an", dica:"Receita gerada ÷ Valor investido"},
+  {k:"ticket",          n:"Ticket médio (R$)",     t:"calc", w:140, f:"brl", g:"an", dica:"Receita gerada ÷ Conversões teste"},
+  {k:"ticketc",         n:"Ticket M. cnt (R$)",    t:"calc", w:150, f:"brl", g:"an", dica:"Receita cnt ÷ Conversões controle"},
+  {k:"obs",             n:"Observações",           t:"text", w:220, g:"ou"},
+  {k:"copy_link",       n:"Copy do disparo",       t:"link", w:170, g:"ou"},
+  {k:"arte_link",       n:"Arte do disparo",       t:"link", w:170, g:"ou"},
 ];
+const GTAG = {sc:"Shortcode", an:"Análise"};
+SCOLS.forEach((c, i) => { c.gs = i > 0 && c.g !== SCOLS[i-1].g; });
 const SCOL = Object.fromEntries(SCOLS.map(c=>[c.k, c]));
 
 /* estado da barra de cima da Sonho — cada marca guarda o seu período e filtros */
@@ -3684,7 +3717,10 @@ function sCalc(c){
     uplift: (pt != null && pc != null) ? (pt - pc) * 100 : null,
     roas:    (inv && rec != null) ? rec / inv : null,
     ticket:  (ct && rec != null)  ? rec / ct  : null,
-    ticketc: (cc && rc != null)   ? rc / cc   : null
+    ticketc: (cc && rc != null)   ? rc / cc   : null,
+    p_suc:   (nvS(c.sc_destinos) && nvS(c.sc_sucesso) != null) ? nvS(c.sc_sucesso) / nvS(c.sc_destinos) : null,
+    ctr:     (nvS(c.sc_sucesso) && nvS(c.sc_cliques) != null) ? nvS(c.sc_cliques) / nvS(c.sc_sucesso) : null,
+    p_resp:  (nvS(c.sc_sucesso) && nvS(c.sc_respostas) != null) ? nvS(c.sc_respostas) / nvS(c.sc_sucesso) : null
   };
 }
 function fmtCalc(f, v){
@@ -3711,6 +3747,9 @@ function sonhoDb(c){
     custo_envio:nvS(c.custo_envio), valor_investido:nvS(c.valor_investido),
     conv_teste:nvS(c.conv_teste), conv_controle:nvS(c.conv_controle),
     receita:nvS(c.receita), receita_cnt:nvS(c.receita_cnt),
+    hora:c.hora || "", sc_id:c.sc_id || "", titulo:c.titulo || "", corpo:c.corpo || "", cta:c.cta || "",
+    sc_destinos:nvS(c.sc_destinos), sc_sucesso:nvS(c.sc_sucesso), sc_falhas:nvS(c.sc_falhas),
+    sc_respostas:nvS(c.sc_respostas), sc_cliques:nvS(c.sc_cliques), sc_fallback:nvS(c.sc_fallback),
     obs:c.obs || "", copy_link:c.copy_link || "", arte_link:c.arte_link || ""
   };
 }
@@ -3722,6 +3761,9 @@ function sonhoDaLinha(r){
     custo_envio:nvS(r.custo_envio), valor_investido:nvS(r.valor_investido),
     conv_teste:nvS(r.conv_teste), conv_controle:nvS(r.conv_controle),
     receita:nvS(r.receita), receita_cnt:nvS(r.receita_cnt),
+    hora:r.hora || "", sc_id:r.sc_id || "", titulo:r.titulo || "", corpo:r.corpo || "", cta:r.cta || "",
+    sc_destinos:nvS(r.sc_destinos), sc_sucesso:nvS(r.sc_sucesso), sc_falhas:nvS(r.sc_falhas),
+    sc_respostas:nvS(r.sc_respostas), sc_cliques:nvS(r.sc_cliques), sc_fallback:nvS(r.sc_fallback),
     obs:r.obs || "", copy_link:r.copy_link || "", arte_link:r.arte_link || ""
   };
 }
@@ -4297,7 +4339,7 @@ function renderPush(){
 }
 /* ================= fim Push · Sonho ================= */
 
-const MARCAS_NOME = {bet:"Bet da Sorte", top:"Top Bet", sonho:"Sonho da Sorte", push:"Push · Sonho"};
+const MARCAS_NOME = {bet:"Bet da Sorte", top:"Top Bet", sonho:"RCS - SONHO DA SORTE", push:"Push · Sonho"};
 function aplicaMarcaUI(){
   const s = ui.marca === "sonho";
   const mostra = (id, on, disp) => { const el = document.getElementById(id); if(el) el.style.display = on ? (disp || "") : "none"; };
@@ -4337,10 +4379,6 @@ function renderSonho(){
   if(fa.value !== sui.from) fa.value = sui.from;
   if(ft.value !== sui.to) ft.value = sui.to;
   const q = document.getElementById("sQ"); if(q.value !== sui.q) q.value = sui.q;
-  const canais = [...new Set(CANAIS_SONHO.concat(sonho.map(c => c.canal).filter(Boolean)))];
-  const sc = document.getElementById("sCanal");
-  sc.innerHTML = `<option value="">Todos os canais</option>` + canais.map(o => `<option${o === sui.canal ? " selected" : ""}>${esc(o)}</option>`).join("");
-  sc.value = sui.canal || "";
   document.getElementById("sAddTop").style.display = edita ? "" : "none";
   document.getElementById("brandCount").textContent = sonho.length + " campanhas";
 
@@ -4355,7 +4393,8 @@ function renderSonho(){
         const mk = sOrdem && sOrdem.k === c.k ? `<span class="thmk" title="Coluna ordenada">${sOrdem.dir > 0 ? "▲" : "▼"}</span>` : "";
         const fx = c.t === "calc" ? `<span class="fx" title="${esc(c.dica || "Calculado automaticamente")}">ƒ</span>` : "";
         const tt = c.dica ? esc(c.dica) + " — clique para ordenar" : "Clique para ordenar";
-        return `<th class="sth${c.sk != null ? ` sk sk${c.sk}` : ""}${c.t === "calc" ? " calcth" : ""}" data-sk="${c.k}" title="${tt}">${esc(c.n)}${fx}${mk}</th>`;
+        const gt = GTAG[c.g] ? `<span class="gtag">${GTAG[c.g]}</span>` : "";
+        return `<th class="sth${c.sk != null ? ` sk sk${c.sk}` : ""}${c.t === "calc" ? " calcth" : ""}${c.g ? " g-" + c.g : ""}${c.gs ? " gs" : ""}" data-sk="${c.k}" title="${tt}">${gt}${esc(c.n)}${fx}${mk}</th>`;
       }).join("") + `<th></th></tr></thead><tbody>`;
   list.forEach(c => {
     const k = sCalc(c);
@@ -4382,7 +4421,7 @@ function renderSonho(){
 function sCelula(c, col, k, edita){
   const ro = edita ? "" : " readonly";
   const id = esc(c.id), kk = col.k;
-  const base = `class="gc${col.sk != null ? ` sk sk${col.sk}` : ""}"`;
+  const base = `class="gc${col.sk != null ? ` sk sk${col.sk}` : ""}${col.g ? " g-" + col.g : ""}${col.gs ? " gs" : ""}"`;
   switch(col.t){
     case "seq":
       return `<td ${base.replace('class="gc', 'class="gc pad')}><div class="cellv num"><span>${c.seq == null ? "" : c.seq}</span></div></td>`;
@@ -4441,6 +4480,20 @@ function renderSonhoKPIs(list){
   set("sk3f", roas == null ? "Preencha investimento e receita" : "receita ÷ investido · " + (roas >= 1 ? "no azul" : "abaixo de 1x"));
   set("sk4", up == null ? "—" : (up > 0 ? "+" : "") + fmtN(up, 2, 2) + "<small> p.p.</small>");
   set("sk4f", up == null ? "Preencha teste e controle" : "média de " + nUp + " campanha" + (nUp === 1 ? "" : "s") + " com teste × controle");
+  let sD = 0, sS = 0, sF = 0, sR = 0, sC = 0, nSc = 0;
+  list.forEach(c => {
+    if(nvS(c.sc_destinos) != null) nSc++;
+    sD += nvS(c.sc_destinos) || 0; sS += nvS(c.sc_sucesso) || 0; sF += nvS(c.sc_falhas) || 0;
+    sR += nvS(c.sc_respostas) || 0; sC += nvS(c.sc_cliques) || 0;
+  });
+  set("sk5", sD ? fmtN(sD, 0) : "—");
+  set("sk5f", nSc + " envio" + (nSc === 1 ? "" : "s") + " com dados do Shortcode");
+  set("sk6", sD ? fmtN(sS / sD * 100, 1, 1) + "<small>%</small>" : "—");
+  set("sk6f", sD ? "sucesso ÷ destinos · " + fmtN(sF, 0) + " falhas RCS" : "Sem dados do Shortcode");
+  set("sk7", sS ? fmtN(sC / sS * 100, 2, 2) + "<small>%</small>" : "—");
+  set("sk7f", sS ? fmtN(sC, 0) + " cliques ÷ " + fmtN(sS, 0) + " sucessos" : "Sem dados do Shortcode");
+  set("sk8", sS ? fmtN(sR / sS * 100, 2, 2) + "<small>%</small>" : "—");
+  set("sk8f", sS ? fmtN(sR, 0) + " respostas ÷ " + fmtN(sS, 0) + " sucessos" : "Sem dados do Shortcode");
   document.getElementById("sk3").parentNode.classList.toggle("ok", roas != null && roas >= 1);
   document.getElementById("sk4").parentNode.classList.toggle("ok", up != null && up > 0);
 }
@@ -4472,7 +4525,8 @@ function atualizaLinhaSonho(c, editado){
 /* ---------- edição ---------- */
 function novaSonho(base){
   const seq = Math.max(0, ...sonho.map(c => c.seq || 0)) + 1;
-  const c = Object.assign({id:uid(), seq, nome:"", canal:"", segmento:"", data_inicio:TODAY, data_fim:null,
+  const c = Object.assign({id:uid(), seq, nome:"", canal:"RCS", segmento:"", data_inicio:TODAY, data_fim:null,
+    hora:"", sc_id:"", titulo:"", corpo:"", cta:"", sc_destinos:null, sc_sucesso:null, sc_falhas:null, sc_respostas:null, sc_cliques:null, sc_fallback:null,
     qtd_teste:null, qtd_controle:null, custo_envio:null, valor_investido:null,
     conv_teste:null, conv_controle:null, receita:null, receita_cnt:null, obs:"", copy_link:"", arte_link:""}, base || {});
   sonho.push(c);
@@ -4498,7 +4552,7 @@ async function excluiSonho(id){
 }
 function duplicaSonho(id){
   const c = sonho.find(x => x.id === id); if(!c) return;
-  novaSonho(Object.assign({}, c, {id:uid(), seq:undefined, nome:(c.nome || "") + " (cópia)"}));
+  novaSonho(Object.assign({}, c, {id:uid(), seq:undefined, nome:(c.nome || "") + " (cópia)", sc_id:"", sc_destinos:null, sc_sucesso:null, sc_falhas:null, sc_respostas:null, sc_cliques:null, sc_fallback:null}));
 }
 function confirmaCelulaSonho(el){
   const c = sonho.find(x => x.id === el.dataset.sid); if(!c) return;
@@ -4578,7 +4632,6 @@ document.getElementById("sNavReset").onclick = ()=>{ sui.offset = 0; render(); }
 document.getElementById("sFrom").onchange = (e)=>{ sui.from = e.target.value; render(); };
 document.getElementById("sTo").onchange   = (e)=>{ sui.to = e.target.value; render(); };
 document.getElementById("sQ").oninput     = (e)=>{ sui.q = e.target.value; render(); };
-document.getElementById("sCanal").onchange= (e)=>{ sui.canal = e.target.value; render(); };
 document.getElementById("sBtnClear").onclick = ()=>{ sui.q = ""; sui.canal = ""; render(); };
 document.getElementById("brandSel").onchange = (e)=> setMarca(e.target.value);
 
