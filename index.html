@@ -530,6 +530,21 @@ textarea.field{height:auto;padding:8px 9px;resize:vertical;min-height:70px;font-
 .mbox.ask .mbody{padding-top:12px}
 .mbox.ask .mbody:empty{display:none}
 .mbox.ask .mfoot{border-top:0;background:transparent;padding-top:6px}
+.exbox{width:min(640px,100%)}
+.exlab{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px}
+.exdatas{display:none;gap:8px;align-items:center;margin-top:12px;color:var(--ink-3);font-size:13px}
+.exdatas input{height:34px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);padding:0 8px;font:inherit}
+#exCamp{display:none;margin-top:12px}
+.exbar{display:flex;gap:8px;align-items:center;margin-bottom:8px}.exbar .search{flex:1}
+.exlist{max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:4px}
+.exrow{display:flex;gap:9px;align-items:center;padding:7px 9px;border-radius:7px;font-size:13px;cursor:pointer}
+.exrow:hover{background:var(--surface-3)}.exvazio{padding:14px;color:var(--ink-3);font-size:13px}
+.exinfo{margin-top:12px;font-size:13px;color:var(--ink-2);font-weight:550}
+.exfmt{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.exfmt .btn{height:auto;padding:12px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;white-space:normal}
+.exfmt .btn small{font-size:11.5px;font-weight:400;opacity:.8}
+.exfmt .btn:disabled{opacity:.45;cursor:not-allowed}
+@media (max-width:640px){.exfmt{grid-template-columns:1fr}}
 .askinput{width:100%;height:36px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);
   padding:0 10px;font-size:13px;color:var(--ink);outline:none}
 .askinput:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
@@ -769,7 +784,7 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
       <div class="kpi"><div class="lab">Destinos</div><div class="val" id="sk5">—</div><div class="foot" id="sk5f"></div></div>
       <div class="kpi"><div class="lab">Taxa de sucesso</div><div class="val" id="sk6">—</div><div class="foot" id="sk6f"></div></div>
       <div class="kpi"><div class="lab">CTR (cliques ÷ sucesso)</div><div class="val" id="sk7">—</div><div class="foot" id="sk7f"></div></div>
-      <div class="kpi"><div class="lab">Taxa de resposta</div><div class="val" id="sk8">—</div><div class="foot" id="sk8f"></div></div>
+      <div class="kpi"><div class="lab">Falhas RCS</div><div class="val" id="sk8">—</div><div class="foot" id="sk8f"></div></div>
     </div>
     <div class="sklab"><i class="sdt an"></i>Análise pós-comunicação · compras, receita e controle</div>
     <div class="kpis" id="sonhoKpis">
@@ -823,6 +838,32 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
       <button class="btn" id="askNo" style="margin-left:auto">Cancelar</button>
       <button class="btn primary" id="askYes">Confirmar</button>
     </div>
+  </div>
+</div>
+
+<div class="modal" id="exModal" role="dialog" aria-modal="true" aria-labelledby="exTitle">
+  <div class="mbox exbox">
+    <header><div style="flex:1"><h2 id="exTitle">Exportar · RCS - SONHO DA SORTE</h2><p>Escolha o que sai e em que formato.</p></div>
+      <button class="btn icon sm" data-exclose aria-label="Fechar">✕</button></header>
+    <div class="mbody">
+      <div class="exlab">O que exportar</div>
+      <div class="seg" id="exModo" role="group" aria-label="Escopo"></div>
+      <div class="exdatas" id="exDatas"><input type="date" id="exFrom" aria-label="Data inicial"><span>até</span><input type="date" id="exTo" aria-label="Data final"></div>
+      <div id="exCamp">
+        <div class="exbar"><input class="field search" id="exQ" type="search" placeholder="Buscar campanha…" aria-label="Buscar campanha">
+          <button class="btn sm" data-exall>Marcar todas</button><button class="btn sm" data-exnone>Limpar</button></div>
+        <div class="exlist" id="exList"></div>
+      </div>
+      <div class="exinfo" id="exInfo"></div>
+      <div class="exlab" style="margin-top:18px">Formato</div>
+      <div class="exfmt">
+        <button class="btn" data-ef="csv"><b>Planilha</b><small>.csv com todas as colunas</small></button>
+        <button class="btn primary" data-ef="pptx"><b>Apresentação</b><small>.pptx · resumo editável</small></button>
+        <button class="btn" data-ef="pdf"><b>Apresentação em PDF</b><small>abre em slides; salvar como PDF</small></button>
+      </div>
+    </div>
+    <div class="mfoot"><button class="btn sm" data-ef="json" title="Backup completo de todas as campanhas, sem filtro">Backup completo (JSON)</button>
+      <button class="btn" data-exclose style="margin-left:auto">Fechar</button></div>
   </div>
 </div>
 
@@ -3493,6 +3534,7 @@ document.getElementById("btnTheme").onclick = ()=>{
 /* quem você é agora vem do login (tabela perfis), não de um campo digitado */
 
 document.getElementById("btnExport").onclick = (e)=>{
+  if(ui.marca === "sonho"){ abreExportSonho(); return; }
   const b = e.currentTarget;
   /* Sem isto o ouvinte de clique da página fecha o menu no mesmo clique que o
      abriu — o botão está fora do #pop. É a trava que o "Ajustar" já usa. */
@@ -3643,20 +3685,18 @@ const SCOLS = [
   {k:"sc_destinos",     n:"Destinos",              t:"num",  w:108, d:0, g:"sc", dica:"Total de destinos do envio (inclui reenvios; não são pessoas únicas)"},
   {k:"sc_sucesso",      n:"Sucesso",               t:"num",  w:100, d:0, g:"sc", dica:"Contador de sucesso do painel Shortcode (não infere leitura)"},
   {k:"sc_falhas",       n:"Falhas RCS",            t:"num",  w:112, d:0, g:"sc"},
-  {k:"sc_respostas",    n:"Respostas",             t:"num",  w:108, d:0, g:"sc"},
   {k:"sc_cliques",      n:"Cliques",               t:"num",  w:96,  d:0, g:"sc"},
   {k:"sc_fallback",     n:"Fallback SMS",          t:"num",  w:120, d:0, g:"sc", dica:"Contagem da aba Fallback SMS do Shortcode (não confirma entrega de SMS)"},
   {k:"p_suc",           n:"% Sucesso",             t:"calc", w:108, f:"pct", g:"sc", dica:"Sucesso ÷ Destinos"},
   {k:"ctr",             n:"CTR",                   t:"calc", w:88,  f:"pct", g:"sc", dica:"Cliques ÷ Sucesso"},
-  {k:"p_resp",          n:"% Respostas",           t:"calc", w:116, f:"pct", g:"sc", dica:"Respostas ÷ Sucesso"},
   {k:"segmento",        n:"Segmento / público",    t:"text", w:300, g:"an"},
-  {k:"qtd_teste",       n:"Qtd. grupo teste",      t:"num",  w:130, d:0, g:"an"},
+  {k:"qtd_teste",       n:"Qtd. envios",           t:"num",  w:118, d:0, g:"an", dica:"Igual ao Sucesso do Shortcode (preenche sozinho quando o Sucesso é digitado). Base do Conv. teste (%)"},
   {k:"qtd_controle",    n:"Qtd. grupo controle",   t:"num",  w:146, d:0, g:"an"},
-  {k:"custo_envio",     n:"Custo por envio (R$)",  t:"num",  w:156, d:2, g:"an", dica:"Opcional: se preencher, o Valor investido vira Qtd. teste × este custo"},
+  {k:"custo_envio",     n:"Custo por envio (R$)",  t:"num",  w:156, d:2, g:"an", dica:"Opcional: se preencher, o Valor investido vira Qtd. envios × este custo"},
   {k:"valor_investido", n:"Valor investido (R$)",  t:"inv",  w:156, d:2, g:"an"},
   {k:"conv_teste",      n:"Conversões teste",      t:"num",  w:136, d:0, g:"an"},
   {k:"conv_controle",   n:"Conversões controle",   t:"num",  w:150, d:0, g:"an"},
-  {k:"pt",              n:"Conv. teste (%)",       t:"calc", w:128, f:"pct", g:"an", dica:"Conversões teste ÷ Qtd. teste"},
+  {k:"pt",              n:"Conv. teste (%)",       t:"calc", w:128, f:"pct", g:"an", dica:"Conversões teste ÷ Qtd. envios"},
   {k:"pc",              n:"Conv. controle (%)",    t:"calc", w:146, f:"pct", g:"an", dica:"Conversões controle ÷ Qtd. controle"},
   {k:"uplift",          n:"Uplift (p.p.)",         t:"calc", w:116, f:"pp",  g:"an", dica:"Conv. teste % − Conv. controle %, em pontos percentuais"},
   {k:"receita",         n:"Receita gerada (R$)",   t:"num",  w:156, d:2, g:"an"},
@@ -3719,8 +3759,7 @@ function sCalc(c){
     ticket:  (ct && rec != null)  ? rec / ct  : null,
     ticketc: (cc && rc != null)   ? rc / cc   : null,
     p_suc:   (nvS(c.sc_destinos) && nvS(c.sc_sucesso) != null) ? nvS(c.sc_sucesso) / nvS(c.sc_destinos) : null,
-    ctr:     (nvS(c.sc_sucesso) && nvS(c.sc_cliques) != null) ? nvS(c.sc_cliques) / nvS(c.sc_sucesso) : null,
-    p_resp:  (nvS(c.sc_sucesso) && nvS(c.sc_respostas) != null) ? nvS(c.sc_respostas) / nvS(c.sc_sucesso) : null
+    ctr:     (nvS(c.sc_sucesso) && nvS(c.sc_cliques) != null) ? nvS(c.sc_cliques) / nvS(c.sc_sucesso) : null
   };
 }
 function fmtCalc(f, v){
@@ -4480,20 +4519,20 @@ function renderSonhoKPIs(list){
   set("sk3f", roas == null ? "Preencha investimento e receita" : "receita ÷ investido · " + (roas >= 1 ? "no azul" : "abaixo de 1x"));
   set("sk4", up == null ? "—" : (up > 0 ? "+" : "") + fmtN(up, 2, 2) + "<small> p.p.</small>");
   set("sk4f", up == null ? "Preencha teste e controle" : "média de " + nUp + " campanha" + (nUp === 1 ? "" : "s") + " com teste × controle");
-  let sD = 0, sS = 0, sF = 0, sR = 0, sC = 0, nSc = 0;
+  let sD = 0, sS = 0, sF = 0, sB = 0, sC = 0, nSc = 0;
   list.forEach(c => {
     if(nvS(c.sc_destinos) != null) nSc++;
     sD += nvS(c.sc_destinos) || 0; sS += nvS(c.sc_sucesso) || 0; sF += nvS(c.sc_falhas) || 0;
-    sR += nvS(c.sc_respostas) || 0; sC += nvS(c.sc_cliques) || 0;
+    sB += nvS(c.sc_fallback) || 0; sC += nvS(c.sc_cliques) || 0;
   });
   set("sk5", sD ? fmtN(sD, 0) : "—");
   set("sk5f", nSc + " envio" + (nSc === 1 ? "" : "s") + " com dados do Shortcode");
   set("sk6", sD ? fmtN(sS / sD * 100, 1, 1) + "<small>%</small>" : "—");
-  set("sk6f", sD ? "sucesso ÷ destinos · " + fmtN(sF, 0) + " falhas RCS" : "Sem dados do Shortcode");
+  set("sk6f", sD ? fmtN(sS, 0) + " sucessos ÷ " + fmtN(sD, 0) + " destinos" : "Sem dados do Shortcode");
   set("sk7", sS ? fmtN(sC / sS * 100, 2, 2) + "<small>%</small>" : "—");
   set("sk7f", sS ? fmtN(sC, 0) + " cliques ÷ " + fmtN(sS, 0) + " sucessos" : "Sem dados do Shortcode");
-  set("sk8", sS ? fmtN(sR / sS * 100, 2, 2) + "<small>%</small>" : "—");
-  set("sk8f", sS ? fmtN(sR, 0) + " respostas ÷ " + fmtN(sS, 0) + " sucessos" : "Sem dados do Shortcode");
+  set("sk8", sD ? fmtN(sF / sD * 100, 1, 1) + "<small>%</small>" : "—");
+  set("sk8f", sD ? fmtN(sF, 0) + " falhas · fallback SMS: " + fmtN(sB, 0) : "Sem dados do Shortcode");
   document.getElementById("sk3").parentNode.classList.toggle("ok", roas != null && roas >= 1);
   document.getElementById("sk4").parentNode.classList.toggle("ok", up != null && up > 0);
 }
@@ -4508,6 +4547,8 @@ function atualizaLinhaSonho(c, editado){
       el.textContent = fmtCalc(col.f, v);
       el.className = "sc" + corCalc(col.f, v);
     });
+    const qi = tr.querySelector('[data-sk="qtd_teste"]');
+    if(qi && qi !== editado){ const q = nvS(c.qtd_teste); qi.value = q == null ? "" : fmtN(q, 0, 2); qi.defaultValue = qi.value; }
     const inp = tr.querySelector('[data-sk="valor_investido"]');
     if(inp && inp !== editado){
       const auto = nvS(c.custo_envio) != null && nvS(c.qtd_teste) != null;
@@ -4573,7 +4614,8 @@ function confirmaCelulaSonho(el){
   }
   if(c[k] === v || (c[k] == null && v == null) ) { el.defaultValue = el.value; return; }
   c[k] = v;
-  if(k === "custo_envio" || k === "qtd_teste") sSyncInv(c);
+  if(k === "sc_sucesso" && v != null) c.qtd_teste = v;
+  if(k === "custo_envio" || k === "qtd_teste" || k === "sc_sucesso") sSyncInv(c);
   el.defaultValue = el.value;
   if(col.t === "text" || col.t === "link") el.title = v || "";
   atualizaLinhaSonho(c, el);
@@ -4636,10 +4678,10 @@ document.getElementById("sBtnClear").onclick = ()=>{ sui.q = ""; sui.canal = "";
 document.getElementById("brandSel").onchange = (e)=> setMarca(e.target.value);
 
 /* CSV da Sonho — respeita período e busca, como o da Bet */
-function csvSonho(){
+function csvSonho(lista){
   const head = SCOLS.map(c => c.n);
   const rows = [head];
-  sVisible().forEach(c => {
+  (lista || sVisible()).forEach(c => {
     const k = sCalc(c);
     rows.push(SCOLS.map(col => {
       if(col.t === "calc"){ const v = k[col.k]; return v == null ? "" : (col.f === "pct" ? fmtN(v*100,2,2)+"%" : fmtN(v,2,2)); }
@@ -4650,6 +4692,257 @@ function csvSonho(){
     }));
   });
   return "﻿" + rows.map(r => r.map(v => `"${String(v == null ? "" : v).replace(/"/g,'""')}"`).join(",")).join("\n");
+}
+
+/* ===================== EXPORTAR · RCS - SONHO DA SORTE =====================
+   O botão Exportar, nesta marca, abre um diálogo: o que sai (tudo, um intervalo de
+   datas ou campanhas marcadas) e em que formato (CSV, apresentação .pptx, ou a mesma
+   apresentação numa página pronta para salvar em PDF). */
+const exModal = document.getElementById("exModal");
+const ex = {modo:"tudo", from:"", to:"", ids:new Set(), q:""};
+const pcX = (v, d) => v == null ? "—" : fmtN(v * 100, d == null ? 2 : d, d == null ? 2 : d) + "%";
+
+function exTodas(){
+  return sonho.slice().sort((a, b) => String(a.data_inicio || "").localeCompare(String(b.data_inicio || ""))
+    || String(a.hora || "").localeCompare(String(b.hora || "")) || (a.seq || 0) - (b.seq || 0));
+}
+function exLista(){
+  const t = exTodas();
+  if(ex.modo === "datas") return t.filter(c => c.data_inicio && (!ex.from || c.data_inicio >= ex.from) && (!ex.to || c.data_inicio <= ex.to));
+  if(ex.modo === "camp") return t.filter(c => ex.ids.has(c.id));
+  return t;
+}
+function exRotulo(c){
+  return (c.data_inicio ? dataBR(c.data_inicio).slice(0, 5) : "s/ data") + (c.hora ? " " + c.hora : "") + " · " + (c.nome || "Sem nome");
+}
+function exDesenha(){
+  document.getElementById("exModo").innerHTML = [["tudo", "Tudo"], ["datas", "Por datas"], ["camp", "Por campanhas"]]
+    .map(([m, n]) => `<button data-exm="${m}" aria-pressed="${ex.modo === m}">${n}</button>`).join("");
+  document.getElementById("exDatas").style.display = ex.modo === "datas" ? "flex" : "none";
+  document.getElementById("exCamp").style.display = ex.modo === "camp" ? "block" : "none";
+  const f = document.getElementById("exFrom"), t = document.getElementById("exTo");
+  if(f.value !== ex.from) f.value = ex.from;
+  if(t.value !== ex.to) t.value = ex.to;
+  exDesenhaLista(); exInfo();
+}
+function exDesenhaLista(){
+  const q = ex.q.toLowerCase();
+  const itens = exTodas().filter(c => !q || exRotulo(c).toLowerCase().includes(q));
+  document.getElementById("exList").innerHTML = itens.map(c =>
+    `<label class="exrow"><input type="checkbox" data-exid="${esc(c.id)}"${ex.ids.has(c.id) ? " checked" : ""}><span>${esc(exRotulo(c))}</span></label>`).join("")
+    || `<div class="exvazio">Nenhuma campanha encontrada</div>`;
+}
+function exInfo(){
+  const l = exLista(), n = l.length;
+  const ds = l.map(c => c.data_inicio).filter(Boolean).sort();
+  document.getElementById("exInfo").textContent = n + " campanha" + (n === 1 ? "" : "s") + " na seleção"
+    + (n && ds.length ? " · " + dataBR(ds[0]).slice(0, 5) + (ds[0] === ds[ds.length - 1] ? "" : " a " + dataBR(ds[ds.length - 1]).slice(0, 5)) : "");
+  exModal.querySelectorAll("[data-ef]").forEach(b => { if(b.dataset.ef !== "json") b.disabled = !n; });
+}
+function abreExportSonho(){
+  const ds = sonho.map(c => c.data_inicio).filter(Boolean).sort();
+  ex.modo = "tudo"; ex.q = ""; ex.from = ds[0] || ""; ex.to = ds[ds.length - 1] || ""; ex.ids = new Set(sonho.map(c => c.id));
+  document.getElementById("exQ").value = "";
+  exDesenha();
+  exModal.dataset.open = "1";
+}
+function fechaExport(){ delete exModal.dataset.open; }
+exModal.addEventListener("click", (e) => {
+  if(e.target === exModal || e.target.closest("[data-exclose]")){ fechaExport(); return; }
+  const m = e.target.closest("[data-exm]"); if(m){ ex.modo = m.dataset.exm; exDesenha(); return; }
+  if(e.target.closest("[data-exall]")){ exTodas().forEach(c => ex.ids.add(c.id)); exDesenhaLista(); exInfo(); return; }
+  if(e.target.closest("[data-exnone]")){ ex.ids.clear(); exDesenhaLista(); exInfo(); return; }
+  const b = e.target.closest("[data-ef]"); if(b && !b.disabled) exExecuta(b.dataset.ef);
+});
+exModal.addEventListener("change", (e) => {
+  const id = e.target.dataset && e.target.dataset.exid;
+  if(id){ if(e.target.checked) ex.ids.add(id); else ex.ids.delete(id); exInfo(); }
+  if(e.target.id === "exFrom"){ ex.from = e.target.value; exInfo(); }
+  if(e.target.id === "exTo"){ ex.to = e.target.value; exInfo(); }
+});
+document.getElementById("exQ").oninput = (e) => { ex.q = e.target.value; exDesenhaLista(); };
+document.addEventListener("keydown", (e) => { if(e.key === "Escape" && exModal.dataset.open) fechaExport(); });
+
+async function exExecuta(f){
+  if(f === "json"){ fechaExport(); expJSON(); return; }
+  const l = exLista();
+  if(!l.length){ toast("Nenhuma campanha na seleção"); return; }
+  if(f === "csv"){ await offer("rcs-sonho-" + TODAY + ".csv", csvSonho(l), "text/csv"); return; }
+  const sl = exSlides(l);
+  if(f === "pdf"){ exAbreHtml(sl, "rcs-sonho-resumo-" + TODAY + ".html"); return; }
+  if(f === "pptx"){ await exPptx(sl, "rcs-sonho-resumo-" + TODAY + ".pptx"); }
+}
+
+/* ---------- os números do resumo: os mesmos cartões do painel ---------- */
+function sResumo(list){
+  const r = {n:list.length, nSc:0, d:0, s:0, f:0, c:0, fb:0, inv:0, rec:0, recC:0, ct:0, cc:0, invR:0, recR:0, ups:[]};
+  list.forEach(c => {
+    const k = sCalc(c), rec = nvS(c.receita), rc = nvS(c.receita_cnt);
+    if(nvS(c.sc_destinos) != null) r.nSc++;
+    r.d += nvS(c.sc_destinos) || 0; r.s += nvS(c.sc_sucesso) || 0; r.f += nvS(c.sc_falhas) || 0;
+    r.c += nvS(c.sc_cliques) || 0; r.fb += nvS(c.sc_fallback) || 0;
+    if(k.inv != null) r.inv += k.inv;
+    if(rec != null) r.rec += rec;
+    if(rc != null) r.recC += rc;
+    r.ct += nvS(c.conv_teste) || 0; r.cc += nvS(c.conv_controle) || 0;
+    if(k.inv && rec != null){ r.invR += k.inv; r.recR += rec; }
+    if(k.uplift != null) r.ups.push(k.uplift);
+  });
+  r.roas = r.invR ? r.recR / r.invR : null;
+  r.up = r.ups.length ? r.ups.reduce((a, b) => a + b, 0) / r.ups.length : null;
+  return r;
+}
+function exSlides(list){
+  const R = sResumo(list), ds = list.map(c => c.data_inicio).filter(Boolean).sort();
+  const per = !ds.length ? "" : (ds[0] === ds[ds.length - 1] ? dataBR(ds[0]) : dataBR(ds[0]) + " a " + dataBR(ds[ds.length - 1]));
+  const S = [];
+  S.push({t:"capa", titulo:"RCS - Sonho da Sorte", sub:"Resumo das campanhas" + (per ? " · " + per : ""),
+    linhas:[R.n + " campanha" + (R.n === 1 ? "" : "s") + " no resumo", "Gerado em " + dataBR(TODAY) + " · Painel de Campanhas"]});
+  S.push({t:"kpis", tag:"sc", titulo:"Shortcode · envio RCS", sub:"Números da plataforma de disparo",
+    cards:[
+      {l:"Campanhas", v:String(R.n), f:R.nSc + " com dados do Shortcode"},
+      {l:"Destinos", v:R.d ? fmtN(R.d, 0) : "—", f:"inclui reenvios; não são pessoas únicas"},
+      {l:"Sucesso", v:R.d ? fmtN(R.s, 0) : "—", f:R.d ? pcX(R.s / R.d, 1) + " dos destinos" : ""},
+      {l:"Cliques", v:R.s ? fmtN(R.c, 0) : "—", f:R.s ? "sobre " + fmtN(R.s, 0) + " sucessos" : ""},
+      {l:"CTR", v:R.s ? pcX(R.c / R.s) : "—", f:"cliques ÷ sucesso"},
+      {l:"Falhas RCS", v:R.d ? fmtN(R.f, 0) : "—", f:R.d ? pcX(R.f / R.d, 1) + " dos destinos · fallback SMS: " + fmtN(R.fb, 0) : ""}]});
+  S.push({t:"kpis", tag:"an", titulo:"Análise pós-comunicação", sub:"Compras, receita e grupo controle",
+    cards:[
+      {l:"Investido", v:R.inv ? fmtBRL(R.inv) : "—", f:R.n + " campanha" + (R.n === 1 ? "" : "s")},
+      {l:"Receita gerada", v:R.rec ? fmtBRL(R.rec) : "—", f:"grupo controle: " + fmtBRL(R.recC)},
+      {l:"ROAS geral", v:R.roas == null ? "—" : fmtN(R.roas, 2, 2) + "x", f:R.roas == null ? "preencha investimento e receita" : "receita ÷ investido"},
+      {l:"Uplift médio", v:R.up == null ? "—" : (R.up > 0 ? "+" : "") + fmtN(R.up, 2, 2) + " p.p.", f:R.up == null ? "preencha teste e controle" : "média de " + R.ups.length + " campanha" + (R.ups.length === 1 ? "" : "s")},
+      {l:"Conversões teste", v:R.ct ? fmtN(R.ct, 0) : "—", f:"controle: " + fmtN(R.cc, 0)},
+      {l:"Receita controle", v:R.recC ? fmtBRL(R.recC) : "—", f:"receita do grupo controle"}]});
+  const head = ["Data", "Campanha", "Sucesso", "% Sucesso", "Cliques", "CTR", "Investido", "Receita", "ROAS"];
+  const linhas = list.map(c => {
+    const k = sCalc(c);
+    return [(c.data_inicio ? dataBR(c.data_inicio).slice(0, 5) : "—") + (c.hora ? " " + c.hora : ""),
+      String(c.nome || "Sem nome").slice(0, 42),
+      nvS(c.sc_sucesso) == null ? "—" : fmtN(nvS(c.sc_sucesso), 0), pcX(k.p_suc, 1),
+      nvS(c.sc_cliques) == null ? "—" : fmtN(nvS(c.sc_cliques), 0), pcX(k.ctr),
+      k.inv == null ? "—" : fmtBRL(k.inv), nvS(c.receita) == null ? "—" : fmtBRL(nvS(c.receita)),
+      k.roas == null ? "—" : fmtN(k.roas, 2, 2) + "x"];
+  });
+  const POR = 8, pags = Math.ceil(linhas.length / POR);
+  for(let i = 0; i < pags; i++)
+    S.push({t:"tabela", titulo:"Campanhas" + (pags > 1 ? " (" + (i + 1) + "/" + pags + ")" : ""), sub:"Shortcode e análise, por disparo",
+      head, rows:linhas.slice(i * POR, (i + 1) * POR)});
+  /* destaques: só o que os números sustentam */
+  const D = [], nm = c => (c.nome || "Sem nome") + (c.data_inicio ? " (" + dataBR(c.data_inicio).slice(0, 5) + ")" : "");
+  const comCtr = list.filter(c => nvS(c.sc_sucesso) >= 1000 && nvS(c.sc_cliques) != null).sort((a, b) => sCalc(b).ctr - sCalc(a).ctr);
+  if(comCtr.length) D.push({t:"Melhor CTR", d:nm(comCtr[0]) + " · " + pcX(sCalc(comCtr[0]).ctr) + " (" + fmtN(nvS(comCtr[0].sc_cliques), 0) + " cliques em " + fmtN(nvS(comCtr[0].sc_sucesso), 0) + " sucessos)"});
+  const maior = list.filter(c => nvS(c.sc_sucesso) != null).sort((a, b) => nvS(b.sc_sucesso) - nvS(a.sc_sucesso))[0];
+  if(maior) D.push({t:"Maior alcance", d:nm(maior) + " · " + fmtN(nvS(maior.sc_sucesso), 0) + " sucessos"});
+  const comRoas = list.filter(c => sCalc(c).roas != null).sort((a, b) => sCalc(b).roas - sCalc(a).roas);
+  if(comRoas.length) D.push({t:"Melhor ROAS", d:nm(comRoas[0]) + " · " + fmtN(sCalc(comRoas[0]).roas, 2, 2) + "x"});
+  list.filter(c => nvS(c.sc_destinos) >= 1000 && sCalc(c).p_suc != null && sCalc(c).p_suc < 0.5).forEach(c =>
+    D.push({t:"Atenção: baixa entrega no RCS", d:nm(c) + " · só " + pcX(sCalc(c).p_suc, 1) + " de sucesso, " + fmtN(nvS(c.sc_falhas), 0) + " falhas"}));
+  D.push({t:"Como ler", d:"Sucesso é o contador do Shortcode, sem inferir leitura. Destinos somam reenvios e não são pessoas únicas. Compras e receita vêm da análise pós-comunicação."});
+  S.push({t:"destaques", titulo:"Destaques", sub:"Leitura rápida dos números acima", itens:D});
+  return S;
+}
+
+/* ---------- apresentação em página (salvar como PDF pelo navegador) ---------- */
+function exHtml(sl){
+  const COR = {sc:"#4f7cff", an:"#e0902a", n:"#1b1f3b"};
+  const pag = sl.map(s => {
+    if(s.t === "capa") return `<section class="slide capa"><div class="k">PAINEL DE CAMPANHAS</div><h1>${esc(s.titulo)}</h1><h2>${esc(s.sub)}</h2><p>${s.linhas.map(esc).join("<br>")}</p></section>`;
+    const cor = COR[s.tag] || COR.n;
+    let corpo = "";
+    if(s.t === "kpis") corpo = `<div class="cards">${s.cards.map(k => `<div class="card"><div class="l">${esc(k.l)}</div><div class="v" style="color:${cor}">${esc(k.v)}</div><div class="f">${esc(k.f || "")}</div></div>`).join("")}</div>`;
+    if(s.t === "tabela") corpo = `<table><thead><tr>${s.head.map((h, i) => `<th${i > 1 ? ' class="r"' : ""}>${esc(h)}</th>`).join("")}</tr></thead><tbody>${s.rows.map(r => `<tr>${r.map((v, i) => `<td${i > 1 ? ' class="r"' : ""}>${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+    if(s.t === "destaques") corpo = `<ul class="dest">${s.itens.map(i => `<li><b>${esc(i.t)}</b><span>${esc(i.d)}</span></li>`).join("")}</ul>`;
+    return `<section class="slide"><i class="bar" style="background:${cor}"></i><h3>${esc(s.titulo)}</h3><p class="sub">${esc(s.sub || "")}</p>${corpo}<div class="rod">RCS - Sonho da Sorte · gerado em ${dataBR(TODAY)}</div></section>`;
+  }).join("");
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>RCS - Sonho da Sorte · resumo</title><style>
+*{box-sizing:border-box}body{margin:0;background:#e9ebf0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#14161c;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.tool{position:sticky;top:0;z-index:5;background:#14161c;color:#fff;padding:10px 18px;display:flex;gap:14px;align-items:center;font-size:13px}
+.tool button{background:#4f52c9;color:#fff;border:0;border-radius:8px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer}
+.slide{position:relative;width:1280px;height:720px;margin:24px auto;background:#fff;padding:64px 72px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.12);break-after:page}
+.bar{position:absolute;left:0;top:0;width:100%;height:12px}
+.capa{background:#1b1f3b;color:#fff}.capa .k{letter-spacing:.3em;font-size:15px;font-weight:700;color:#a5b4fc;margin-top:70px}
+.capa h1{font-size:68px;margin:34px 0 10px}.capa h2{font-size:26px;font-weight:400;color:#e5e7eb;margin:0}.capa p{position:absolute;bottom:60px;font-size:16px;color:#cbd5e1;line-height:1.7}
+h3{font-size:38px;margin:10px 0 4px}.sub{color:#6b7280;font-size:18px;margin:0 0 30px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}.card{background:#f4f5f8;border:1px solid #e2e5ec;border-radius:16px;padding:26px 28px;height:230px}
+.card .l{font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:#6b7280;font-weight:600}.card .v{font-size:54px;font-weight:700;margin:22px 0 14px;letter-spacing:-.03em}.card .f{font-size:15px;color:#6b7280}
+table{width:100%;border-collapse:collapse;font-size:17px}th{background:#1b1f3b;color:#fff;text-align:left;padding:12px 12px;font-size:14px}td{padding:12px;border-bottom:1px solid #e2e5ec}.r{text-align:right}
+.dest{list-style:none;padding:0;margin:0}.dest li{margin-bottom:22px}.dest b{display:block;font-size:22px}.dest span{font-size:17px;color:#4b5563;line-height:1.5}
+.rod{position:absolute;left:72px;bottom:28px;font-size:13px;color:#9ca3af}
+@page{size:1280px 720px;margin:0}@media print{body{background:#fff}.tool{display:none}.slide{margin:0;box-shadow:none}}
+</style></head><body><div class="tool"><button onclick="window.print()">Imprimir / salvar em PDF</button><span>Na janela de impressão, escolha “Salvar como PDF” e desligue cabeçalhos e rodapés.</span></div>${pag}</body></html>`;
+}
+function exAbreHtml(sl, nome){
+  const html = exHtml(sl);
+  const url = URL.createObjectURL(new Blob([html], {type:"text/html;charset=utf-8"}));
+  const w = window.open(url, "_blank");
+  if(!w){
+    offer(nome, html, "text/html");
+    toast("O navegador bloqueou a nova aba — baixei a página; abra o arquivo e use Imprimir > Salvar como PDF");
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 120000);
+}
+
+/* ---------- apresentação .pptx (biblioteca carregada só na hora de gerar) ---------- */
+function carregaPptx(){
+  if(window.PptxGenJS) return Promise.resolve();
+  return new Promise((ok, no) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/pptxgenjs@4.0.1/dist/pptxgen.bundle.js";
+    s.onload = ok; s.onerror = () => no(new Error("cdn"));
+    document.head.appendChild(s);
+  });
+}
+async function exPptx(sl, nome){
+  toast("Montando a apresentação…");
+  try{ await carregaPptx(); }catch(e){ toast("Não consegui carregar o gerador de PowerPoint — use a versão PDF"); return; }
+  try{
+    const P = new window.PptxGenJS();
+    P.layout = "LAYOUT_WIDE"; P.title = "RCS - Sonho da Sorte";
+    const C = {sc:"4F7CFF", an:"E0902A", n:"1B1F3B", tx:"14161C", mu:"6B7280", ln:"E2E5EC", bg:"F4F5F8"};
+    sl.forEach(s => {
+      const sd = P.addSlide();
+      if(s.t === "capa"){
+        sd.background = {color:C.n};
+        sd.addText("PAINEL DE CAMPANHAS", {x:.7, y:.9, w:11.5, h:.4, fontSize:13, bold:true, color:"A5B4FC", charSpacing:4});
+        sd.addText(s.titulo, {x:.7, y:1.7, w:11.9, h:1.1, fontSize:46, bold:true, color:"FFFFFF"});
+        sd.addText(s.sub, {x:.7, y:2.9, w:11.9, h:.6, fontSize:20, color:"E5E7EB"});
+        sd.addText(s.linhas.join("\n"), {x:.7, y:5.3, w:11.9, h:1, fontSize:14, color:"CBD5E1", valign:"top"});
+        return;
+      }
+      sd.background = {color:"FFFFFF"};
+      const cor = C[s.tag] || C.n;
+      sd.addShape(P.ShapeType.rect, {x:0, y:0, w:13.33, h:.16, fill:{color:cor}, line:{color:cor, width:0}});
+      sd.addText(s.titulo, {x:.6, y:.4, w:12, h:.6, fontSize:28, bold:true, color:C.tx});
+      if(s.sub) sd.addText(s.sub, {x:.6, y:1.0, w:12, h:.4, fontSize:14, color:C.mu});
+      sd.addText("RCS - Sonho da Sorte · gerado em " + dataBR(TODAY), {x:.6, y:7.0, w:8, h:.3, fontSize:10, color:"9CA3AF"});
+      if(s.t === "kpis"){
+        s.cards.forEach((k, i) => {
+          const x = .6 + (i % 3) * 4.1, y = 1.7 + Math.floor(i / 3) * 2.6;
+          sd.addShape(P.ShapeType.roundRect, {x, y, w:3.9, h:2.3, fill:{color:C.bg}, line:{color:C.ln, width:1}, rectRadius:.12});
+          sd.addText(k.l.toUpperCase(), {x:x + .25, y:y + .2, w:3.4, h:.35, fontSize:11, bold:true, color:C.mu, charSpacing:2});
+          sd.addText(k.v, {x:x + .25, y:y + .65, w:3.4, h:.9, fontSize:k.v.length > 11 ? 26 : 34, bold:true, color:cor, fit:"shrink"});
+          sd.addText(k.f || "", {x:x + .25, y:y + 1.6, w:3.4, h:.5, fontSize:11, color:C.mu, valign:"top"});
+        });
+      }
+      if(s.t === "tabela"){
+        const cab = s.head.map((h, i) => ({text:h, options:{bold:true, color:"FFFFFF", fill:{color:C.n}, align:i > 1 ? "right" : "left", fontSize:11}}));
+        const corpo = s.rows.map(r => r.map((v, i) => ({text:v, options:{align:i > 1 ? "right" : "left", fontSize:11, color:C.tx}})));
+        sd.addTable([cab].concat(corpo), {x:.6, y:1.6, w:12.1, colW:[1.45, 3.75, 1.0, 1.05, .9, .85, 1.2, 1.3, .6],
+          border:{type:"solid", color:C.ln, pt:.75}, rowH:.5, valign:"middle"});
+      }
+      if(s.t === "destaques"){
+        const runs = [];
+        s.itens.forEach(i => {
+          runs.push({text:i.t, options:{bold:true, fontSize:16, color:C.tx, breakLine:true}});
+          runs.push({text:i.d, options:{fontSize:12.5, color:C.mu, breakLine:true, paraSpaceAfter:12}});
+        });
+        sd.addText(runs, {x:.6, y:1.6, w:12.1, h:5.2, valign:"top"});
+      }
+    });
+    await P.writeFile({fileName:nome});
+    toast("Baixando " + nome);
+  }catch(e){ toast("Não consegui gerar o PowerPoint — use a versão PDF"); }
 }
 
 /* ===================== UTIL ===================== */
