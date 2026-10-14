@@ -540,6 +540,10 @@ textarea.field{height:auto;padding:8px 9px;resize:vertical;min-height:70px;font-
 .exrow{display:flex;gap:9px;align-items:center;padding:7px 9px;border-radius:7px;font-size:13px;cursor:pointer}
 .exrow:hover{background:var(--surface-3)}.exvazio{padding:14px;color:var(--ink-3);font-size:13px}
 .exinfo{margin-top:12px;font-size:13px;color:var(--ink-2);font-weight:550}
+.exopts{display:grid;gap:8px 18px}.exopts.two{grid-template-columns:1fr 1fr}
+.exchk{display:flex;gap:9px;align-items:flex-start;font-size:13px;cursor:pointer;line-height:1.35}.exchk input{margin-top:2px}
+.exsel{display:flex;gap:9px;align-items:center;font-size:13px}.exsel select{height:32px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);padding:0 8px;font:inherit}
+@media (max-width:640px){.exopts.two{grid-template-columns:1fr}}
 .exfmt{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .exfmt .btn{height:auto;padding:12px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;white-space:normal}
 .exfmt .btn small{font-size:11.5px;font-weight:400;opacity:.8}
@@ -855,6 +859,22 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
         <div class="exlist" id="exList"></div>
       </div>
       <div class="exinfo" id="exInfo"></div>
+      <div class="exlab" style="margin-top:18px">Filtros e ordem</div>
+      <div class="exopts">
+        <label class="exchk"><input type="checkbox" data-exf="soSc"> Só campanhas com dados do Shortcode</label>
+        <label class="exchk"><input type="checkbox" data-exf="soAn"> Só campanhas com investimento, conversões ou receita preenchidos</label>
+        <label class="exsel">Ordenar por
+          <select id="exOrd"><option value="data">Data do disparo</option><option value="ctr">Maior CTR</option><option value="suc">Maior sucesso</option><option value="env">Maior total de envios</option><option value="roas">Maior ROAS</option></select></label>
+      </div>
+      <div class="exlab" style="margin-top:18px">O que entra na apresentação</div>
+      <div class="exopts two">
+        <label class="exchk"><input type="checkbox" data-exsec="sc"> Resumo Shortcode (envios, sucesso, CTR)</label>
+        <label class="exchk"><input type="checkbox" data-exsec="an"> Resumo da análise pós-comunicação</label>
+        <label class="exchk"><input type="checkbox" data-exsec="dest"> Destaques</label>
+        <label class="exchk"><input type="checkbox" data-exsec="comp"> Comparativo de CTR entre campanhas</label>
+        <label class="exchk"><input type="checkbox" data-exsec="pecas"> Uma página por campanha (título, mensagem e números)</label>
+        <label class="exchk"><input type="checkbox" data-exsec="tab"> Tabela-resumo (anexo)</label>
+      </div>
       <div class="exlab" style="margin-top:18px">Formato</div>
       <div class="exfmt">
         <button class="btn" data-ef="csv"><b>Planilha</b><small>.csv com todas as colunas</small></button>
@@ -4699,7 +4719,8 @@ function csvSonho(lista){
    datas ou campanhas marcadas) e em que formato (CSV, apresentação .pptx, ou a mesma
    apresentação numa página pronta para salvar em PDF). */
 const exModal = document.getElementById("exModal");
-const ex = {modo:"tudo", from:"", to:"", ids:new Set(), q:""};
+const ex = {modo:"tudo", from:"", to:"", ids:new Set(), q:"", soSc:false, soAn:false, ord:"data",
+  secs:{sc:true, an:true, dest:true, comp:true, pecas:true, tab:true}};
 const pcX = (v, d) => v == null ? "—" : fmtN(v * 100, d == null ? 2 : d, d == null ? 2 : d) + "%";
 
 function exTodas(){
@@ -4707,9 +4728,13 @@ function exTodas(){
     || String(a.hora || "").localeCompare(String(b.hora || "")) || (a.seq || 0) - (b.seq || 0));
 }
 function exLista(){
-  const t = exTodas();
-  if(ex.modo === "datas") return t.filter(c => c.data_inicio && (!ex.from || c.data_inicio >= ex.from) && (!ex.to || c.data_inicio <= ex.to));
-  if(ex.modo === "camp") return t.filter(c => ex.ids.has(c.id));
+  let t = exTodas();
+  if(ex.modo === "datas") t = t.filter(c => c.data_inicio && (!ex.from || c.data_inicio >= ex.from) && (!ex.to || c.data_inicio <= ex.to));
+  if(ex.modo === "camp") t = t.filter(c => ex.ids.has(c.id));
+  if(ex.soSc) t = t.filter(c => nvS(c.sc_destinos) != null);
+  if(ex.soAn) t = t.filter(c => sCalc(c).inv != null || nvS(c.receita) != null || nvS(c.conv_teste) != null);
+  const chave = {ctr:c => sCalc(c).ctr, suc:c => nvS(c.sc_sucesso), env:c => nvS(c.sc_destinos), roas:c => sCalc(c).roas}[ex.ord];
+  if(chave) t = t.slice().sort((a, b) => { const x = chave(a), y = chave(b); if(x == null && y == null) return 0; if(x == null) return 1; if(y == null) return -1; return y - x; });
   return t;
 }
 function exRotulo(c){
@@ -4723,6 +4748,9 @@ function exDesenha(){
   const f = document.getElementById("exFrom"), t = document.getElementById("exTo");
   if(f.value !== ex.from) f.value = ex.from;
   if(t.value !== ex.to) t.value = ex.to;
+  exModal.querySelectorAll("[data-exf]").forEach(i => { i.checked = !!ex[i.dataset.exf]; });
+  exModal.querySelectorAll("[data-exsec]").forEach(i => { i.checked = !!ex.secs[i.dataset.exsec]; });
+  document.getElementById("exOrd").value = ex.ord;
   exDesenhaLista(); exInfo();
 }
 function exDesenhaLista(){
@@ -4757,6 +4785,9 @@ exModal.addEventListener("click", (e) => {
 exModal.addEventListener("change", (e) => {
   const id = e.target.dataset && e.target.dataset.exid;
   if(id){ if(e.target.checked) ex.ids.add(id); else ex.ids.delete(id); exInfo(); }
+  const fl = e.target.dataset && e.target.dataset.exf; if(fl){ ex[fl] = e.target.checked; exInfo(); }
+  const sc = e.target.dataset && e.target.dataset.exsec; if(sc){ ex.secs[sc] = e.target.checked; }
+  if(e.target.id === "exOrd"){ ex.ord = e.target.value; exInfo(); }
   if(e.target.id === "exFrom"){ ex.from = e.target.value; exInfo(); }
   if(e.target.id === "exTo"){ ex.to = e.target.value; exInfo(); }
 });
@@ -4768,6 +4799,7 @@ async function exExecuta(f){
   const l = exLista();
   if(!l.length){ toast("Nenhuma campanha na seleção"); return; }
   if(f === "csv"){ await offer("rcs-sonho-" + TODAY + ".csv", csvSonho(l), "text/csv"); return; }
+  if(!Object.values(ex.secs).some(Boolean)){ toast("Marque ao menos um item em “O que entra na apresentação”"); return; }
   const sl = exSlides(l);
   if(f === "pdf"){ exAbreHtml(sl, "rcs-sonho-resumo-" + TODAY + ".html"); return; }
   if(f === "pptx"){ await exPptx(sl, "rcs-sonho-resumo-" + TODAY + ".pptx"); }
@@ -4793,20 +4825,20 @@ function sResumo(list){
   return r;
 }
 function exSlides(list){
-  const R = sResumo(list), ds = list.map(c => c.data_inicio).filter(Boolean).sort();
+  const R = sResumo(list), K = ex.secs, ds = list.map(c => c.data_inicio).filter(Boolean).sort();
   const per = !ds.length ? "" : (ds[0] === ds[ds.length - 1] ? dataBR(ds[0]) : dataBR(ds[0]) + " a " + dataBR(ds[ds.length - 1]));
   const S = [];
   S.push({t:"capa", titulo:"RCS - Sonho da Sorte", sub:"Resumo das campanhas" + (per ? " · " + per : ""),
     linhas:[R.n + " campanha" + (R.n === 1 ? "" : "s") + " no resumo", "Gerado em " + dataBR(TODAY) + " · Painel de Campanhas"]});
-  S.push({t:"kpis", tag:"sc", titulo:"Shortcode · envio RCS", sub:"Números da plataforma de disparo",
+  if(K.sc) S.push({t:"kpis", tag:"sc", titulo:"Shortcode · envio RCS", sub:"Números da plataforma de disparo",
     cards:[
       {l:"Campanhas", v:String(R.n), f:R.nSc + " com dados do Shortcode"},
-      {l:"Destinos", v:R.d ? fmtN(R.d, 0) : "—", f:"inclui reenvios; não são pessoas únicas"},
+      {l:"Total de envios", v:R.d ? fmtN(R.d, 0) : "—", f:"destinos; inclui reenvios, não são pessoas únicas"},
       {l:"Sucesso", v:R.d ? fmtN(R.s, 0) : "—", f:R.d ? pcX(R.s / R.d, 1) + " dos destinos" : ""},
       {l:"Cliques", v:R.s ? fmtN(R.c, 0) : "—", f:R.s ? "sobre " + fmtN(R.s, 0) + " sucessos" : ""},
       {l:"CTR", v:R.s ? pcX(R.c / R.s) : "—", f:"cliques ÷ sucesso"},
       {l:"Falhas RCS", v:R.d ? fmtN(R.f, 0) : "—", f:R.d ? pcX(R.f / R.d, 1) + " dos destinos · fallback SMS: " + fmtN(R.fb, 0) : ""}]});
-  S.push({t:"kpis", tag:"an", titulo:"Análise pós-comunicação", sub:"Compras, receita e grupo controle",
+  if(K.an) S.push({t:"kpis", tag:"an", titulo:"Análise pós-comunicação", sub:"Compras, receita e grupo controle",
     cards:[
       {l:"Investido", v:R.inv ? fmtBRL(R.inv) : "—", f:R.n + " campanha" + (R.n === 1 ? "" : "s")},
       {l:"Receita gerada", v:R.rec ? fmtBRL(R.rec) : "—", f:"grupo controle: " + fmtBRL(R.recC)},
@@ -4814,32 +4846,63 @@ function exSlides(list){
       {l:"Uplift médio", v:R.up == null ? "—" : (R.up > 0 ? "+" : "") + fmtN(R.up, 2, 2) + " p.p.", f:R.up == null ? "preencha teste e controle" : "média de " + R.ups.length + " campanha" + (R.ups.length === 1 ? "" : "s")},
       {l:"Conversões teste", v:R.ct ? fmtN(R.ct, 0) : "—", f:"controle: " + fmtN(R.cc, 0)},
       {l:"Receita controle", v:R.recC ? fmtBRL(R.recC) : "—", f:"receita do grupo controle"}]});
-  const head = ["Data", "Campanha", "Sucesso", "% Sucesso", "Cliques", "CTR", "Investido", "Receita", "ROAS"];
-  const linhas = list.map(c => {
-    const k = sCalc(c);
-    return [(c.data_inicio ? dataBR(c.data_inicio).slice(0, 5) : "—") + (c.hora ? " " + c.hora : ""),
-      String(c.nome || "Sem nome").slice(0, 42),
-      nvS(c.sc_sucesso) == null ? "—" : fmtN(nvS(c.sc_sucesso), 0), pcX(k.p_suc, 1),
-      nvS(c.sc_cliques) == null ? "—" : fmtN(nvS(c.sc_cliques), 0), pcX(k.ctr),
-      k.inv == null ? "—" : fmtBRL(k.inv), nvS(c.receita) == null ? "—" : fmtBRL(nvS(c.receita)),
-      k.roas == null ? "—" : fmtN(k.roas, 2, 2) + "x"];
-  });
-  const POR = 8, pags = Math.ceil(linhas.length / POR);
-  for(let i = 0; i < pags; i++)
-    S.push({t:"tabela", titulo:"Campanhas" + (pags > 1 ? " (" + (i + 1) + "/" + pags + ")" : ""), sub:"Shortcode e análise, por disparo",
-      head, rows:linhas.slice(i * POR, (i + 1) * POR)});
   /* destaques: só o que os números sustentam */
-  const D = [], nm = c => (c.nome || "Sem nome") + (c.data_inicio ? " (" + dataBR(c.data_inicio).slice(0, 5) + ")" : "");
-  const comCtr = list.filter(c => nvS(c.sc_sucesso) >= 1000 && nvS(c.sc_cliques) != null).sort((a, b) => sCalc(b).ctr - sCalc(a).ctr);
-  if(comCtr.length) D.push({t:"Melhor CTR", d:nm(comCtr[0]) + " · " + pcX(sCalc(comCtr[0]).ctr) + " (" + fmtN(nvS(comCtr[0].sc_cliques), 0) + " cliques em " + fmtN(nvS(comCtr[0].sc_sucesso), 0) + " sucessos)"});
-  const maior = list.filter(c => nvS(c.sc_sucesso) != null).sort((a, b) => nvS(b.sc_sucesso) - nvS(a.sc_sucesso))[0];
-  if(maior) D.push({t:"Maior alcance", d:nm(maior) + " · " + fmtN(nvS(maior.sc_sucesso), 0) + " sucessos"});
-  const comRoas = list.filter(c => sCalc(c).roas != null).sort((a, b) => sCalc(b).roas - sCalc(a).roas);
-  if(comRoas.length) D.push({t:"Melhor ROAS", d:nm(comRoas[0]) + " · " + fmtN(sCalc(comRoas[0]).roas, 2, 2) + "x"});
-  list.filter(c => nvS(c.sc_destinos) >= 1000 && sCalc(c).p_suc != null && sCalc(c).p_suc < 0.5).forEach(c =>
-    D.push({t:"Atenção: baixa entrega no RCS", d:nm(c) + " · só " + pcX(sCalc(c).p_suc, 1) + " de sucesso, " + fmtN(nvS(c.sc_falhas), 0) + " falhas"}));
-  D.push({t:"Como ler", d:"Sucesso é o contador do Shortcode, sem inferir leitura. Destinos somam reenvios e não são pessoas únicas. Compras e receita vêm da análise pós-comunicação."});
-  S.push({t:"destaques", titulo:"Destaques", sub:"Leitura rápida dos números acima", itens:D});
+  const nm = c => (c.nome || "Sem nome") + (c.data_inicio ? " (" + dataBR(c.data_inicio).slice(0, 5) + ")" : "");
+  if(K.dest){
+    const D = [];
+    const comCtr = list.filter(c => nvS(c.sc_sucesso) >= 1000 && nvS(c.sc_cliques) != null).sort((a, b) => sCalc(b).ctr - sCalc(a).ctr);
+    if(comCtr.length) D.push({t:"Melhor CTR", d:nm(comCtr[0]) + " · " + pcX(sCalc(comCtr[0]).ctr) + " (" + fmtN(nvS(comCtr[0].sc_cliques), 0) + " cliques em " + fmtN(nvS(comCtr[0].sc_sucesso), 0) + " sucessos)"});
+    const maior = list.filter(c => nvS(c.sc_destinos) != null).sort((a, b) => nvS(b.sc_destinos) - nvS(a.sc_destinos))[0];
+    if(maior) D.push({t:"Maior envio", d:nm(maior) + " · " + fmtN(nvS(maior.sc_destinos), 0) + " destinos, " + fmtN(nvS(maior.sc_sucesso), 0) + " com sucesso"});
+    const comRoas = list.filter(c => sCalc(c).roas != null).sort((a, b) => sCalc(b).roas - sCalc(a).roas);
+    if(comRoas.length) D.push({t:"Melhor ROAS", d:nm(comRoas[0]) + " · " + fmtN(sCalc(comRoas[0]).roas, 2, 2) + "x"});
+    list.filter(c => nvS(c.sc_destinos) >= 1000 && sCalc(c).p_suc != null && sCalc(c).p_suc < 0.5).forEach(c =>
+      D.push({t:"Atenção: baixa entrega no RCS", d:nm(c) + " · só " + pcX(sCalc(c).p_suc, 1) + " de sucesso, " + fmtN(nvS(c.sc_falhas), 0) + " falhas em " + fmtN(nvS(c.sc_destinos), 0) + " envios"}));
+    D.push({t:"Como ler", d:"Sucesso é o contador do Shortcode, sem inferir leitura. Total de envios soma reenvios e não são pessoas únicas. Compras e receita vêm da análise pós-comunicação."});
+    S.push({t:"destaques", titulo:"Destaques", sub:"Leitura rápida dos números", itens:D});
+  }
+  if(K.comp){
+    const lin = list.map(c => { const k = sCalc(c); return {nome:String(c.nome || "Sem nome").slice(0, 40),
+      data:(c.data_inicio ? dataBR(c.data_inicio).slice(0, 5) : "—") + (c.hora ? " " + c.hora : ""),
+      env:nvS(c.sc_destinos), suc:nvS(c.sc_sucesso), psuc:k.p_suc, ctr:k.ctr}; });
+    const mx = Math.max(0.0001, ...lin.map(r => r.ctr || 0)), POR = 8, pags = Math.ceil(lin.length / POR);
+    for(let i = 0; i < pags; i++)
+      S.push({t:"comp", titulo:"Comparativo de campanhas" + (pags > 1 ? " (" + (i + 1) + "/" + pags + ")" : ""),
+        sub:"Barra = CTR (cliques ÷ sucesso) · ao lado, total de envios e sucesso", rows:lin.slice(i * POR, (i + 1) * POR), max:mx});
+  }
+  if(K.pecas) list.forEach(c => {
+    const k = sCalc(c), d = nvS(c.sc_destinos), s = nvS(c.sc_sucesso), f = nvS(c.sc_falhas), cl = nvS(c.sc_cliques), fb = nvS(c.sc_fallback);
+    const an = [
+      {l:"Investido", v:k.inv == null ? "—" : fmtBRL(k.inv)},
+      {l:"Conv. teste", v:nvS(c.conv_teste) == null ? "—" : fmtN(nvS(c.conv_teste), 0) + (nvS(c.conv_controle) == null ? "" : " / " + fmtN(nvS(c.conv_controle), 0))},
+      {l:"Receita", v:nvS(c.receita) == null ? "—" : fmtBRL(nvS(c.receita))},
+      {l:"ROAS", v:k.roas == null ? "—" : fmtN(k.roas, 2, 2) + "x"},
+      {l:"Uplift", v:k.uplift == null ? "—" : (k.uplift > 0 ? "+" : "") + fmtN(k.uplift, 2, 2) + " p.p."}];
+    S.push({t:"peca", titulo:String(c.nome || "Sem nome").slice(0, 60),
+      sub:[(c.data_inicio ? dataBR(c.data_inicio) : "") + (c.hora ? " às " + c.hora : ""), c.sc_id ? "ID Shortcode " + c.sc_id : ""].filter(Boolean).join(" · "),
+      titPeca:c.titulo || "", corpo:c.corpo || "", cta:c.cta || "",
+      tiles:[
+        {l:"Total de envios", v:d == null ? "—" : fmtN(d, 0), f:"destinos"},
+        {l:"Sucesso", v:s == null ? "—" : fmtN(s, 0), f:d && s != null ? pcX(k.p_suc, 1) + " dos destinos" : ""},
+        {l:"Falhas RCS", v:f == null ? "—" : fmtN(f, 0), f:d && f != null ? pcX(f / d, 1) + " dos destinos" : ""},
+        {l:"Cliques", v:cl == null ? "—" : fmtN(cl, 0), f:s ? "sobre " + fmtN(s, 0) + " sucessos" : ""},
+        {l:"CTR", v:pcX(k.ctr), f:"cliques ÷ sucesso"},
+        {l:"Fallback SMS", v:fb == null ? "—" : fmtN(fb, 0), f:"aba Fallback do Shortcode"}],
+      an, temAn:an.some(x => x.v !== "—")});
+  });
+  if(K.tab){
+    const head = ["Data", "Campanha", "Envios", "Sucesso", "% Sucesso", "Cliques", "CTR", "Investido", "Receita", "ROAS"];
+    const linhas = list.map(c => {
+      const k = sCalc(c), n0 = v => v == null ? "—" : fmtN(v, 0);
+      return [(c.data_inicio ? dataBR(c.data_inicio).slice(0, 5) : "—") + (c.hora ? " " + c.hora : ""),
+        String(c.nome || "Sem nome").slice(0, 34), n0(nvS(c.sc_destinos)), n0(nvS(c.sc_sucesso)), pcX(k.p_suc, 1), n0(nvS(c.sc_cliques)), pcX(k.ctr),
+        k.inv == null ? "—" : fmtBRL(k.inv), nvS(c.receita) == null ? "—" : fmtBRL(nvS(c.receita)), k.roas == null ? "—" : fmtN(k.roas, 2, 2) + "x"];
+    });
+    const POR = 8, pags = Math.ceil(linhas.length / POR);
+    for(let i = 0; i < pags; i++)
+      S.push({t:"tabela", titulo:"Tabela-resumo" + (pags > 1 ? " (" + (i + 1) + "/" + pags + ")" : ""), sub:"Todas as campanhas da seleção",
+        head, rows:linhas.slice(i * POR, (i + 1) * POR)});
+  }
   return S;
 }
 
@@ -4848,11 +4911,15 @@ function exHtml(sl){
   const COR = {sc:"#4f7cff", an:"#e0902a", n:"#1b1f3b"};
   const pag = sl.map(s => {
     if(s.t === "capa") return `<section class="slide capa"><div class="k">PAINEL DE CAMPANHAS</div><h1>${esc(s.titulo)}</h1><h2>${esc(s.sub)}</h2><p>${s.linhas.map(esc).join("<br>")}</p></section>`;
-    const cor = COR[s.tag] || COR.n;
+    const cor = COR[s.tag] || (s.t === "peca" || s.t === "comp" ? COR.sc : COR.n);
     let corpo = "";
     if(s.t === "kpis") corpo = `<div class="cards">${s.cards.map(k => `<div class="card"><div class="l">${esc(k.l)}</div><div class="v" style="color:${cor}">${esc(k.v)}</div><div class="f">${esc(k.f || "")}</div></div>`).join("")}</div>`;
     if(s.t === "tabela") corpo = `<table><thead><tr>${s.head.map((h, i) => `<th${i > 1 ? ' class="r"' : ""}>${esc(h)}</th>`).join("")}</tr></thead><tbody>${s.rows.map(r => `<tr>${r.map((v, i) => `<td${i > 1 ? ' class="r"' : ""}>${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
     if(s.t === "destaques") corpo = `<ul class="dest">${s.itens.map(i => `<li><b>${esc(i.t)}</b><span>${esc(i.d)}</span></li>`).join("")}</ul>`;
+    if(s.t === "comp") corpo = `<div class="cmp">${s.rows.map(r => `<div class="cr"><div class="cn"><b>${esc(r.nome)}</b><span>${esc(r.data)}</span></div><div class="cm">Envios <b>${r.env == null ? "—" : fmtN(r.env, 0)}</b><br>Sucesso <b>${r.suc == null ? "—" : fmtN(r.suc, 0)}</b> (${pcX(r.psuc, 1)})</div><div class="cb"><i style="width:${r.ctr == null ? 0 : Math.max(1, r.ctr / s.max * 100)}%"></i></div><div class="cv">${pcX(r.ctr)}</div></div>`).join("")}</div>`;
+    if(s.t === "peca") corpo = `<div class="pc"><div class="ph"><div class="pl">PEÇA RCS</div>${s.titPeca ? `<div class="pt">${esc(s.titPeca)}</div>` : ""}<div class="pm">${s.corpo ? esc(s.corpo) : "<i>Título e mensagem ainda não cadastrados para esta campanha.</i>"}</div>${s.cta ? `<div class="pb">${esc(s.cta)}</div>` : ""}</div>
+      <div class="pr"><div class="tiles">${s.tiles.map(k => `<div class="tile"><div class="l">${esc(k.l)}</div><div class="v">${esc(k.v)}</div><div class="f">${esc(k.f || "")}</div></div>`).join("")}</div>
+      <div class="an"><div class="al">ANÁLISE PÓS-COMUNICAÇÃO</div>${s.temAn ? `<div class="ani">${s.an.map(k => `<div><div class="v">${esc(k.v)}</div><div class="l">${esc(k.l)}</div></div>`).join("")}</div>` : `<div class="ani0">Ainda não preenchida (investimento, conversões e receita).</div>`}</div></div></div>`;
     return `<section class="slide"><i class="bar" style="background:${cor}"></i><h3>${esc(s.titulo)}</h3><p class="sub">${esc(s.sub || "")}</p>${corpo}<div class="rod">RCS - Sonho da Sorte · gerado em ${dataBR(TODAY)}</div></section>`;
   }).join("");
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>RCS - Sonho da Sorte · resumo</title><style>
@@ -4863,11 +4930,22 @@ function exHtml(sl){
 .bar{position:absolute;left:0;top:0;width:100%;height:12px}
 .capa{background:#1b1f3b;color:#fff}.capa .k{letter-spacing:.3em;font-size:15px;font-weight:700;color:#a5b4fc;margin-top:70px}
 .capa h1{font-size:68px;margin:34px 0 10px}.capa h2{font-size:26px;font-weight:400;color:#e5e7eb;margin:0}.capa p{position:absolute;bottom:60px;font-size:16px;color:#cbd5e1;line-height:1.7}
-h3{font-size:38px;margin:10px 0 4px}.sub{color:#6b7280;font-size:18px;margin:0 0 30px}
+h3{font-size:36px;margin:10px 0 4px}.sub{color:#6b7280;font-size:18px;margin:0 0 26px}
 .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}.card{background:#f4f5f8;border:1px solid #e2e5ec;border-radius:16px;padding:26px 28px;height:230px}
 .card .l{font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:#6b7280;font-weight:600}.card .v{font-size:54px;font-weight:700;margin:22px 0 14px;letter-spacing:-.03em}.card .f{font-size:15px;color:#6b7280}
-table{width:100%;border-collapse:collapse;font-size:17px}th{background:#1b1f3b;color:#fff;text-align:left;padding:12px 12px;font-size:14px}td{padding:12px;border-bottom:1px solid #e2e5ec}.r{text-align:right}
+table{width:100%;border-collapse:collapse;font-size:16px}th{background:#1b1f3b;color:#fff;text-align:left;padding:11px 10px;font-size:13px}td{padding:11px 10px;border-bottom:1px solid #e2e5ec}.r{text-align:right}
 .dest{list-style:none;padding:0;margin:0}.dest li{margin-bottom:22px}.dest b{display:block;font-size:22px}.dest span{font-size:17px;color:#4b5563;line-height:1.5}
+.cmp{display:flex;flex-direction:column;gap:8px}.cr{display:grid;grid-template-columns:300px 250px 1fr 80px;gap:18px;align-items:center;height:52px;border-bottom:1px solid #eef0f4}
+.cn b{display:block;font-size:17px}.cn span{font-size:13px;color:#6b7280}.cm{font-size:14px;color:#4b5563;line-height:1.4}.cm b{color:#14161c}
+.cb{height:16px;background:#eef0f4;border-radius:8px;overflow:hidden}.cb i{display:block;height:100%;background:#4f7cff;border-radius:8px}.cv{font-weight:700;font-size:17px;text-align:right}
+.pc{display:flex;gap:30px;height:455px}.ph{width:440px;background:#f4f5f8;border:1px solid #e2e5ec;border-radius:22px;padding:26px 28px;display:flex;flex-direction:column}
+.pl{font-size:12px;letter-spacing:.14em;font-weight:700;color:#6b7280}.pt{font-size:23px;font-weight:700;margin:12px 0 12px;line-height:1.25}.pm{font-size:18px;line-height:1.5;color:#374151;flex:1}.pm i{color:#9ca3af}
+.pb{background:#4f52c9;color:#fff;text-align:center;padding:14px;border-radius:12px;font-weight:700;font-size:18px;margin-top:14px}
+.pr{flex:1;display:flex;flex-direction:column;gap:18px}.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.tile{background:#fff;border:1px solid #e2e5ec;border-top:4px solid #4f7cff;border-radius:12px;padding:13px 16px;height:128px}
+.tile .l{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#6b7280;font-weight:600}.tile .v{font-size:32px;font-weight:700;margin:10px 0 5px;color:#4f7cff}.tile .f{font-size:12.5px;color:#6b7280}
+.an{background:#fff8ee;border:1px solid #f3dcb8;border-radius:14px;padding:14px 20px;flex:1}.al{font-size:12px;letter-spacing:.12em;font-weight:700;color:#e0902a}
+.ani{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px}.ani .v{font-size:21px;font-weight:700}.ani .l{font-size:12px;color:#6b7280;margin-top:3px}.ani0{margin-top:12px;font-size:15px;color:#9a6b1f}
 .rod{position:absolute;left:72px;bottom:28px;font-size:13px;color:#9ca3af}
 @page{size:1280px 720px;margin:0}@media print{body{background:#fff}.tool{display:none}.slide{margin:0;box-shadow:none}}
 </style></head><body><div class="tool"><button onclick="window.print()">Imprimir / salvar em PDF</button><span>Na janela de impressão, escolha “Salvar como PDF” e desligue cabeçalhos e rodapés.</span></div>${pag}</body></html>`;
@@ -4899,7 +4977,8 @@ async function exPptx(sl, nome){
   try{
     const P = new window.PptxGenJS();
     P.layout = "LAYOUT_WIDE"; P.title = "RCS - Sonho da Sorte";
-    const C = {sc:"4F7CFF", an:"E0902A", n:"1B1F3B", tx:"14161C", mu:"6B7280", ln:"E2E5EC", bg:"F4F5F8"};
+    const C = {sc:"4F7CFF", an:"E0902A", n:"1B1F3B", tx:"14161C", mu:"6B7280", ln:"E2E5EC", bg:"F4F5F8", ac:"4F52C9"};
+    const rect = (sd, x, y, w, h, fill, line, rad) => sd.addShape(rad ? P.ShapeType.roundRect : P.ShapeType.rect, {x, y, w, h, fill:{color:fill}, line:{color:line || fill, width:line ? 1 : 0}, rectRadius:rad || 0});
     sl.forEach(s => {
       const sd = P.addSlide();
       if(s.t === "capa"){
@@ -4911,24 +4990,24 @@ async function exPptx(sl, nome){
         return;
       }
       sd.background = {color:"FFFFFF"};
-      const cor = C[s.tag] || C.n;
-      sd.addShape(P.ShapeType.rect, {x:0, y:0, w:13.33, h:.16, fill:{color:cor}, line:{color:cor, width:0}});
-      sd.addText(s.titulo, {x:.6, y:.4, w:12, h:.6, fontSize:28, bold:true, color:C.tx});
-      if(s.sub) sd.addText(s.sub, {x:.6, y:1.0, w:12, h:.4, fontSize:14, color:C.mu});
-      sd.addText("RCS - Sonho da Sorte · gerado em " + dataBR(TODAY), {x:.6, y:7.0, w:8, h:.3, fontSize:10, color:"9CA3AF"});
+      const cor = C[s.tag] || (s.t === "peca" || s.t === "comp" ? C.sc : C.n);
+      rect(sd, 0, 0, 13.33, .16, cor);
+      sd.addText(s.titulo, {x:.6, y:.35, w:12.1, h:.6, fontSize:26, bold:true, color:C.tx, fit:"shrink"});
+      if(s.sub) sd.addText(s.sub, {x:.6, y:.95, w:12.1, h:.4, fontSize:13, color:C.mu});
+      sd.addText("RCS - Sonho da Sorte · gerado em " + dataBR(TODAY), {x:.6, y:7.05, w:8, h:.3, fontSize:10, color:"9CA3AF"});
       if(s.t === "kpis"){
         s.cards.forEach((k, i) => {
           const x = .6 + (i % 3) * 4.1, y = 1.7 + Math.floor(i / 3) * 2.6;
-          sd.addShape(P.ShapeType.roundRect, {x, y, w:3.9, h:2.3, fill:{color:C.bg}, line:{color:C.ln, width:1}, rectRadius:.12});
+          rect(sd, x, y, 3.9, 2.3, C.bg, C.ln, .12);
           sd.addText(k.l.toUpperCase(), {x:x + .25, y:y + .2, w:3.4, h:.35, fontSize:11, bold:true, color:C.mu, charSpacing:2});
           sd.addText(k.v, {x:x + .25, y:y + .65, w:3.4, h:.9, fontSize:k.v.length > 11 ? 26 : 34, bold:true, color:cor, fit:"shrink"});
           sd.addText(k.f || "", {x:x + .25, y:y + 1.6, w:3.4, h:.5, fontSize:11, color:C.mu, valign:"top"});
         });
       }
       if(s.t === "tabela"){
-        const cab = s.head.map((h, i) => ({text:h, options:{bold:true, color:"FFFFFF", fill:{color:C.n}, align:i > 1 ? "right" : "left", fontSize:11}}));
-        const corpo = s.rows.map(r => r.map((v, i) => ({text:v, options:{align:i > 1 ? "right" : "left", fontSize:11, color:C.tx}})));
-        sd.addTable([cab].concat(corpo), {x:.6, y:1.6, w:12.1, colW:[1.45, 3.75, 1.0, 1.05, .9, .85, 1.2, 1.3, .6],
+        const cab = s.head.map((h, i) => ({text:h, options:{bold:true, color:"FFFFFF", fill:{color:C.n}, align:i > 1 ? "right" : "left", fontSize:10.5}}));
+        const corpo = s.rows.map(r => r.map((v, i) => ({text:v, options:{align:i > 1 ? "right" : "left", fontSize:10.5, color:C.tx}})));
+        sd.addTable([cab].concat(corpo), {x:.6, y:1.6, w:12.1, colW:[1.2, 2.9, .95, .95, .95, .85, .8, 1.3, 1.45, .75],
           border:{type:"solid", color:C.ln, pt:.75}, rowH:.5, valign:"middle"});
       }
       if(s.t === "destaques"){
@@ -4938,6 +5017,42 @@ async function exPptx(sl, nome){
           runs.push({text:i.d, options:{fontSize:12.5, color:C.mu, breakLine:true, paraSpaceAfter:12}});
         });
         sd.addText(runs, {x:.6, y:1.6, w:12.1, h:5.2, valign:"top"});
+      }
+      if(s.t === "comp"){
+        s.rows.forEach((r, i) => {
+          const y = 1.6 + i * .66;
+          sd.addText(r.nome, {x:.6, y, w:4.0, h:.32, fontSize:13, bold:true, color:C.tx, fit:"shrink"});
+          sd.addText(r.data, {x:.6, y:y + .3, w:4.0, h:.26, fontSize:10, color:C.mu});
+          sd.addText([{text:"Envios " + (r.env == null ? "—" : fmtN(r.env, 0)), options:{breakLine:true, bold:true}},
+                      {text:"Sucesso " + (r.suc == null ? "—" : fmtN(r.suc, 0)) + " (" + pcX(r.psuc, 1) + ")"}],
+                     {x:4.7, y, w:3.6, h:.56, fontSize:11, color:"374151", valign:"middle"});
+          rect(sd, 8.5, y + .17, 3.4, .22, "EEF0F4", null, .1);
+          if(r.ctr != null) rect(sd, 8.5, y + .17, Math.max(.05, 3.4 * r.ctr / s.max), .22, C.sc, null, .1);
+          sd.addText(pcX(r.ctr), {x:11.95, y, w:.95, h:.56, fontSize:13, bold:true, color:C.tx, align:"right", valign:"middle"});
+        });
+      }
+      if(s.t === "peca"){
+        rect(sd, .6, 1.6, 5.1, 5.2, C.bg, C.ln, .2);
+        sd.addText("PEÇA RCS", {x:.9, y:1.78, w:4.5, h:.3, fontSize:10, bold:true, color:C.mu, charSpacing:3});
+        if(s.titPeca) sd.addText(s.titPeca, {x:.9, y:2.1, w:4.5, h:1.0, fontSize:19, bold:true, color:C.tx, valign:"top", fit:"shrink"});
+        sd.addText(s.corpo || "Título e mensagem ainda não cadastrados para esta campanha.", {x:.9, y:3.15, w:4.5, h:2.3, fontSize:14, color:s.corpo ? "374151" : "9CA3AF", valign:"top", fit:"shrink"});
+        if(s.cta){ rect(sd, .9, 5.85, 4.5, .62, C.ac, null, .1); sd.addText(s.cta, {x:.9, y:5.85, w:4.5, h:.62, fontSize:15, bold:true, color:"FFFFFF", align:"center", valign:"middle"}); }
+        s.tiles.forEach((k, i) => {
+          const x = 6.0 + (i % 3) * 2.3, y = 1.6 + Math.floor(i / 3) * 1.55;
+          rect(sd, x, y, 2.2, 1.42, "FFFFFF", C.ln, .08);
+          rect(sd, x, y, 2.2, .07, C.sc);
+          sd.addText(k.l.toUpperCase(), {x:x + .15, y:y + .13, w:1.95, h:.3, fontSize:9, bold:true, color:C.mu, charSpacing:1});
+          sd.addText(k.v, {x:x + .15, y:y + .43, w:1.95, h:.5, fontSize:24, bold:true, color:C.sc, fit:"shrink"});
+          sd.addText(k.f || "", {x:x + .15, y:y + .95, w:1.95, h:.4, fontSize:9, color:C.mu, valign:"top"});
+        });
+        rect(sd, 6.0, 4.85, 6.9, 1.95, "FFF8EE", "F3DCB8", .1);
+        sd.addText("ANÁLISE PÓS-COMUNICAÇÃO", {x:6.25, y:4.97, w:6.4, h:.3, fontSize:10, bold:true, color:C.an, charSpacing:2});
+        if(s.temAn) s.an.forEach((k, i) => {
+          const x = 6.25 + i * 1.3;
+          sd.addText(k.v, {x, y:5.4, w:1.25, h:.55, fontSize:i === 1 ? 14 : 15, bold:true, color:C.tx, fit:"shrink"});
+          sd.addText(k.l, {x, y:5.95, w:1.25, h:.3, fontSize:10, color:C.mu});
+        });
+        else sd.addText("Ainda não preenchida (investimento, conversões e receita).", {x:6.25, y:5.45, w:6.4, h:.5, fontSize:13, color:"9A6B1F"});
       }
     });
     await P.writeFile({fileName:nome});
