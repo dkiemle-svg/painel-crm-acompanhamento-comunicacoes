@@ -534,7 +534,7 @@ textarea.field{height:auto;padding:8px 9px;resize:vertical;min-height:70px;font-
 .exlab{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px}
 .exdatas{display:none;gap:8px;align-items:center;margin-top:12px;color:var(--ink-3);font-size:13px}
 .exdatas input{height:34px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);padding:0 8px;font:inherit}
-#exCamp{display:none;margin-top:12px}
+#exCamp,#pxCamp{display:none;margin-top:12px}
 .exbar{display:flex;gap:8px;align-items:center;margin-bottom:8px}.exbar .search{flex:1}
 .exlist{max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:4px}
 .exrow{display:flex;gap:9px;align-items:center;padding:7px 9px;border-radius:7px;font-size:13px;cursor:pointer}
@@ -884,6 +884,47 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
     </div>
     <div class="mfoot"><button class="btn sm" data-ef="json" title="Backup completo de todas as campanhas, sem filtro">Backup completo (JSON)</button>
       <button class="btn" data-exclose style="margin-left:auto">Fechar</button></div>
+  </div>
+</div>
+
+<div class="modal" id="pxModal" role="dialog" aria-modal="true" aria-labelledby="pxTitle">
+  <div class="mbox exbox">
+    <header><div style="flex:1"><h2 id="pxTitle">Exportar · Push · Sonho</h2><p>Escolha o que sai e em que formato.</p></div>
+      <button class="btn icon sm" data-pxclose aria-label="Fechar">✕</button></header>
+    <div class="mbody">
+      <div class="exlab">O que exportar</div>
+      <div class="seg" id="pxModo" role="group" aria-label="Escopo"></div>
+      <div class="exdatas" id="pxDatas"><input type="date" id="pxFrom" aria-label="Data inicial"><span>até</span><input type="date" id="pxTo" aria-label="Data final"></div>
+      <div id="pxCamp">
+        <div class="exbar"><input class="field search" id="pxQ" type="search" placeholder="Buscar push…" aria-label="Buscar push">
+          <button class="btn sm" data-pxall>Marcar todos</button><button class="btn sm" data-pxnone>Limpar</button></div>
+        <div class="exlist" id="pxList"></div>
+      </div>
+      <div class="exinfo" id="pxInfo"></div>
+      <div class="exlab" style="margin-top:18px">Filtros e ordem</div>
+      <div class="exopts">
+        <label class="exchk"><input type="checkbox" data-pxf="soEnv"> Só pushes já enviados (deixa de fora agendados e interrompidos sem envio)</label>
+        <label class="exsel">Ordenar por
+          <select id="pxOrd"><option value="data">Data do envio</option><option value="ctr">Maior CTR</option><option value="un">Mais conversões únicas</option><option value="rate">Maior conv. rate</option><option value="env">Maior envio</option></select></label>
+      </div>
+      <div class="exlab" style="margin-top:18px">O que entra na apresentação</div>
+      <div class="exopts two">
+        <label class="exchk"><input type="checkbox" data-pxsec="res"> Resumo de entrega e engajamento</label>
+        <label class="exchk"><input type="checkbox" data-pxsec="conv"> Resumo de conversões (Vendas)</label>
+        <label class="exchk"><input type="checkbox" data-pxsec="cmp"> Antes × depois da nossa operação</label>
+        <label class="exchk"><input type="checkbox" data-pxsec="dest"> Destaques e horários</label>
+        <label class="exchk"><input type="checkbox" data-pxsec="comp"> Comparativo de CTR entre pushes</label>
+        <label class="exchk"><input type="checkbox" data-pxsec="pecas"> Uma página por push <span id="pxPgs" style="color:var(--ink-3)"></span></label>
+        <label class="exchk"><input type="checkbox" data-pxsec="tab"> Tabela-resumo (anexo)</label>
+      </div>
+      <div class="exlab" style="margin-top:18px">Formato</div>
+      <div class="exfmt">
+        <button class="btn" data-pxe="csv"><b>Planilha</b><small>.csv com todas as colunas</small></button>
+        <button class="btn primary" data-pxe="pptx"><b>Apresentação</b><small>.pptx · resumo editável</small></button>
+        <button class="btn" data-pxe="pdf"><b>Apresentação em PDF</b><small>abre em slides; salvar como PDF</small></button>
+      </div>
+    </div>
+    <div class="mfoot"><button class="btn" data-pxclose style="margin-left:auto">Fechar</button></div>
   </div>
 </div>
 
@@ -3555,6 +3596,7 @@ document.getElementById("btnTheme").onclick = ()=>{
 
 document.getElementById("btnExport").onclick = (e)=>{
   if(ui.marca === "sonho"){ abreExportSonho(); return; }
+  if(ui.marca === "push"){ abreExportPush(); return; }
   const b = e.currentTarget;
   /* Sem isto o ouvinte de clique da página fecha o menu no mesmo clique que o
      abriu — o botão está fora do #pop. É a trava que o "Ajustar" já usa. */
@@ -4096,7 +4138,7 @@ function pKpis(a){
          k("ok", "Conv. rate", pPct(a.conv_rate), "conv. totais ÷ entregues");
 }
 
-function pCompare(){
+function pCmpData(){
   const base = pui.rows.filter(r => r._sent);
   const A = base.filter(r => r._d >= P_BASE && r._d < P_OP), B = base.filter(r => r._d >= P_OP);
   const dias = (l, ini) => { if(!l.length) return 0; const f = l.reduce((m, r) => r._d > m ? r._d : m, ""); return Math.round((new Date(f + "T12:00:00Z") - new Date(ini + "T12:00:00Z")) / 864e5) + 1; };
@@ -4115,6 +4157,17 @@ function pCompare(){
     ["Conv. únicas ÷ entregues", a.un_ent, b.un_ent, v => pPct(v), "pp"],
     ["Conv. únicas ÷ cliques", a.un_clk, b.un_clk, v => pPct(v, 1), "pp"]
   ];
+  return {R, a, b, dA, dB};
+}
+function pVarTxt(x, y, tipo){
+  if(x == null || y == null) return "—";
+  let d;
+  if(tipo === "pp"){ d = y - x; return Math.abs(d) < 0.05 ? "estável" : (d >= 0 ? "+" : "−") + pDec(Math.abs(d), 2) + " p.p."; }
+  if(!x) return "—";
+  d = 100 * (y - x) / x; return Math.abs(d) < 0.05 ? "estável" : (d >= 0 ? "+" : "−") + pDec(Math.abs(d), 1) + "%";
+}
+function pCompare(){
+  const D = pCmpData(), R = D.R, a = D.a, b = D.b, dA = D.dA, dB = D.dB;
   const varCell = (x, y, tipo) => {
     if(x == null || y == null) return '<span class="pv-var">—</span>';
     let d, txt;
@@ -4164,8 +4217,8 @@ function pTable(list){
   return h;
 }
 
-function pCsv(){
-  const l = pFiltered().slice().sort((x, y) => (x._t || 0) - (y._t || 0));
+function pCsv(lista){
+  const l = (Array.isArray(lista) ? lista : pFiltered()).slice().sort((x, y) => (x._t || 0) - (y._t || 0));
   const num = v => v == null ? "" : String(Math.round(v * 100) / 100).replace(".", ",");
   const cel = v => { v = String(v == null ? "" : v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
   const rows = [["Enviado em","Push","Status","Enviados","Entregues","Visualizados","Cliques","CTR %","Conv. totais","Conv. únicas","Conv. rate %","Únicas ÷ clique %","Criado por"]];
@@ -4195,7 +4248,7 @@ function pushBind(){
   $("pChartMetric").addEventListener("change", e => { pui.metric = e.target.value; render(); });
   $("pBtnClear").addEventListener("click", () => { pui.q = ""; pui.from = pui.to = ""; pui.range = "tudo"; pui.status = "enviados"; render(); });
   $("pReload").addEventListener("click", () => pushCarrega());
-  $("pCsv").addEventListener("click", pCsv);
+  $("pCsv").addEventListener("click", () => pCsv());
   $("pTable").addEventListener("click", e => {
     const th = e.target.closest("th[data-ps]"); if(!th) return;
     const k = th.dataset.ps;
@@ -4397,6 +4450,180 @@ function renderPush(){
   $("pFoot").textContent = pInt(list.length) + " campanhas no filtro" + (ag ? " (" + ag + " agendada(s)/sem envio, fora dos totais)" : "") + " · base desde " + pDM(P_BASE) + "/2026";
 }
 /* ================= fim Push · Sonho ================= */
+
+/* ===================== EXPORTAR · PUSH · SONHO =====================
+   Mesmo diálogo do RCS: o que sai (a tela como está, um intervalo de datas ou pushes
+   marcados), filtros, o que entra na apresentação e o formato (CSV, .pptx ou PDF).
+   Usa os mesmos desenhistas de slides (exHtml / exPptx) do RCS. */
+const EX_M_PUSH = {nome:"Push · Sonho da Sorte", rod:"Push · Sonho da Sorte", tit:"Push · Sonho da Sorte · resumo"};
+const pxModal = document.getElementById("pxModal");
+const px = {modo:"tela", from:"", to:"", ids:new Set(), q:"", soEnv:true, ord:"data",
+  secs:{res:true, conv:true, cmp:true, dest:true, comp:true, pecas:false, tab:true}};
+
+function pxTodos(){ return pui.rows.slice().sort((a, b) => (a._t || 0) - (b._t || 0)); }
+function pxLista(){
+  let t;
+  if(px.modo === "tela") t = pFiltered();
+  else if(px.modo === "datas") t = pui.rows.filter(r => r._d && (!px.from || r._d >= px.from) && (!px.to || r._d <= px.to));
+  else t = pui.rows.filter(r => px.ids.has(r.campaign_id));
+  if(px.soEnv) t = t.filter(r => r._sent);
+  const ch = {ctr:r => r.m.ctr, un:r => r.conv_unicas, rate:r => r.m.conv_rate, env:r => r.enviados}[px.ord];
+  t = t.slice();
+  if(ch) t.sort((a, b) => { const x = ch(a), y = ch(b); if(x == null && y == null) return 0; if(x == null) return 1; if(y == null) return -1; return y - x; });
+  else t.sort((a, b) => (a._t || 0) - (b._t || 0));
+  return t;
+}
+function pxRotulo(r){ return r._lbl + " · " + r.nome; }
+function pxDesenha(){
+  document.getElementById("pxModo").innerHTML = [["tela", "Filtro da tela"], ["datas", "Por datas"], ["push", "Por pushes"]]
+    .map(([m, n]) => `<button data-pxm="${m}" aria-pressed="${px.modo === m}">${n}</button>`).join("");
+  document.getElementById("pxDatas").style.display = px.modo === "datas" ? "flex" : "none";
+  document.getElementById("pxCamp").style.display = px.modo === "push" ? "block" : "none";
+  const f = document.getElementById("pxFrom"), t = document.getElementById("pxTo");
+  if(f.value !== px.from) f.value = px.from;
+  if(t.value !== px.to) t.value = px.to;
+  pxModal.querySelectorAll("[data-pxf]").forEach(i => { i.checked = !!px[i.dataset.pxf]; });
+  pxModal.querySelectorAll("[data-pxsec]").forEach(i => { i.checked = !!px.secs[i.dataset.pxsec]; });
+  document.getElementById("pxOrd").value = px.ord;
+  pxDesenhaLista(); pxInfo();
+}
+function pxDesenhaLista(){
+  const q = px.q.toLowerCase();
+  const itens = pxTodos().filter(r => !q || pxRotulo(r).toLowerCase().includes(q));
+  document.getElementById("pxList").innerHTML = itens.map(r =>
+    `<label class="exrow"><input type="checkbox" data-pxid="${esc(r.campaign_id)}"${px.ids.has(r.campaign_id) ? " checked" : ""}><span>${esc(pxRotulo(r))}</span></label>`).join("")
+    || `<div class="exvazio">Nenhum push encontrado</div>`;
+}
+function pxInfo(){
+  const l = pxLista(), n = l.length;
+  const ds = l.map(r => r._d).filter(Boolean).sort();
+  document.getElementById("pxInfo").textContent = n + " push" + (n === 1 ? "" : "es") + " na seleção"
+    + (n && ds.length ? " · " + pDM(ds[0]) + (ds[0] === ds[ds.length - 1] ? "" : " a " + pDM(ds[ds.length - 1])) : "");
+  document.getElementById("pxPgs").textContent = n ? "(" + n + " página" + (n === 1 ? "" : "s") + ")" : "";
+  pxModal.querySelectorAll("[data-pxe]").forEach(b => { b.disabled = !n; });
+}
+function abreExportPush(){
+  if(!pui.loaded){ toast("Aguarde os pushes carregarem"); return; }
+  const ds = pui.rows.map(r => r._d).filter(Boolean).sort();
+  px.modo = "tela"; px.q = ""; px.from = ds[0] || ""; px.to = ds[ds.length - 1] || ""; px.ids = new Set(pui.rows.filter(r => r._sent).map(r => r.campaign_id));
+  document.getElementById("pxQ").value = "";
+  pxDesenha();
+  pxModal.dataset.open = "1";
+}
+function fechaExportPush(){ delete pxModal.dataset.open; }
+pxModal.addEventListener("click", (e) => {
+  if(e.target === pxModal || e.target.closest("[data-pxclose]")){ fechaExportPush(); return; }
+  const m = e.target.closest("[data-pxm]"); if(m){ px.modo = m.dataset.pxm; pxDesenha(); return; }
+  if(e.target.closest("[data-pxall]")){ pxTodos().forEach(r => px.ids.add(r.campaign_id)); pxDesenhaLista(); pxInfo(); return; }
+  if(e.target.closest("[data-pxnone]")){ px.ids.clear(); pxDesenhaLista(); pxInfo(); return; }
+  const b = e.target.closest("[data-pxe]"); if(b && !b.disabled) pxExecuta(b.dataset.pxe);
+});
+pxModal.addEventListener("change", (e) => {
+  const d = e.target.dataset || {};
+  if(d.pxid){ if(e.target.checked) px.ids.add(d.pxid); else px.ids.delete(d.pxid); pxInfo(); }
+  if(d.pxf){ px[d.pxf] = e.target.checked; pxInfo(); }
+  if(d.pxsec){ px.secs[d.pxsec] = e.target.checked; }
+  if(e.target.id === "pxOrd"){ px.ord = e.target.value; pxInfo(); }
+  if(e.target.id === "pxFrom"){ px.from = e.target.value; pxInfo(); }
+  if(e.target.id === "pxTo"){ px.to = e.target.value; pxInfo(); }
+});
+document.getElementById("pxQ").oninput = (e) => { px.q = e.target.value; pxDesenhaLista(); };
+document.addEventListener("keydown", (e) => { if(e.key === "Escape" && pxModal.dataset.open) fechaExportPush(); });
+
+async function pxExecuta(f){
+  const l = pxLista();
+  if(!l.length){ toast("Nenhum push na seleção"); return; }
+  if(f === "csv"){ pCsv(l); return; }
+  if(!Object.values(px.secs).some(Boolean)){ toast("Marque ao menos um item em “O que entra na apresentação”"); return; }
+  if(px.secs.pecas && l.length > 80 && !(await pergunta({titulo:"Uma página por push", texto:"A seleção tem " + l.length + " pushes: a apresentação terá mais de " + l.length + " páginas. Continuar?", ok:"Gerar mesmo assim"}))) return;
+  const sl = pxSlides(l);
+  if(f === "pdf"){ exAbreHtml(sl, "push-sonho-resumo-" + TODAY + ".html", EX_M_PUSH); return; }
+  if(f === "pptx"){ await exPptx(sl, "push-sonho-resumo-" + TODAY + ".pptx", EX_M_PUSH); }
+}
+
+/* ---------- os slides: mesmos tipos do RCS (capa, kpis, destaques, comp, peca, tabela) ---------- */
+function pxSlides(list){
+  const K = px.secs, A = pAgg(list), ds = list.map(r => r._d).filter(Boolean).sort();
+  const per = !ds.length ? "" : (ds[0] === ds[ds.length - 1] ? dataBR(ds[0]) : dataBR(ds[0]) + " a " + dataBR(ds[ds.length - 1]));
+  const por = (v, n) => n ? pInt(v / n) : "—";
+  const S = [];
+  S.push({t:"capa", titulo:"Push · Sonho da Sorte", sub:"Resumo dos pushes" + (per ? " · " + per : ""),
+    linhas:[A.n + " push" + (A.n === 1 ? "" : "es") + " no resumo", "Fonte: CleverTap · evento Vendas · atribuição por clique (último toque)", "Gerado em " + dataBR(TODAY) + " · Painel de Campanhas"]});
+  if(K.res) S.push({t:"kpis", tag:"sc", titulo:"Entrega e engajamento", sub:"Números do CleverTap para os pushes da seleção",
+    cards:[
+      {l:"Pushes", v:pInt(A.n), f:"enviados na seleção"},
+      {l:"Enviados", v:pInt(A.enviados), f:"média de " + por(A.enviados, A.n) + " por push"},
+      {l:"Entregues", v:pInt(A.entregues), f:pPct(A.entrega, 1) + " dos enviados"},
+      {l:"Visualizados", v:pInt(A.visualizados), f:pPct(A.visu, 1) + " dos entregues"},
+      {l:"Cliques", v:pInt(A.clicados), f:"média de " + por(A.clicados, A.n) + " por push"},
+      {l:"CTR", v:pPct(A.ctr), f:"cliques ÷ entregues"}]});
+  if(K.conv) S.push({t:"kpis", tag:"an", titulo:"Conversões · Vendas", sub:"Atribuição por clique (último toque) · pushes recentes ainda acumulam conversões",
+    cards:[
+      {l:"Conversões totais", v:pInt(A.conv_total), f:"média de " + por(A.conv_total, A.n) + " por push"},
+      {l:"Conversões únicas", v:pInt(A.conv_unicas), f:"média de " + por(A.conv_unicas, A.n) + " por push"},
+      {l:"Conv. rate", v:pPct(A.conv_rate), f:"conv. totais ÷ entregues"},
+      {l:"Únicas ÷ entregues", v:pPct(A.un_ent), f:"conv. únicas ÷ entregues"},
+      {l:"Únicas ÷ cliques", v:pPct(A.un_clk, 1), f:"dos cliques que viraram venda"},
+      {l:"Cliques", v:pInt(A.clicados), f:"CTR de " + pPct(A.ctr)}]});
+  if(K.cmp){
+    const D = pCmpData(), t = r => r == null ? "—" : r;
+    S.push({t:"tabela", titulo:"Antes × depois da nossa operação",
+      sub:"Pushes já enviados na base completa, sem filtros · antes: " + D.a.n + " pushes · depois: " + D.b.n + " pushes",
+      head:["Métrica", "Antes · " + pDM(P_BASE) + " a 06/10", "Nossa operação · desde " + pDM(P_OP), "Variação"],
+      colW:[4.6, 2.6, 2.9, 2.0], left:1,
+      rows:D.R.map(r => [r[0], r[1] == null ? "—" : r[3](r[1]), r[2] == null ? "—" : r[3](r[2]), pVarTxt(r[1], r[2], r[4])])});
+  }
+  const nm = r => r.nome + " (" + pDM(r._d) + ")";
+  if(K.dest){
+    const D = [], ok = list.filter(r => r.entregues >= 1000);
+    const top = (key, f) => ok.slice().sort((x, y) => f(y) - f(x))[0];
+    const u = top("un", r => r.conv_unicas); if(u) D.push({t:"Mais conversões únicas", d:nm(u) + " · " + pInt(u.conv_unicas) + " conversões únicas, " + pInt(u.conv_total) + " totais, em " + pInt(u.entregues) + " entregues"});
+    const c = top("ctr", r => r.m.ctr || 0); if(c) D.push({t:"Maior CTR", d:nm(c) + " · " + pPct(c.m.ctr) + " (" + pInt(c.clicados) + " cliques em " + pInt(c.entregues) + " entregues)"});
+    const v = top("rate", r => r.m.conv_rate || 0); if(v) D.push({t:"Maior conv. rate", d:nm(v) + " · " + pPct(v.m.conv_rate) + " (" + pInt(v.conv_total) + " conversões totais)"});
+    const g = list.slice().sort((x, y) => y.enviados - x.enviados)[0]; if(g) D.push({t:"Maior envio", d:nm(g) + " · " + pInt(g.enviados) + " enviados, " + pInt(g.entregues) + " entregues"});
+    if(list.length >= 10){
+      const hc = pHotCold(list);
+      if(hc.hot.length) D.push({t:"Janela mais quente", d:"Às " + hc.hot.map(x => x.h + "h (" + pPct(x.a.conv_rate) + " · " + x.a.n + " pushes)").join(", ") + " — maior conv. rate da seleção (mín. 3 pushes por horário)."});
+      if(hc.cold.length) D.push({t:"Janela mais fria", d:"Às " + hc.cold.map(x => x.h + "h (" + pPct(x.a.conv_rate) + " · " + x.a.n + " pushes)").join(", ") + " — menor conv. rate da seleção."});
+    }
+    if(A.entrega != null && A.entrega < 85) D.push({t:"Atenção: entrega", d:"Só " + pPct(A.entrega, 1) + " dos envios são entregues (" + pInt(A.enviados - A.entregues) + " não chegaram). Higienizar a base melhora a eficiência."});
+    D.push({t:"Como ler", d:"Fonte: CleverTap, evento Vendas, atribuição por clique. “Visualizados” espelha “Entregues” no Clever. Pushes dos últimos dias ainda acumulam conversões e tendem a ficar subestimados."});
+    S.push({t:"destaques", titulo:"Destaques", sub:"Leitura rápida dos números", itens:D});
+  }
+  if(K.comp){
+    const lin = list.map(r => ({nome:r.nome.slice(0, 56), data:r._lbl, l1:"Enviados", v1:pInt(r.enviados), l2:"Entregues", v2:pInt(r.entregues), p2:pPct(r.m.entrega, 1), ctr:r.m.ctr == null ? null : r.m.ctr / 100}));
+    const mx = Math.max(0.0001, ...lin.map(r => r.ctr || 0)), POR = 8, pags = Math.ceil(lin.length / POR);
+    for(let i = 0; i < pags; i++)
+      S.push({t:"comp", titulo:"Comparativo de pushes" + (pags > 1 ? " (" + (i + 1) + "/" + pags + ")" : ""),
+        sub:"Barra = CTR (cliques ÷ entregues) · ao lado, enviados e entregues", rows:lin.slice(i * POR, (i + 1) * POR), max:mx});
+  }
+  if(K.pecas) list.forEach(r => {
+    const m = r.m, st = (P_STATUS[r.status] || [r.status || "—"])[0];
+    S.push({t:"peca", titulo:r.nome.slice(0, 60), sub:["Enviado em " + r._lbl, "ID CleverTap " + r.campaign_id].join(" · "),
+      pecaRot:"PUSH", titPeca:r.nome, corpo:["Enviado em " + r._lbl, "Status: " + st, r.criado_por ? "Criado por: " + r.criado_por : ""].filter(Boolean).join("\n"), cta:"",
+      tiles:[
+        {l:"Enviados", v:pInt(r.enviados), f:"push enviados"},
+        {l:"Entregues", v:pInt(r.entregues), f:pPct(m.entrega, 1) + " dos enviados"},
+        {l:"Visualizados", v:pInt(r.visualizados), f:pPct(m.visu, 1) + " dos entregues"},
+        {l:"Cliques", v:pInt(r.clicados), f:"sobre " + pInt(r.entregues) + " entregues"},
+        {l:"CTR", v:pPct(m.ctr), f:"cliques ÷ entregues"},
+        {l:"Conv. rate", v:pPct(m.conv_rate), f:"conv. totais ÷ entregues"}],
+      anRot:"CONVERSÕES · VENDAS (ATRIBUIÇÃO POR CLIQUE)",
+      an:[{l:"Conv. totais", v:pInt(r.conv_total)}, {l:"Conv. únicas", v:pInt(r.conv_unicas)}, {l:"Conv. rate", v:pPct(m.conv_rate)},
+          {l:"Únicas ÷ clique", v:pPct(m.un_clk, 1)}, {l:"Únicas ÷ entregues", v:pPct(m.un_ent)}],
+      temAn:true});
+  });
+  if(K.tab){
+    const head = ["Enviado em", "Push", "Enviados", "Entregues", "% Entrega", "Cliques", "CTR", "Conv. únicas", "Conv. totais", "Conv. rate"];
+    const linhas = list.map(r => [r._lbl, r.nome.slice(0, 48), pInt(r.enviados), pInt(r.entregues), pPct(r.m.entrega, 1), pInt(r.clicados), pPct(r.m.ctr), pInt(r.conv_unicas), pInt(r.conv_total), pPct(r.m.conv_rate)]);
+    const POR = 8, pags = Math.ceil(linhas.length / POR);
+    for(let i = 0; i < pags; i++)
+      S.push({t:"tabela", titulo:"Tabela-resumo" + (pags > 1 ? " (" + (i + 1) + "/" + pags + ")" : ""), sub:"Todos os pushes da seleção", colW:[1.3, 3.7, 0.95, 0.95, 0.85, 0.8, 0.8, 0.9, 0.9, 0.9],
+        head, rows:linhas.slice(i * POR, (i + 1) * POR)});
+  }
+  return S;
+}
+
 
 const MARCAS_NOME = {bet:"Bet da Sorte", top:"Top Bet", sonho:"RCS - SONHO DA SORTE", push:"Push · Sonho"};
 function aplicaMarcaUI(){
@@ -4824,6 +5051,7 @@ function sResumo(list){
   r.up = r.ups.length ? r.ups.reduce((a, b) => a + b, 0) / r.ups.length : null;
   return r;
 }
+const EX_M_RCS = {nome:"RCS - Sonho da Sorte", rod:"RCS - Sonho da Sorte", tit:"RCS - Sonho da Sorte · resumo"};
 function exSlides(list){
   const R = sResumo(list), K = ex.secs, ds = list.map(c => c.data_inicio).filter(Boolean).sort();
   const per = !ds.length ? "" : (ds[0] === ds[ds.length - 1] ? dataBR(ds[0]) : dataBR(ds[0]) + " a " + dataBR(ds[ds.length - 1]));
@@ -4864,7 +5092,7 @@ function exSlides(list){
   if(K.comp){
     const lin = list.map(c => { const k = sCalc(c); return {nome:String(c.nome || "Sem nome").slice(0, 40),
       data:(c.data_inicio ? dataBR(c.data_inicio).slice(0, 5) : "—") + (c.hora ? " " + c.hora : ""),
-      env:nvS(c.sc_destinos), suc:nvS(c.sc_sucesso), psuc:k.p_suc, ctr:k.ctr}; });
+      l1:"Envios", v1:nvS(c.sc_destinos) == null ? "—" : fmtN(nvS(c.sc_destinos), 0), l2:"Sucesso", v2:nvS(c.sc_sucesso) == null ? "—" : fmtN(nvS(c.sc_sucesso), 0), p2:pcX(k.p_suc, 1), ctr:k.ctr}; });
     const mx = Math.max(0.0001, ...lin.map(r => r.ctr || 0)), POR = 8, pags = Math.ceil(lin.length / POR);
     for(let i = 0; i < pags; i++)
       S.push({t:"comp", titulo:"Comparativo de campanhas" + (pags > 1 ? " (" + (i + 1) + "/" + pags + ")" : ""),
@@ -4880,7 +5108,7 @@ function exSlides(list){
       {l:"Uplift", v:k.uplift == null ? "—" : (k.uplift > 0 ? "+" : "") + fmtN(k.uplift, 2, 2) + " p.p."}];
     S.push({t:"peca", titulo:String(c.nome || "Sem nome").slice(0, 60),
       sub:[(c.data_inicio ? dataBR(c.data_inicio) : "") + (c.hora ? " às " + c.hora : ""), c.sc_id ? "ID Shortcode " + c.sc_id : ""].filter(Boolean).join(" · "),
-      titPeca:c.titulo || "", corpo:c.corpo || "", cta:c.cta || "",
+      pecaRot:"PEÇA RCS", titPeca:c.titulo || "", corpo:c.corpo || "", cta:c.cta || "",
       tiles:[
         {l:"Total de envios", v:d == null ? "—" : fmtN(d, 0), f:"destinos"},
         {l:"Sucesso", v:s == null ? "—" : fmtN(s, 0), f:d && s != null ? pcX(k.p_suc, 1) + " dos destinos" : ""},
@@ -4907,22 +5135,23 @@ function exSlides(list){
 }
 
 /* ---------- apresentação em página (salvar como PDF pelo navegador) ---------- */
-function exHtml(sl){
+function exHtml(sl, Mx){
+  const M = Mx || EX_M_RCS;
   const COR = {sc:"#4f7cff", an:"#e0902a", n:"#1b1f3b"};
   const pag = sl.map(s => {
     if(s.t === "capa") return `<section class="slide capa"><div class="k">PAINEL DE CAMPANHAS</div><h1>${esc(s.titulo)}</h1><h2>${esc(s.sub)}</h2><p>${s.linhas.map(esc).join("<br>")}</p></section>`;
     const cor = COR[s.tag] || (s.t === "peca" || s.t === "comp" ? COR.sc : COR.n);
     let corpo = "";
     if(s.t === "kpis") corpo = `<div class="cards">${s.cards.map(k => `<div class="card"><div class="l">${esc(k.l)}</div><div class="v" style="color:${cor}">${esc(k.v)}</div><div class="f">${esc(k.f || "")}</div></div>`).join("")}</div>`;
-    if(s.t === "tabela") corpo = `<table><thead><tr>${s.head.map((h, i) => `<th${i > 1 ? ' class="r"' : ""}>${esc(h)}</th>`).join("")}</tr></thead><tbody>${s.rows.map(r => `<tr>${r.map((v, i) => `<td${i > 1 ? ' class="r"' : ""}>${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+    if(s.t === "tabela") corpo = `<table><thead><tr>${s.head.map((h, i) => `<th${i >= (s.left ?? 2) ? ' class="r"' : ""}>${esc(h)}</th>`).join("")}</tr></thead><tbody>${s.rows.map(r => `<tr>${r.map((v, i) => `<td${i >= (s.left ?? 2) ? ' class="r"' : ""}>${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
     if(s.t === "destaques") corpo = `<ul class="dest">${s.itens.map(i => `<li><b>${esc(i.t)}</b><span>${esc(i.d)}</span></li>`).join("")}</ul>`;
-    if(s.t === "comp") corpo = `<div class="cmp">${s.rows.map(r => `<div class="cr"><div class="cn"><b>${esc(r.nome)}</b><span>${esc(r.data)}</span></div><div class="cm">Envios <b>${r.env == null ? "—" : fmtN(r.env, 0)}</b><br>Sucesso <b>${r.suc == null ? "—" : fmtN(r.suc, 0)}</b> (${pcX(r.psuc, 1)})</div><div class="cb"><i style="width:${r.ctr == null ? 0 : Math.max(1, r.ctr / s.max * 100)}%"></i></div><div class="cv">${pcX(r.ctr)}</div></div>`).join("")}</div>`;
-    if(s.t === "peca") corpo = `<div class="pc"><div class="ph"><div class="pl">PEÇA RCS</div>${s.titPeca ? `<div class="pt">${esc(s.titPeca)}</div>` : ""}<div class="pm">${s.corpo ? esc(s.corpo) : "<i>Título e mensagem ainda não cadastrados para esta campanha.</i>"}</div>${s.cta ? `<div class="pb">${esc(s.cta)}</div>` : ""}</div>
+    if(s.t === "comp") corpo = `<div class="cmp">${s.rows.map(r => `<div class="cr"><div class="cn"><b>${esc(r.nome)}</b><span>${esc(r.data)}</span></div><div class="cm">${esc(r.l1)} <b>${esc(r.v1)}</b><br>${esc(r.l2)} <b>${esc(r.v2)}</b> (${esc(r.p2)})</div><div class="cb"><i style="width:${r.ctr == null ? 0 : Math.max(1, r.ctr / s.max * 100)}%"></i></div><div class="cv">${pcX(r.ctr)}</div></div>`).join("")}</div>`;
+    if(s.t === "peca") corpo = `<div class="pc"><div class="ph"><div class="pl">${esc(s.pecaRot || "PEÇA RCS")}</div>${s.titPeca ? `<div class="pt">${esc(s.titPeca)}</div>` : ""}<div class="pm">${s.corpo ? esc(s.corpo) : `<i>${esc(s.corpoVazio || "Título e mensagem ainda não cadastrados para esta campanha.")}</i>`}</div>${s.cta ? `<div class="pb">${esc(s.cta)}</div>` : ""}</div>
       <div class="pr"><div class="tiles">${s.tiles.map(k => `<div class="tile"><div class="l">${esc(k.l)}</div><div class="v">${esc(k.v)}</div><div class="f">${esc(k.f || "")}</div></div>`).join("")}</div>
-      <div class="an"><div class="al">ANÁLISE PÓS-COMUNICAÇÃO</div>${s.temAn ? `<div class="ani">${s.an.map(k => `<div><div class="v">${esc(k.v)}</div><div class="l">${esc(k.l)}</div></div>`).join("")}</div>` : `<div class="ani0">Ainda não preenchida (investimento, conversões e receita).</div>`}</div></div></div>`;
-    return `<section class="slide"><i class="bar" style="background:${cor}"></i><h3>${esc(s.titulo)}</h3><p class="sub">${esc(s.sub || "")}</p>${corpo}<div class="rod">RCS - Sonho da Sorte · gerado em ${dataBR(TODAY)}</div></section>`;
+      <div class="an"><div class="al">${esc(s.anRot || "ANÁLISE PÓS-COMUNICAÇÃO")}</div>${s.temAn ? `<div class="ani">${s.an.map(k => `<div><div class="v">${esc(k.v)}</div><div class="l">${esc(k.l)}</div></div>`).join("")}</div>` : `<div class="ani0">${esc(s.anVazio || "Ainda não preenchida (investimento, conversões e receita).")}</div>`}</div></div></div>`;
+    return `<section class="slide"><i class="bar" style="background:${cor}"></i><h3>${esc(s.titulo)}</h3><p class="sub">${esc(s.sub || "")}</p>${corpo}<div class="rod">${esc(M.rod)} · gerado em ${dataBR(TODAY)}</div></section>`;
   }).join("");
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>RCS - Sonho da Sorte · resumo</title><style>
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(M.tit)}</title><style>
 *{box-sizing:border-box}body{margin:0;background:#e9ebf0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#14161c;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .tool{position:sticky;top:0;z-index:5;background:#14161c;color:#fff;padding:10px 18px;display:flex;gap:14px;align-items:center;font-size:13px}
 .tool button{background:#4f52c9;color:#fff;border:0;border-radius:8px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer}
@@ -4935,11 +5164,11 @@ h3{font-size:36px;margin:10px 0 4px}.sub{color:#6b7280;font-size:18px;margin:0 0
 .card .l{font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:#6b7280;font-weight:600}.card .v{font-size:54px;font-weight:700;margin:22px 0 14px;letter-spacing:-.03em}.card .f{font-size:15px;color:#6b7280}
 table{width:100%;border-collapse:collapse;font-size:16px}th{background:#1b1f3b;color:#fff;text-align:left;padding:11px 10px;font-size:13px}td{padding:11px 10px;border-bottom:1px solid #e2e5ec}.r{text-align:right}
 .dest{list-style:none;padding:0;margin:0}.dest li{margin-bottom:22px}.dest b{display:block;font-size:22px}.dest span{font-size:17px;color:#4b5563;line-height:1.5}
-.cmp{display:flex;flex-direction:column;gap:8px}.cr{display:grid;grid-template-columns:300px 250px 1fr 80px;gap:18px;align-items:center;height:52px;border-bottom:1px solid #eef0f4}
-.cn b{display:block;font-size:17px}.cn span{font-size:13px;color:#6b7280}.cm{font-size:14px;color:#4b5563;line-height:1.4}.cm b{color:#14161c}
+.cmp{display:flex;flex-direction:column;gap:8px}.cr{display:grid;grid-template-columns:390px 240px 1fr 80px;gap:18px;align-items:center;height:52px;border-bottom:1px solid #eef0f4}
+.cn{min-width:0}.cn b{display:block;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cn span{font-size:13px;color:#6b7280}.cm{font-size:14px;color:#4b5563;line-height:1.4}.cm b{color:#14161c}
 .cb{height:16px;background:#eef0f4;border-radius:8px;overflow:hidden}.cb i{display:block;height:100%;background:#4f7cff;border-radius:8px}.cv{font-weight:700;font-size:17px;text-align:right}
 .pc{display:flex;gap:30px;height:455px}.ph{width:440px;background:#f4f5f8;border:1px solid #e2e5ec;border-radius:22px;padding:26px 28px;display:flex;flex-direction:column}
-.pl{font-size:12px;letter-spacing:.14em;font-weight:700;color:#6b7280}.pt{font-size:23px;font-weight:700;margin:12px 0 12px;line-height:1.25}.pm{font-size:18px;line-height:1.5;color:#374151;flex:1}.pm i{color:#9ca3af}
+.pl{font-size:12px;letter-spacing:.14em;font-weight:700;color:#6b7280}.pt{font-size:23px;font-weight:700;margin:12px 0 12px;line-height:1.25}.pm{font-size:18px;line-height:1.5;color:#374151;flex:1;white-space:pre-line}.pm i{color:#9ca3af}
 .pb{background:#4f52c9;color:#fff;text-align:center;padding:14px;border-radius:12px;font-weight:700;font-size:18px;margin-top:14px}
 .pr{flex:1;display:flex;flex-direction:column;gap:18px}.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .tile{background:#fff;border:1px solid #e2e5ec;border-top:4px solid #4f7cff;border-radius:12px;padding:13px 16px;height:128px}
@@ -4950,8 +5179,8 @@ table{width:100%;border-collapse:collapse;font-size:16px}th{background:#1b1f3b;c
 @page{size:1280px 720px;margin:0}@media print{body{background:#fff}.tool{display:none}.slide{margin:0;box-shadow:none}}
 </style></head><body><div class="tool"><button onclick="window.print()">Imprimir / salvar em PDF</button><span>Na janela de impressão, escolha “Salvar como PDF” e desligue cabeçalhos e rodapés.</span></div>${pag}</body></html>`;
 }
-function exAbreHtml(sl, nome){
-  const html = exHtml(sl);
+function exAbreHtml(sl, nome, M){
+  const html = exHtml(sl, M);
   const url = URL.createObjectURL(new Blob([html], {type:"text/html;charset=utf-8"}));
   const w = window.open(url, "_blank");
   if(!w){
@@ -4971,12 +5200,13 @@ function carregaPptx(){
     document.head.appendChild(s);
   });
 }
-async function exPptx(sl, nome){
+async function exPptx(sl, nome, Mx){
+  const M = Mx || EX_M_RCS;
   toast("Montando a apresentação…");
   try{ await carregaPptx(); }catch(e){ toast("Não consegui carregar o gerador de PowerPoint — use a versão PDF"); return; }
   try{
     const P = new window.PptxGenJS();
-    P.layout = "LAYOUT_WIDE"; P.title = "RCS - Sonho da Sorte";
+    P.layout = "LAYOUT_WIDE"; P.title = M.nome;
     const C = {sc:"4F7CFF", an:"E0902A", n:"1B1F3B", tx:"14161C", mu:"6B7280", ln:"E2E5EC", bg:"F4F5F8", ac:"4F52C9"};
     const rect = (sd, x, y, w, h, fill, line, rad) => sd.addShape(rad ? P.ShapeType.roundRect : P.ShapeType.rect, {x, y, w, h, fill:{color:fill}, line:{color:line || fill, width:line ? 1 : 0}, rectRadius:rad || 0});
     sl.forEach(s => {
@@ -4994,7 +5224,7 @@ async function exPptx(sl, nome){
       rect(sd, 0, 0, 13.33, .16, cor);
       sd.addText(s.titulo, {x:.6, y:.35, w:12.1, h:.6, fontSize:26, bold:true, color:C.tx, fit:"shrink"});
       if(s.sub) sd.addText(s.sub, {x:.6, y:.95, w:12.1, h:.4, fontSize:13, color:C.mu});
-      sd.addText("RCS - Sonho da Sorte · gerado em " + dataBR(TODAY), {x:.6, y:7.05, w:8, h:.3, fontSize:10, color:"9CA3AF"});
+      sd.addText(M.rod + " · gerado em " + dataBR(TODAY), {x:.6, y:7.05, w:8, h:.3, fontSize:10, color:"9CA3AF"});
       if(s.t === "kpis"){
         s.cards.forEach((k, i) => {
           const x = .6 + (i % 3) * 4.1, y = 1.7 + Math.floor(i / 3) * 2.6;
@@ -5005,9 +5235,9 @@ async function exPptx(sl, nome){
         });
       }
       if(s.t === "tabela"){
-        const cab = s.head.map((h, i) => ({text:h, options:{bold:true, color:"FFFFFF", fill:{color:C.n}, align:i > 1 ? "right" : "left", fontSize:10.5}}));
-        const corpo = s.rows.map(r => r.map((v, i) => ({text:v, options:{align:i > 1 ? "right" : "left", fontSize:10.5, color:C.tx}})));
-        sd.addTable([cab].concat(corpo), {x:.6, y:1.6, w:12.1, colW:[1.2, 2.9, .95, .95, .95, .85, .8, 1.3, 1.45, .75],
+        const cab = s.head.map((h, i) => ({text:h, options:{bold:true, color:"FFFFFF", fill:{color:C.n}, align:i >= (s.left ?? 2) ? "right" : "left", fontSize:10.5}}));
+        const corpo = s.rows.map(r => r.map((v, i) => ({text:v, options:{align:i >= (s.left ?? 2) ? "right" : "left", fontSize:10.5, color:C.tx}})));
+        sd.addTable([cab].concat(corpo), {x:.6, y:1.6, w:12.1, colW:s.colW || [1.2, 2.9, .95, .95, .95, .85, .8, 1.3, 1.45, .75],
           border:{type:"solid", color:C.ln, pt:.75}, rowH:.5, valign:"middle"});
       }
       if(s.t === "destaques"){
@@ -5023,8 +5253,8 @@ async function exPptx(sl, nome){
           const y = 1.6 + i * .66;
           sd.addText(r.nome, {x:.6, y, w:4.0, h:.32, fontSize:13, bold:true, color:C.tx, fit:"shrink"});
           sd.addText(r.data, {x:.6, y:y + .3, w:4.0, h:.26, fontSize:10, color:C.mu});
-          sd.addText([{text:"Envios " + (r.env == null ? "—" : fmtN(r.env, 0)), options:{breakLine:true, bold:true}},
-                      {text:"Sucesso " + (r.suc == null ? "—" : fmtN(r.suc, 0)) + " (" + pcX(r.psuc, 1) + ")"}],
+          sd.addText([{text:r.l1 + " " + r.v1, options:{breakLine:true, bold:true}},
+                      {text:r.l2 + " " + r.v2 + " (" + r.p2 + ")"}],
                      {x:4.7, y, w:3.6, h:.56, fontSize:11, color:"374151", valign:"middle"});
           rect(sd, 8.5, y + .17, 3.4, .22, "EEF0F4", null, .1);
           if(r.ctr != null) rect(sd, 8.5, y + .17, Math.max(.05, 3.4 * r.ctr / s.max), .22, C.sc, null, .1);
@@ -5033,9 +5263,9 @@ async function exPptx(sl, nome){
       }
       if(s.t === "peca"){
         rect(sd, .6, 1.6, 5.1, 5.2, C.bg, C.ln, .2);
-        sd.addText("PEÇA RCS", {x:.9, y:1.78, w:4.5, h:.3, fontSize:10, bold:true, color:C.mu, charSpacing:3});
+        sd.addText(s.pecaRot || "PEÇA RCS", {x:.9, y:1.78, w:4.5, h:.3, fontSize:10, bold:true, color:C.mu, charSpacing:3});
         if(s.titPeca) sd.addText(s.titPeca, {x:.9, y:2.1, w:4.5, h:1.0, fontSize:19, bold:true, color:C.tx, valign:"top", fit:"shrink"});
-        sd.addText(s.corpo || "Título e mensagem ainda não cadastrados para esta campanha.", {x:.9, y:3.15, w:4.5, h:2.3, fontSize:14, color:s.corpo ? "374151" : "9CA3AF", valign:"top", fit:"shrink"});
+        sd.addText(s.corpo || s.corpoVazio || "Título e mensagem ainda não cadastrados para esta campanha.", {x:.9, y:3.15, w:4.5, h:2.3, fontSize:14, color:s.corpo ? "374151" : "9CA3AF", valign:"top", fit:"shrink"});
         if(s.cta){ rect(sd, .9, 5.85, 4.5, .62, C.ac, null, .1); sd.addText(s.cta, {x:.9, y:5.85, w:4.5, h:.62, fontSize:15, bold:true, color:"FFFFFF", align:"center", valign:"middle"}); }
         s.tiles.forEach((k, i) => {
           const x = 6.0 + (i % 3) * 2.3, y = 1.6 + Math.floor(i / 3) * 1.55;
@@ -5046,13 +5276,13 @@ async function exPptx(sl, nome){
           sd.addText(k.f || "", {x:x + .15, y:y + .95, w:1.95, h:.4, fontSize:9, color:C.mu, valign:"top"});
         });
         rect(sd, 6.0, 4.85, 6.9, 1.95, "FFF8EE", "F3DCB8", .1);
-        sd.addText("ANÁLISE PÓS-COMUNICAÇÃO", {x:6.25, y:4.97, w:6.4, h:.3, fontSize:10, bold:true, color:C.an, charSpacing:2});
+        sd.addText(s.anRot || "ANÁLISE PÓS-COMUNICAÇÃO", {x:6.25, y:4.97, w:6.4, h:.3, fontSize:10, bold:true, color:C.an, charSpacing:2});
         if(s.temAn) s.an.forEach((k, i) => {
           const x = 6.25 + i * 1.3;
           sd.addText(k.v, {x, y:5.4, w:1.25, h:.55, fontSize:i === 1 ? 14 : 15, bold:true, color:C.tx, fit:"shrink"});
           sd.addText(k.l, {x, y:5.95, w:1.25, h:.3, fontSize:10, color:C.mu});
         });
-        else sd.addText("Ainda não preenchida (investimento, conversões e receita).", {x:6.25, y:5.45, w:6.4, h:.5, fontSize:13, color:"9A6B1F"});
+        else sd.addText(s.anVazio || "Ainda não preenchida (investimento, conversões e receita).", {x:6.25, y:5.45, w:6.4, h:.5, fontSize:13, color:"9A6B1F"});
       }
     });
     await P.writeFile({fileName:nome});
