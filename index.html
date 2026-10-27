@@ -5119,16 +5119,16 @@ function exSlides(list){
       an, temAn:an.some(x => x.v !== "—")});
   });
   if(K.tab){
-    const head = ["Data", "Campanha", "Envios", "Sucesso", "% Sucesso", "Cliques", "CTR", "Investido", "Receita", "ROAS"];
+    const head = ["Data", "Campanha", "Segmento", "Envios", "Sucesso", "% Sucesso", "Cliques", "CTR", "Investido", "Receita", "ROAS"];
     const linhas = list.map(c => {
       const k = sCalc(c), n0 = v => v == null ? "—" : fmtN(v, 0);
       return [(c.data_inicio ? dataBR(c.data_inicio).slice(0, 5) : "—") + (c.hora ? " " + c.hora : ""),
-        String(c.nome || "Sem nome").slice(0, 34), n0(nvS(c.sc_destinos)), n0(nvS(c.sc_sucesso)), pcX(k.p_suc, 1), n0(nvS(c.sc_cliques)), pcX(k.ctr),
+        String(c.nome || "Sem nome").slice(0, 46), String(c.segmento || "—").slice(0, 52), n0(nvS(c.sc_destinos)), n0(nvS(c.sc_sucesso)), pcX(k.p_suc, 1), n0(nvS(c.sc_cliques)), pcX(k.ctr),
         k.inv == null ? "—" : fmtBRL(k.inv), nvS(c.receita) == null ? "—" : fmtBRL(nvS(c.receita)), k.roas == null ? "—" : fmtN(k.roas, 2, 2) + "x"];
     });
-    const POR = 8, pags = Math.ceil(linhas.length / POR);
+    const POR = 7, pags = Math.ceil(linhas.length / POR);
     for(let i = 0; i < pags; i++)
-      S.push({t:"tabela", titulo:"Tabela-resumo" + (pags > 1 ? " (" + (i + 1) + "/" + pags + ")" : ""), sub:"Todas as campanhas da seleção",
+      S.push({t:"tabela", titulo:"Tabela-resumo" + (pags > 1 ? " (" + (i + 1) + "/" + pags + ")" : ""), sub:"Todas as campanhas da seleção", left:3, colW:[1.0, 2.2, 2.6, .8, .8, .7, .65, .65, .95, 1.05, .7],
         head, rows:linhas.slice(i * POR, (i + 1) * POR)});
   }
   return S;
@@ -5162,7 +5162,7 @@ function exHtml(sl, Mx){
 h3{font-size:36px;margin:10px 0 4px}.sub{color:#6b7280;font-size:18px;margin:0 0 26px}
 .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}.card{background:#f4f5f8;border:1px solid #e2e5ec;border-radius:16px;padding:26px 28px;height:230px}
 .card .l{font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:#6b7280;font-weight:600}.card .v{font-size:54px;font-weight:700;margin:22px 0 14px;letter-spacing:-.03em}.card .f{font-size:15px;color:#6b7280}
-table{width:100%;border-collapse:collapse;font-size:16px}th{background:#1b1f3b;color:#fff;text-align:left;padding:11px 10px;font-size:13px}td{padding:11px 10px;border-bottom:1px solid #e2e5ec}.r{text-align:right}
+table{width:100%;border-collapse:collapse;font-size:16px}th{background:#1b1f3b;color:#fff;text-align:left;padding:11px 10px;font-size:13px}td{padding:11px 10px;border-bottom:1px solid #e2e5ec}.r{text-align:right;white-space:nowrap}
 .dest{list-style:none;padding:0;margin:0}.dest li{margin-bottom:22px}.dest b{display:block;font-size:22px}.dest span{font-size:17px;color:#4b5563;line-height:1.5}
 .cmp{display:flex;flex-direction:column;gap:8px}.cr{display:grid;grid-template-columns:390px 240px 1fr 80px;gap:18px;align-items:center;height:52px;border-bottom:1px solid #eef0f4}
 .cn{min-width:0}.cn b{display:block;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cn span{font-size:13px;color:#6b7280}.cm{font-size:14px;color:#4b5563;line-height:1.4}.cm b{color:#14161c}
