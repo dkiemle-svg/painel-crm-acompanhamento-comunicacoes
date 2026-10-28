@@ -156,6 +156,3 @@ grant select on public.perfis to authenticated;
 -- Pronto. Próximo passo: criar o primeiro usuário (você) como editor —
 -- veja o guia GUIA-CONFIGURACAO.md, passo "Criar seu usuário".
 -- ============================================================================
-
--- Coluna Aquisição / Recuperação (painel RCS - Sonho)
-alter table sonho_campanhas add column if not exists tipo_base text;
