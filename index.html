@@ -3734,6 +3734,7 @@ let sOrdem = null;              // {k, dir:1|-1}
 const sonhoWrap = document.getElementById("sonhoWrap");
 
 const CANAIS_SONHO = ["RCS","Wapp","RCS/Wapp","SMS","E-mail","Push"];
+const TIPOS_BASE = ["Aquisição","Recuperação"];
 /* t: text · date · num · inv (valor investido) · calc · link · seq
    g: de onde vem o dado — id (identificação) · sc (Shortcode, relatório do RCS) · an (análise pós-comunicação) */
 const SCOLS = [
@@ -3752,6 +3753,7 @@ const SCOLS = [
   {k:"p_suc",           n:"% Sucesso",             t:"calc", w:108, f:"pct", g:"sc", dica:"Sucesso ÷ Destinos"},
   {k:"ctr",             n:"CTR",                   t:"calc", w:88,  f:"pct", g:"sc", dica:"Cliques ÷ Sucesso"},
   {k:"segmento",        n:"Segmento / público",    t:"text", w:300, g:"an"},
+  {k:"tipo_base",       n:"Aquisição / Recuperação", t:"tipo", w:190, g:"an", dica:"Aquisição = base de quem ainda não é cliente · Recuperação = clientes que já compraram. Escolha na lista (fica em branco até preencher)"},
   {k:"qtd_teste",       n:"Qtd. envios",           t:"num",  w:118, d:0, g:"an", dica:"Igual ao Sucesso do Shortcode (preenche sozinho quando o Sucesso é digitado). Base do Conv. teste (%)"},
   {k:"qtd_controle",    n:"Qtd. grupo controle",   t:"num",  w:146, d:0, g:"an"},
   {k:"custo_envio",     n:"Custo por envio (R$)",  t:"num",  w:156, d:2, g:"an", dica:"Opcional: se preencher, o Valor investido vira Qtd. envios × este custo"},
@@ -3851,7 +3853,7 @@ function sonhoDb(c){
     hora:c.hora || "", sc_id:c.sc_id || "", titulo:c.titulo || "", corpo:c.corpo || "", cta:c.cta || "",
     sc_destinos:nvS(c.sc_destinos), sc_sucesso:nvS(c.sc_sucesso), sc_falhas:nvS(c.sc_falhas),
     sc_respostas:nvS(c.sc_respostas), sc_cliques:nvS(c.sc_cliques), sc_fallback:nvS(c.sc_fallback),
-    obs:c.obs || "", copy_link:c.copy_link || "", arte_link:c.arte_link || ""
+    obs:c.obs || "", copy_link:c.copy_link || "", arte_link:c.arte_link || "", tipo_base:c.tipo_base || ""
   };
 }
 function sonhoDaLinha(r){
@@ -3865,7 +3867,7 @@ function sonhoDaLinha(r){
     hora:r.hora || "", sc_id:r.sc_id || "", titulo:r.titulo || "", corpo:r.corpo || "", cta:r.cta || "",
     sc_destinos:nvS(r.sc_destinos), sc_sucesso:nvS(r.sc_sucesso), sc_falhas:nvS(r.sc_falhas),
     sc_respostas:nvS(r.sc_respostas), sc_cliques:nvS(r.sc_cliques), sc_fallback:nvS(r.sc_fallback),
-    obs:r.obs || "", copy_link:r.copy_link || "", arte_link:r.arte_link || ""
+    obs:r.obs || "", copy_link:r.copy_link || "", arte_link:r.arte_link || "", tipo_base:r.tipo_base || ""
   };
 }
 /* com custo por envio preenchido, o valor investido grava junto o resultado da conta */
@@ -4718,6 +4720,11 @@ function sCelula(c, col, k, edita){
       const ops = CANAIS_SONHO.includes(c.canal) || !c.canal ? CANAIS_SONHO : CANAIS_SONHO.concat([c.canal]);
       return `<td ${base}><select class="sci" data-sid="${id}" data-sk="canal"${edita ? "" : " disabled"}>
         <option value=""${c.canal ? "" : " selected"}>—</option>${ops.map(o => `<option${o === c.canal ? " selected" : ""}>${esc(o)}</option>`).join("")}</select></td>`;
+    }
+    case "tipo": {
+      const ops = TIPOS_BASE.includes(c.tipo_base) || !c.tipo_base ? TIPOS_BASE : TIPOS_BASE.concat([c.tipo_base]);
+      return `<td ${base}><select class="sci" data-sid="${id}" data-sk="tipo_base"${edita ? "" : " disabled"}>
+        <option value=""${c.tipo_base ? "" : " selected"}>—</option>${ops.map(o => `<option${o === c.tipo_base ? " selected" : ""}>${esc(o)}</option>`).join("")}</select></td>`;
     }
     case "date":
       return `<td ${base}><input class="sci num" type="date" data-sid="${id}" data-sk="${kk}" value="${esc(c[kk] || "")}"${ro}></td>`;
