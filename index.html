@@ -586,6 +586,21 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
   .app{padding:14px 12px 70px} .kpis{grid-template-columns:1fr} .tl-grid{grid-template-columns:1fr}
   .brand{width:100%} .sync .who{margin-left:0;width:100%}
 }
+/* ---- Email · Sonho ---- */
+#viewEmail{flex-direction:column;gap:12px}
+#eKpis{grid-template-columns:repeat(4,1fr)}
+.em-day{cursor:pointer}
+.em-day .em-car{display:inline-block;width:14px;color:var(--ink-3)}
+.em-sub td{background:var(--surface-2);font-size:12.5px}
+.em-sub td.l{padding-left:30px}
+.em-fut td{opacity:.62}
+.em-hoje td{background:color-mix(in srgb,var(--c-info) 9%,transparent)}
+.em-chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:600;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid color-mix(in srgb,var(--c) 30%,transparent)}
+.em-bar{display:inline-block;vertical-align:middle;width:46px;height:6px;border-radius:3px;background:var(--line);margin-left:7px;overflow:hidden}
+.em-bar i{display:block;height:100%;background:var(--c-good)}
+.em-grp td{background:var(--surface-2);font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);padding:7px 10px;text-align:left}
+@media (max-width:1100px){ #eKpis{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:700px){ #eKpis{grid-template-columns:1fr} }
 /* ---- Push · Sonho ---- */
 #viewPush{flex-direction:column;gap:12px}
 #pKpis{grid-template-columns:repeat(4,1fr)}
@@ -681,6 +696,7 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
         <option value="top">Top Bet</option>
         <option value="sonho">RCS - SONHO DA SORTE</option>
         <option value="push">Push · Sonho</option>
+        <option value="email">Email · Sonho</option>
       </select>
       <span class="tag" id="brandCount">—</span></div>
     <div class="tb">
@@ -780,6 +796,17 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
     </div>
     <div id="pIns" class="pv-sec" style="display:none"></div>
     <div class="pv-tip" id="pTip"></div>
+  </div>
+
+  <div id="viewEmail" style="display:none">
+    <div class="toolbar">
+      <span class="tag" id="eStamp"></span>
+      <button class="btn sm" id="eReload" style="margin-left:auto">↻ Recarregar</button>
+      <button class="btn sm" id="eCsv">⭳ CSV</button>
+    </div>
+    <div class="kpis" id="eKpis"></div>
+    <div class="pv-note" id="eNote"></div>
+    <div class="card"><div class="pv-wrap pv-main" id="eTable"></div><div class="gridfoot" id="eFoot"></div></div>
   </div>
 
   <div id="viewSonho" style="display:none">
@@ -1074,7 +1101,7 @@ function readUI(){
   try{
     const d = JSON.parse(localStorage.getItem(UIKEY)||"{}");
     if(d.view === "tabela" || d.view === "timeline") ui.view = d.view;
-    if(d.marca === "bet" || d.marca === "top" || d.marca === "sonho" || d.marca === "push") ui.marca = d.marca;
+    if(d.marca === "bet" || d.marca === "top" || d.marca === "sonho" || d.marca === "push" || d.marca === "email") ui.marca = d.marca;
     if(d.sonho && typeof d.sonho === "object") sui = Object.assign(sui, d.sonho);
     if(d.range) ui.range = d.range;
     // sem isto, cada gravação recarregava a tela e jogava você de volta na semana atual
@@ -1356,7 +1383,7 @@ async function carrega(){
   me = (meu && meu.nome) || euSou.split("@")[0];
   canWrite = !meu ? false : meu.papel === "editor";
 
-  if(!seenBefore && ui.marca !== "sonho" && ui.marca !== "push" && campanhas.length && !visible().length){
+  if(!seenBefore && ui.marca !== "sonho" && ui.marca !== "push" && ui.marca !== "email" && campanhas.length && !visible().length){
     ui.range = "mes";
     if(!visible().length) ui.range = "tudo";
     syncRangeButtons();
@@ -1685,6 +1712,7 @@ function render(){
   aplicaMarcaUI();
   if(ui.marca === "sonho"){ renderSonho(); writeUI(); return; }
   if(ui.marca === "push"){ renderPush(); writeUI(); return; }
+  if(ui.marca === "email"){ renderEmail(); writeUI(); return; }
   renderLegend(); renderKPIs(); renderFilters();
   document.getElementById("wkLabel").textContent = rangeLabel();
   const fixed = ui.range==="tudo" || ui.range==="custom";
@@ -2591,7 +2619,7 @@ document.addEventListener("keydown", (e)=>{
   }
   /* seta com nada selecionado: entra na primeira célula da tabela, aí já dá para navegar */
   if(/^Arrow(Up|Down|Left|Right)$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey
-     && ui.view === "tabela" && ui.marca !== "sonho" && ui.marca !== "push" && rowIds.length){
+     && ui.view === "tabela" && ui.marca !== "sonho" && ui.marca !== "push" && ui.marca !== "email" && rowIds.length){
     const a = document.activeElement;
     const digitando = a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA"
                         || a.tagName === "SELECT" || a.isContentEditable);
@@ -2610,7 +2638,7 @@ document.addEventListener("keydown", (e)=>{
   }
   // Ctrl+Z / Ctrl+Shift+Z — mas dentro de um campo de texto o desfazer é o do navegador
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === "z"){
-    if(ui.marca === "sonho" || ui.marca === "push") return;      // a Sonho não tem desfazer; dentro do campo vale o do navegador
+    if(ui.marca === "sonho" || ui.marca === "push" || ui.marca === "email") return;      // a Sonho não tem desfazer; dentro do campo vale o do navegador
     const a = document.activeElement;
     const digitando = a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA");
     if(digitando || askModal.dataset.open) return;
@@ -2618,7 +2646,7 @@ document.addEventListener("keydown", (e)=>{
     e.preventDefault(); return;
   }
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === "y"){
-    if(ui.marca === "sonho" || ui.marca === "push") return;
+    if(ui.marca === "sonho" || ui.marca === "push" || ui.marca === "email") return;
     const a = document.activeElement;
     if(a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA")) return;
     refazer(); e.preventDefault();
@@ -3597,6 +3625,7 @@ document.getElementById("btnTheme").onclick = ()=>{
 document.getElementById("btnExport").onclick = (e)=>{
   if(ui.marca === "sonho"){ abreExportSonho(); return; }
   if(ui.marca === "push"){ abreExportPush(); return; }
+  if(ui.marca === "email"){ eCsv(); return; }
   const b = e.currentTarget;
   /* Sem isto o ouvinte de clique da página fecha o menu no mesmo clique que o
      abriu — o botão está fora do #pop. É a trava que o "Ajustar" já usa. */
@@ -3958,6 +3987,168 @@ function sVisible(){
 }
 
 /* ---------- desenho ---------- */
+/* ================= Email · Sonho (aquecimento de domínio · dados do CleverTap) ================= */
+const eui = {plano:[], rows:[], loaded:false, loading:false, err:"", at:0, open:{}, bound:false, entered:false};
+function ePrep(r){
+  ["enviados","qualificados","visualizados","clicados","conv_unicas","erros","descadastros"].forEach(k => r[k] = Number(r[k]) || 0);
+  ["entregues","bounces","spam"].forEach(k => r[k] = r[k] == null ? null : Number(r[k]));
+  const dt = new Date(r.enviado_em), ok = !isNaN(dt), p = ok ? pParts(dt) : null;
+  r._t = ok ? dt.getTime() : null;
+  r._d = ok ? p.year + "-" + p.month + "-" + p.day : "";
+  r._lbl = ok ? p.hour + ":" + p.minute : "—";
+  return r;
+}
+async function emailCarrega(){
+  if(eui.loading || !sb || !euSou) return;
+  eui.loading = true; eui.err = "";
+  if(ui.marca === "email") render();
+  try{
+    const [p, c] = await Promise.all([
+      sb.from("email_plano").select("*").order("dia"),
+      sb.from("email_sonho").select("*").order("enviado_em", {ascending:false}).limit(2000)]);
+    if(p.error) throw p.error; if(c.error) throw c.error;
+    eui.plano = p.data || []; eui.rows = (c.data || []).map(ePrep); eui.loaded = true; eui.at = Date.now();
+  }catch(e){ eui.err = (e && e.message) || String(e); }
+  eui.loading = false;
+  if(ui.marca === "email") render();
+}
+function eHoje(){ const h = pParts(new Date()); return h.year + "-" + h.month + "-" + h.day; }
+function eAgg(l){
+  const a = {n:l.length, enviados:0, qualificados:0, visualizados:0, clicados:0, conv_unicas:0, erros:0, descadastros:0, entregues:null, bounces:null, spam:null};
+  l.forEach(r => {
+    a.enviados += r.enviados; a.qualificados += r.qualificados; a.visualizados += r.visualizados; a.clicados += r.clicados;
+    a.conv_unicas += r.conv_unicas; a.erros += r.erros; a.descadastros += r.descadastros;
+    ["entregues","bounces","spam"].forEach(k => { if(r[k] != null) a[k] = (a[k] || 0) + r[k]; });
+  });
+  a.abertura = a.enviados ? 100 * a.visualizados / a.enviados : null;
+  a.ctr = a.visualizados ? 100 * a.clicados / a.visualizados : null;
+  a.erro_pct = a.enviados ? 100 * a.erros / a.enviados : null;
+  a.desc_pct = a.enviados ? 100 * a.descadastros / a.enviados : null;
+  return a;
+}
+function eStatus(d, a, hoje){
+  const lim = Number(d.limite) || 0, c = (t, col) => '<span class="em-chip" style="--c:var(--c-' + col + ')">' + t + "</span>";
+  if(d.data > hoje) return c("Futuro", "info");
+  if(d.data === hoje) return a.enviados > lim ? c("Acima do limite", "alert") : (a.enviados ? c("Hoje · em andamento", "info") : c("Hoje · a enviar", "info"));
+  if(!a.enviados) return c("Sem envio", "warn");
+  if(a.enviados > lim) return c("Acima do limite", "alert");
+  return a.enviados >= 0.9 * lim ? c("Dentro do plano", "good") : c("Abaixo do plano", "warn");
+}
+const E_COLS = [
+  ["Enviados",      a => pInt(a.enviados)],
+  ["% do limite",   (a, d) => { if(!d) return ""; const q = d.limite ? 100 * a.enviados / d.limite : 0; return pDec(q, 0) + '%<span class="em-bar"><i style="width:' + Math.min(100, q) + '%;' + (q > 100 ? "background:var(--c-alert)" : "") + '"></i></span>'; }],
+  ["Qualificados",  a => pInt(a.qualificados)],
+  ["Entregues",     a => pInt(a.entregues)],
+  ["Aberturas",     a => pInt(a.visualizados)],
+  ["Abert. ÷ env.", a => pPct(a.abertura, 1)],
+  ["Cliques",       a => pInt(a.clicados)],
+  ["CTR",           a => pPct(a.ctr, 1)],
+  ["Conv. únicas",  a => pInt(a.conv_unicas)],
+  ["Erros",         a => pInt(a.erros)],
+  ["Descad.",       a => pInt(a.descadastros)],
+  ["Bounces",       a => pInt(a.bounces)],
+  ["Spam",          a => pInt(a.spam)]
+];
+function eDias(){
+  const hoje = eHoje(), porDia = {};
+  eui.rows.forEach(r => (porDia[r._d] = porDia[r._d] || []).push(r));
+  const datas = new Set(eui.plano.map(d => d.data));
+  const dias = eui.plano.map(d => ({d, camp:(porDia[d.data] || []).slice().sort((x, y) => (x._t || 0) - (y._t || 0)), a:eAgg(porDia[d.data] || [])}));
+  const fora = eui.rows.filter(r => !datas.has(r._d)).sort((x, y) => (y._t || 0) - (x._t || 0));
+  return {hoje, dias, fora};
+}
+function eKpis(D){
+  const {hoje, dias} = D, n = dias.length;
+  const idx = dias.findIndex(x => x.d.data === hoje);
+  const tot = eAgg(eui.rows.filter(r => dias.some(x => x.d.data === r._d)));
+  const hojeD = idx >= 0 ? dias[idx] : null;
+  const feitos = dias.filter(x => x.d.data <= hoje);
+  const limAc = feitos.reduce((s, x) => s + Number(x.d.limite), 0);
+  const k = (cls, lab, val, foot) => '<div class="kpi ' + cls + '"><div class="lab">' + lab + '</div><div class="val">' + val + '</div><div class="foot">' + foot + "</div></div>";
+  const dia = !n ? "—" : idx >= 0 ? "Dia " + dias[idx].d.dia + "<small> / " + n + "</small>" : (hoje < dias[0].d.data ? "Começa em " + pDM(dias[0].d.data) : "Plano concluído");
+  const foot = hojeD ? "Limite de hoje: " + pInt(hojeD.d.limite) + " emails" + (hojeD.d.throttle_5min ? " · " + pInt(hojeD.d.throttle_5min) + " a cada 5 min" : "") : (n ? "Plano de " + pDM(dias[0].d.data) + " a " + pDM(dias[n - 1].d.data) : "");
+  const nd = x => x == null ? "—" : pInt(x);
+  return k("", "Plano de aquecimento", dia, foot) +
+    k(hojeD && hojeD.a.enviados > Number(hojeD.d.limite) ? "warn" : "", "Enviados hoje", hojeD ? pInt(hojeD.a.enviados) : "—",
+      hojeD ? pDec(hojeD.d.limite ? 100 * hojeD.a.enviados / hojeD.d.limite : 0, 0) + "% do limite do dia" : "") +
+    k("", "Enviados no plano", pInt(tot.enviados), limAc ? "de " + pInt(limAc) + " previstos até hoje (" + pDec(100 * tot.enviados / limAc, 0) + "%)" : "") +
+    k("ok", "Aberturas", pPct(tot.abertura, 1), pInt(tot.visualizados) + " aberturas · CTR " + pPct(tot.ctr, 1) + " (" + pInt(tot.clicados) + " cliques)") +
+    k(tot.erro_pct > 2 ? "warn" : "", "Erros de envio", pInt(tot.erros), pPct(tot.erro_pct, 2) + " dos enviados") +
+    k("", "Descadastros", pInt(tot.descadastros), pPct(tot.desc_pct, 2) + " dos enviados") +
+    k("", "Bounces", nd(tot.bounces), tot.bounces == null ? "indisponível no CleverTap (falta callback)" : pPct(tot.enviados ? 100 * tot.bounces / tot.enviados : null, 2) + " dos enviados") +
+    k("", "Spam", nd(tot.spam), tot.spam == null ? "indisponível no CleverTap (falta callback)" : pPct(tot.enviados ? 100 * tot.spam / tot.enviados : null, 3) + " dos enviados");
+}
+function eRow(cells, cls, extra){ return "<tr" + (cls ? ' class="' + cls + '"' : "") + (extra || "") + ">" + cells + "</tr>"; }
+function eTable(D){
+  const {hoje, dias, fora} = D, nC = E_COLS.length;
+  let h = '<table class="pv-tbl"><thead><tr><th class="l">Dia</th><th class="l">Data</th><th class="l">Status</th><th>Limite do dia</th>' +
+    E_COLS.map(c => "<th>" + c[0] + "</th>").join("") + "<th>Throttle<small>por 5 min</small></th><th>Envios<small>por hora</small></th></tr></thead><tbody>";
+  const cel = (a, d) => E_COLS.map(c => "<td>" + c[1](a, d) + "</td>").join("");
+  const vazio = E_COLS.map(() => "<td>—</td>").join("");
+  dias.forEach(x => {
+    const d = x.d, aberto = !!eui.open[d.dia], temC = x.camp.length > 0, fut = d.data > hoje;
+    const cls = "em-day" + (fut ? " em-fut" : "") + (d.data === hoje ? " em-hoje" : "");
+    h += eRow('<td class="l"><span class="em-car">' + (temC ? (aberto ? "▾" : "▸") : "") + "</span>Day " + d.dia + '</td><td class="l">' + pDM(d.data) + '</td><td class="l">' + eStatus(d, x.a, hoje) + "</td><td>" + pInt(d.limite) + "</td>" +
+      (fut ? vazio : cel(x.a, d)) + "<td>" + pInt(d.throttle_5min) + "</td><td>" + pInt(d.enviados_hora) + "</td>", cls, ' data-ed="' + d.dia + '"');
+    if(aberto) x.camp.forEach(r => {
+      h += eRow('<td class="l" colspan="2">↳ ' + esc(r._lbl) + " · " + esc(r.nome || r.campaign_id) + '</td><td class="l">' + esc(r.status === "COMPLETED" ? "Enviado" : (r.status || "")) + "</td><td></td>" + cel(eAgg([r]), null) + "<td></td><td></td>", "em-sub");
+    });
+  });
+  if(fora.length){
+    h += '<tr class="em-grp"><td colspan="' + (nC + 6) + '">Fora do plano (testes e envios em datas sem limite definido)</td></tr>';
+    fora.forEach(r => {
+      h += eRow('<td class="l" colspan="2">' + pDM(r._d) + " " + esc(r._lbl) + " · " + esc(r.nome || r.campaign_id) + '</td><td class="l">' + esc(r.status === "COMPLETED" ? "Enviado" : (r.status || "")) + "</td><td></td>" + cel(eAgg([r]), null) + "<td></td><td></td>", "em-sub");
+    });
+  }
+  const t = eAgg(eui.rows.filter(r => dias.some(x => x.d.data === r._d)));
+  h += '</tbody><tfoot><tr><td class="l" colspan="3">Total no plano</td><td>' + pInt(dias.reduce((s, x) => s + Number(x.d.limite), 0)) + "</td>" +
+    E_COLS.map(c => "<td>" + (c[0] === "% do limite" ? "" : c[1](t, null)) + "</td>").join("") + "<td></td><td></td></tr></tfoot></table>";
+  return h;
+}
+function eCsv(){
+  const D = eDias(), num = v => v == null ? "" : String(Math.round(v * 100) / 100).replace(".", ",");
+  const cel = v => { v = String(v == null ? "" : v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const rows = [["Dia","Data","Limite do dia","Enviados","% do limite","Qualificados","Entregues","Aberturas","Abertura ÷ enviados %","Cliques","CTR %","Conv. únicas","Erros","Descadastros","Bounces","Spam","Throttle 5 min","Envios por hora","Campanhas"]];
+  D.dias.forEach(x => { const a = x.a, d = x.d;
+    rows.push(["Day " + d.dia, d.data.slice(8) + "/" + d.data.slice(5, 7) + "/" + d.data.slice(0, 4), d.limite, a.enviados, num(d.limite ? 100 * a.enviados / d.limite : null), a.qualificados, a.entregues,
+      a.visualizados, num(a.abertura), a.clicados, num(a.ctr), a.conv_unicas, a.erros, a.descadastros, a.bounces, a.spam, d.throttle_5min, d.enviados_hora, x.camp.map(r => r._lbl + " " + (r.nome || "")).join(" | ")]); });
+  const blob = new Blob(["﻿" + rows.map(r => r.map(cel).join(";")).join("\r\n")], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = "email-sonho_" + new Date().toISOString().slice(0, 10) + ".csv";
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  toast("CSV exportado (" + D.dias.length + " dias do plano)");
+}
+function emailBind(){
+  eui.bound = true;
+  const $ = id => document.getElementById(id);
+  $("eReload").addEventListener("click", () => emailCarrega());
+  $("eCsv").addEventListener("click", () => eCsv());
+  $("eTable").addEventListener("click", e => { const tr = e.target.closest("tr[data-ed]"); if(!tr) return; const k = tr.dataset.ed; eui.open[k] = !eui.open[k]; render(); });
+}
+function renderEmail(){
+  const $ = id => document.getElementById(id);
+  if(!$("viewEmail")) return;
+  if(!eui.bound) emailBind();
+  if(!eui.entered && sb && euSou){ eui.entered = true; if(!eui.loading && (!eui.loaded || Date.now() - eui.at > 60000)) emailCarrega(); }
+  $("eReload").disabled = eui.loading;
+  $("eReload").textContent = eui.loading ? "Carregando…" : "↻ Recarregar";
+  const at = eui.rows.reduce((m, r) => r.atualizado_em > m ? r.atualizado_em : m, "");
+  $("eStamp").textContent = at ? "Clever · atualizado " + (() => { const p = pParts(new Date(at)); return p.day + "/" + p.month + " " + p.hour + ":" + p.minute; })() : "";
+  if(!eui.loaded){
+    ["eKpis","eTable"].forEach(i => $(i).innerHTML = ""); $("eFoot").textContent = ""; $("brandCount").textContent = "";
+    $("eNote").innerHTML = eui.err ? '<span class="pv-err">Não foi possível carregar os emails: ' + esc(eui.err) + " — use “Recarregar”.</span>" : "Carregando emails…";
+    return;
+  }
+  const D = eDias();
+  $("brandCount").textContent = pInt(eui.rows.length) + " emails";
+  $("eNote").innerHTML = "Fonte: CleverTap · campanhas de Email. “Aberturas” são aberturas totais (pode passar de 100% dos enviados, por aberturas repetidas e proteção de privacidade). CTR = cliques ÷ aberturas, como no Clever. " +
+    "Entregues, bounces e spam só aparecem quando o provedor de email manda os callbacks ao CleverTap; hoje o Clever mostra “Delivered 0”, então ficam “—”. Clique num dia para ver os emails dele.";
+  $("eKpis").innerHTML = eKpis(D);
+  $("eTable").innerHTML = eTable(D);
+  $("eFoot").textContent = pInt(D.dias.length) + " dias no plano · " + pInt(eui.rows.length) + " emails registrados" + (D.fora.length ? " (" + D.fora.length + " fora do plano, não entram nos totais)" : "");
+}
+/* ================= fim Email · Sonho ================= */
+
 /* ================= Push · Sonho (dados do CleverTap) ================= */
 const P_BASE = "2026-09-07";   // início da base de comparação
 const P_OP   = "2026-10-07";   // início da nossa operação
@@ -4625,15 +4816,15 @@ function pxSlides(list){
 }
 
 
-const MARCAS_NOME = {bet:"Bet da Sorte", top:"Top Bet", sonho:"RCS - SONHO DA SORTE", push:"Push · Sonho"};
+const MARCAS_NOME = {bet:"Bet da Sorte", top:"Top Bet", sonho:"RCS - SONHO DA SORTE", push:"Push · Sonho", email:"Email · Sonho"};
 function aplicaMarcaUI(){
   const s = ui.marca === "sonho";
   const mostra = (id, on, disp) => { const el = document.getElementById(id); if(el) el.style.display = on ? (disp || "") : "none"; };
-  const p = ui.marca === "push", x = s || p; if(!p) pui.entered = false;
+  const p = ui.marca === "push", em = ui.marca === "email", x = s || p || em; if(!p) pui.entered = false; if(!em) eui.entered = false;
   mostra("betKpis", !x); mostra("betToolbar", !x); mostra("legend", !x);
   mostra("viewSeg", !x, "inline-flex");
   mostra("btnUndo", !x, "inline-flex"); mostra("btnRedo", !x, "inline-flex");
-  mostra("viewSonho", s, "flex"); mostra("viewPush", p, "flex");
+  mostra("viewSonho", s, "flex"); mostra("viewPush", p, "flex"); mostra("viewEmail", em, "flex");
   if(x){ mostra("viewTabela", false); mostra("viewTimeline", false); }
   const sel = document.getElementById("brandSel");
   if(sel && sel.value !== ui.marca) sel.value = ui.marca;
