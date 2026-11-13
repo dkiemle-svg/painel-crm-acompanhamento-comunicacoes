@@ -5642,7 +5642,7 @@ function wxSlides(list){
     S.push({t:"destaques", titulo:"Destaques", sub:"Leitura rápida dos números", itens:D});
   }
   if(K.comp){
-    const lin = list.map(c => { const k = sCalc(c); return {nome:String(c.nome || "Sem nome").slice(0, 40),
+    const lin = list.map(c => { const k = sCalc(c); return {nome:String(c.nome || "Sem nome").slice(0, 60),
       data:(c.data_inicio ? dataBR(c.data_inicio).slice(0, 5) : "—") + (c.hora ? " " + c.hora : ""),
       l1:"Enviadas", v1:n0(nvS(c.sc_destinos)), l2:"Entregues", v2:n0(nvS(c.sc_sucesso)), p2:pcX(k.p_suc, 1), ctr:k.ctr}; });
     const mx = Math.max(0.0001, ...lin.map(r => r.ctr || 0)), POR = 8, pags = Math.ceil(lin.length / POR);
@@ -5676,13 +5676,13 @@ function wxSlides(list){
     const linhas = list.map(c => {
       const k = sCalc(c);
       return [(c.data_inicio ? dataBR(c.data_inicio).slice(0, 5) : "—") + (c.hora ? " " + c.hora : ""),
-        String(c.nome || "Sem nome").slice(0, 40), String(c.bm || "—").slice(0, 16), String(c.segmento || "—").slice(0, 40),
+        String(c.nome || "Sem nome"), String(c.bm || "—"), String(c.segmento || "—"),
         n0(nvS(c.sc_destinos)), n0(nvS(c.sc_sucesso)), pcX(k.p_suc, 1), n0(nvS(c.sc_cliques)), pcX(k.ctr),
         nvS(c.valor_investido) == null ? "—" : fmtBRL(nvS(c.valor_investido))];
     });
-    const POR = 7, pags = Math.ceil(linhas.length / POR);
+    const POR = 6, pags = Math.ceil(linhas.length / POR);
     for(let i = 0; i < pags; i++)
-      S.push({t:"tabela", titulo:"Tabela-resumo" + (pags > 1 ? " (" + (i + 1) + "/" + pags + ")" : ""), sub:"Todos os envios da seleção", left:4, colW:[1.0, 2.2, 1.1, 2.3, .95, .9, .75, .7, .8, 1.1],
+      S.push({t:"tabela", titulo:"Tabela-resumo" + (pags > 1 ? " (" + (i + 1) + "/" + pags + ")" : ""), sub:"Todos os envios da seleção", left:4, fs:9, colW:[.95, 2.0, 1.0, 3.0, .85, .85, .7, .65, .75, 1.05],
         head, rows:linhas.slice(i * POR, (i + 1) * POR)});
   }
   return S;
@@ -5890,7 +5890,7 @@ function exHtml(sl, Mx){
     const cor = COR[s.tag] || (s.t === "peca" || s.t === "comp" ? COR.sc : COR.n);
     let corpo = "";
     if(s.t === "kpis") corpo = `<div class="cards">${s.cards.map(k => `<div class="card"><div class="l">${esc(k.l)}</div><div class="v" style="color:${cor}">${esc(k.v)}</div><div class="f">${esc(k.f || "")}</div></div>`).join("")}</div>`;
-    if(s.t === "tabela") corpo = `<table><thead><tr>${s.head.map((h, i) => `<th${i >= (s.left ?? 2) ? ' class="r"' : ""}>${esc(h)}</th>`).join("")}</tr></thead><tbody>${s.rows.map(r => `<tr>${r.map((v, i) => `<td${i >= (s.left ?? 2) ? ' class="r"' : ""}>${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+    if(s.t === "tabela") corpo = `<table${s.fs ? ` style="font-size:${s.fs + 4}px"` : ""}><thead><tr>${s.head.map((h, i) => `<th${i >= (s.left ?? 2) ? ' class="r"' : ""}>${esc(h)}</th>`).join("")}</tr></thead><tbody>${s.rows.map(r => `<tr>${r.map((v, i) => `<td${i >= (s.left ?? 2) ? ' class="r"' : ""}>${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
     if(s.t === "destaques") corpo = `<ul class="dest">${s.itens.map(i => `<li><b>${esc(i.t)}</b><span>${esc(i.d)}</span></li>`).join("")}</ul>`;
     if(s.t === "comp") corpo = `<div class="cmp">${s.rows.map(r => `<div class="cr"><div class="cn"><b>${esc(r.nome)}</b><span>${esc(r.data)}</span></div><div class="cm">${esc(r.l1)} <b>${esc(r.v1)}</b><br>${esc(r.l2)} <b>${esc(r.v2)}</b> (${esc(r.p2)})</div><div class="cb"><i style="width:${r.ctr == null ? 0 : Math.max(1, r.ctr / s.max * 100)}%"></i></div><div class="cv">${pcX(r.ctr)}</div></div>`).join("")}</div>`;
     if(s.t === "peca") corpo = `<div class="pc"><div class="ph"><div class="pl">${esc(s.pecaRot || "PEÇA RCS")}</div>${s.titPeca ? `<div class="pt">${esc(s.titPeca)}</div>` : ""}<div class="pm">${s.corpo ? esc(s.corpo) : `<i>${esc(s.corpoVazio || "Título e mensagem ainda não cadastrados para esta campanha.")}</i>`}</div>${s.cta ? `<div class="pb">${esc(s.cta)}</div>` : ""}</div>
@@ -5982,8 +5982,8 @@ async function exPptx(sl, nome, Mx){
         });
       }
       if(s.t === "tabela"){
-        const cab = s.head.map((h, i) => ({text:h, options:{bold:true, color:"FFFFFF", fill:{color:C.n}, align:i >= (s.left ?? 2) ? "right" : "left", fontSize:10.5}}));
-        const corpo = s.rows.map(r => r.map((v, i) => ({text:v, options:{align:i >= (s.left ?? 2) ? "right" : "left", fontSize:10.5, color:C.tx}})));
+        const cab = s.head.map((h, i) => ({text:h, options:{bold:true, color:"FFFFFF", fill:{color:C.n}, align:i >= (s.left ?? 2) ? "right" : "left", fontSize:s.fs || 10.5}}));
+        const corpo = s.rows.map(r => r.map((v, i) => ({text:v, options:{align:i >= (s.left ?? 2) ? "right" : "left", fontSize:s.fs || 10.5, color:C.tx}})));
         sd.addTable([cab].concat(corpo), {x:.6, y:1.6, w:12.1, colW:s.colW || [1.2, 2.9, .95, .95, .95, .85, .8, 1.3, 1.45, .75],
           border:{type:"solid", color:C.ln, pt:.75}, rowH:.5, valign:"middle"});
       }
