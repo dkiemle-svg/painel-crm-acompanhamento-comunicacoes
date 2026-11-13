@@ -67,6 +67,7 @@ button{cursor:pointer;background:none;border:none}
 /* ---- marca / Sonho da Sorte ---- */
 .brandsel{height:33px;font-weight:600;font-size:13px;min-width:154px;color:var(--ink)}
 #viewSonho{flex-direction:column;gap:15px}
+#viewWapp{flex-direction:column;gap:15px}
 table.grid.sg td.gc{height:50px;padding:5px 4px}
 table.grid.sg thead th.sth{cursor:pointer;user-select:none}
 table.grid.sg thead th.sth:hover{color:var(--ink)}
@@ -697,6 +698,7 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
         <option value="sonho">RCS - SONHO DA SORTE</option>
         <option value="push">Push · Sonho</option>
         <option value="email">Email · Sonho</option>
+        <option value="wapp">WhatsApp · Sonho</option>
       </select>
       <span class="tag" id="brandCount">—</span></div>
     <div class="tb">
@@ -844,6 +846,36 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
       <button class="btn primary sm" id="sAddTop" style="margin-left:auto">＋ Nova campanha</button>
     </div>
     <div class="card"><div class="sleg"><span><i class="sdt sc"></i><b>Shortcode</b>&nbsp;vem da planilha/relatório da plataforma de disparo</span><span><i class="sdt an"></i><b>Análise pós-comunicação</b>&nbsp;preenchido a partir do comportamento depois do envio (compras, grupo controle, receita)</span></div><div class="grid-wrap" id="sonhoWrap"></div><div class="gridfoot" id="sonhoFoot"></div></div>
+  </div>
+
+  <div id="viewWapp" style="display:none">
+    <div class="sklab"><i class="sdt sc"></i>WhatsApp · envios por BM</div>
+    <div class="kpis" id="wappKpis">
+      <div class="kpi"><div class="lab">Quantidade enviada</div><div class="val" id="wk1">—</div><div class="foot" id="wk1f"></div></div>
+      <div class="kpi"><div class="lab">Taxa de envio</div><div class="val" id="wk2">—</div><div class="foot" id="wk2f"></div></div>
+      <div class="kpi"><div class="lab">Taxa de clique</div><div class="val" id="wk3">—</div><div class="foot" id="wk3f"></div></div>
+      <div class="kpi"><div class="lab">Investimento</div><div class="val" id="wk4">—</div><div class="foot" id="wk4f"></div></div>
+    </div>
+    <div class="toolbar">
+      <button class="btn icon sm" id="wNavPrev" title="Anterior" aria-label="Anterior">‹</button>
+      <span class="wklabel" id="wWkLabel">—</span>
+      <button class="btn icon sm" id="wNavNext" title="Próximo" aria-label="Próximo">›</button>
+      <button class="btn sm" id="wNavReset" title="Voltar para o período atual">⟲</button>
+      <div class="seg" id="wRangeSeg" role="group" aria-label="Período">
+        <button data-r="semana" aria-pressed="false">Semana</button>
+        <button data-r="mes" aria-pressed="false">Mês</button>
+        <button data-r="tudo" aria-pressed="true">Tudo</button>
+        <button data-r="custom" aria-pressed="false">Datas…</button>
+      </div>
+      <span class="custom" id="wCustomBox">
+        <input type="date" id="wFrom" aria-label="Data inicial"><span>até</span><input type="date" id="wTo" aria-label="Data final">
+      </span>
+      <span class="vsep"></span>
+      <input class="field search" id="wQ" type="search" placeholder="Buscar envio, segmento ou BM…" aria-label="Buscar envio">
+      <button class="btn sm" id="wBtnClear">Limpar</button>
+      <button class="btn primary sm" id="wAddTop" style="margin-left:auto">＋ Novo envio</button>
+    </div>
+    <div class="card"><div class="sleg"><span><b>Taxa de envio</b>&nbsp;= entregues ÷ quantidade</span><span><b>Taxa de clique</b>&nbsp;= cliques ÷ entregues</span><span>Os envios de WhatsApp ficam só nesta aba — a aba RCS não mostra mais o Wapp</span></div><div class="grid-wrap" id="wappWrap"></div><div class="gridfoot" id="wappFoot"></div></div>
   </div>
 </div>
 
@@ -1101,7 +1133,7 @@ function readUI(){
   try{
     const d = JSON.parse(localStorage.getItem(UIKEY)||"{}");
     if(d.view === "tabela" || d.view === "timeline") ui.view = d.view;
-    if(d.marca === "bet" || d.marca === "top" || d.marca === "sonho" || d.marca === "push" || d.marca === "email") ui.marca = d.marca;
+    if(d.marca === "bet" || d.marca === "top" || d.marca === "sonho" || d.marca === "push" || d.marca === "email" || d.marca === "wapp") ui.marca = d.marca;
     if(d.sonho && typeof d.sonho === "object") sui = Object.assign(sui, d.sonho);
     if(d.range) ui.range = d.range;
     // sem isto, cada gravação recarregava a tela e jogava você de volta na semana atual
@@ -1293,7 +1325,7 @@ function podeAplicar(){
   if(document.getElementById("lgModal") && document.getElementById("lgModal").dataset.open) return false;
   if(document.getElementById("drawer").dataset.open) return false;     // gaveta da campanha
   const ae = document.activeElement;                                    // célula da Sonho em edição
-  if(ae && ae.closest && ae.closest("#sonhoWrap") && /^(INPUT|SELECT)$/.test(ae.tagName)) return false;
+  if(ae && ae.closest && ae.closest("#sonhoWrap, #wappWrap") && /^(INPUT|SELECT)$/.test(ae.tagName)) return false;
   return true;
 }
 function adiaAplicacao(){
@@ -1383,7 +1415,7 @@ async function carrega(){
   me = (meu && meu.nome) || euSou.split("@")[0];
   canWrite = !meu ? false : meu.papel === "editor";
 
-  if(!seenBefore && ui.marca !== "sonho" && ui.marca !== "push" && ui.marca !== "email" && campanhas.length && !visible().length){
+  if(!seenBefore && ui.marca !== "sonho" && ui.marca !== "push" && ui.marca !== "email" && ui.marca !== "wapp" && campanhas.length && !visible().length){
     ui.range = "mes";
     if(!visible().length) ui.range = "tudo";
     syncRangeButtons();
@@ -1713,6 +1745,7 @@ function render(){
   if(ui.marca === "sonho"){ renderSonho(); writeUI(); return; }
   if(ui.marca === "push"){ renderPush(); writeUI(); return; }
   if(ui.marca === "email"){ renderEmail(); writeUI(); return; }
+  if(ui.marca === "wapp"){ renderWapp(); writeUI(); return; }
   renderLegend(); renderKPIs(); renderFilters();
   document.getElementById("wkLabel").textContent = rangeLabel();
   const fixed = ui.range==="tudo" || ui.range==="custom";
@@ -2619,7 +2652,7 @@ document.addEventListener("keydown", (e)=>{
   }
   /* seta com nada selecionado: entra na primeira célula da tabela, aí já dá para navegar */
   if(/^Arrow(Up|Down|Left|Right)$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey
-     && ui.view === "tabela" && ui.marca !== "sonho" && ui.marca !== "push" && ui.marca !== "email" && rowIds.length){
+     && ui.view === "tabela" && ui.marca !== "sonho" && ui.marca !== "push" && ui.marca !== "email" && ui.marca !== "wapp" && rowIds.length){
     const a = document.activeElement;
     const digitando = a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA"
                         || a.tagName === "SELECT" || a.isContentEditable);
@@ -2638,7 +2671,7 @@ document.addEventListener("keydown", (e)=>{
   }
   // Ctrl+Z / Ctrl+Shift+Z — mas dentro de um campo de texto o desfazer é o do navegador
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === "z"){
-    if(ui.marca === "sonho" || ui.marca === "push" || ui.marca === "email") return;      // a Sonho não tem desfazer; dentro do campo vale o do navegador
+    if(ui.marca === "sonho" || ui.marca === "push" || ui.marca === "email" || ui.marca === "wapp") return;      // a Sonho não tem desfazer; dentro do campo vale o do navegador
     const a = document.activeElement;
     const digitando = a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA");
     if(digitando || askModal.dataset.open) return;
@@ -2646,7 +2679,7 @@ document.addEventListener("keydown", (e)=>{
     e.preventDefault(); return;
   }
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === "y"){
-    if(ui.marca === "sonho" || ui.marca === "push" || ui.marca === "email") return;
+    if(ui.marca === "sonho" || ui.marca === "push" || ui.marca === "email" || ui.marca === "wapp") return;
     const a = document.activeElement;
     if(a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA")) return;
     refazer(); e.preventDefault();
@@ -3626,6 +3659,7 @@ document.getElementById("btnExport").onclick = (e)=>{
   if(ui.marca === "sonho"){ abreExportSonho(); return; }
   if(ui.marca === "push"){ abreExportPush(); return; }
   if(ui.marca === "email"){ eCsv(); return; }
+  if(ui.marca === "wapp"){ wCsv(); return; }
   const b = e.currentTarget;
   /* Sem isto o ouvinte de clique da página fecha o menu no mesmo clique que o
      abriu — o botão está fora do #pop. É a trava que o "Ajustar" já usa. */
@@ -3880,7 +3914,7 @@ function sonhoDb(c){
     hora:c.hora || "", sc_id:c.sc_id || "", titulo:c.titulo || "", corpo:c.corpo || "", cta:c.cta || "",
     sc_destinos:nvS(c.sc_destinos), sc_sucesso:nvS(c.sc_sucesso), sc_falhas:nvS(c.sc_falhas),
     sc_respostas:nvS(c.sc_respostas), sc_cliques:nvS(c.sc_cliques), sc_fallback:nvS(c.sc_fallback),
-    obs:c.obs || "", copy_link:c.copy_link || "", arte_link:c.arte_link || ""
+    obs:c.obs || "", copy_link:c.copy_link || "", arte_link:c.arte_link || "", bm:c.bm || ""
   };
 }
 function sonhoDaLinha(r){
@@ -3894,7 +3928,7 @@ function sonhoDaLinha(r){
     hora:r.hora || "", sc_id:r.sc_id || "", titulo:r.titulo || "", corpo:r.corpo || "", cta:r.cta || "",
     sc_destinos:nvS(r.sc_destinos), sc_sucesso:nvS(r.sc_sucesso), sc_falhas:nvS(r.sc_falhas),
     sc_respostas:nvS(r.sc_respostas), sc_cliques:nvS(r.sc_cliques), sc_fallback:nvS(r.sc_fallback),
-    obs:r.obs || "", copy_link:r.copy_link || "", arte_link:r.arte_link || ""
+    obs:r.obs || "", copy_link:r.copy_link || "", arte_link:r.arte_link || "", bm:r.bm || ""
   };
 }
 /* com custo por envio preenchido, o valor investido grava junto o resultado da conta */
@@ -3922,7 +3956,7 @@ function aplicaSonho(p){
     if(i >= 0) sonho[i] = n; else sonho.push(n);
     sonhoGravado.set(id, JSON.stringify(sonhoDb(n)));
   }
-  if(ui.marca === "sonho") render();
+  if(ui.marca === "sonho" || ui.marca === "wapp") render();
   meta = {por: nomeDe(r && r.alterado_por), em: (r && r.alterado_em) || new Date().toISOString()};
   paintSync();
 }
@@ -3955,6 +3989,7 @@ function sInRange(c){
   return a <= r[1] && b >= r[0];
 }
 function sMatch(c){
+  if(c.canal === "Wapp") return false;          // WhatsApp tem aba própria
   if(sui.canal && c.canal !== sui.canal) return false;
   if(sui.q){
     const t = (c.nome + " " + c.segmento + " " + c.obs + " " + c.canal).toLowerCase();
@@ -4816,15 +4851,15 @@ function pxSlides(list){
 }
 
 
-const MARCAS_NOME = {bet:"Bet da Sorte", top:"Top Bet", sonho:"RCS - SONHO DA SORTE", push:"Push · Sonho", email:"Email · Sonho"};
+const MARCAS_NOME = {bet:"Bet da Sorte", top:"Top Bet", sonho:"RCS - SONHO DA SORTE", push:"Push · Sonho", email:"Email · Sonho", wapp:"WhatsApp · Sonho"};
 function aplicaMarcaUI(){
   const s = ui.marca === "sonho";
   const mostra = (id, on, disp) => { const el = document.getElementById(id); if(el) el.style.display = on ? (disp || "") : "none"; };
-  const p = ui.marca === "push", em = ui.marca === "email", x = s || p || em; if(!p) pui.entered = false; if(!em) eui.entered = false;
+  const p = ui.marca === "push", em = ui.marca === "email", wp = ui.marca === "wapp", x = s || p || em || wp; if(!p) pui.entered = false; if(!em) eui.entered = false;
   mostra("betKpis", !x); mostra("betToolbar", !x); mostra("legend", !x);
   mostra("viewSeg", !x, "inline-flex");
   mostra("btnUndo", !x, "inline-flex"); mostra("btnRedo", !x, "inline-flex");
-  mostra("viewSonho", s, "flex"); mostra("viewPush", p, "flex"); mostra("viewEmail", em, "flex");
+  mostra("viewSonho", s, "flex"); mostra("viewPush", p, "flex"); mostra("viewEmail", em, "flex"); mostra("viewWapp", wp, "flex");
   if(x){ mostra("viewTabela", false); mostra("viewTimeline", false); }
   const sel = document.getElementById("brandSel");
   if(sel && sel.value !== ui.marca) sel.value = ui.marca;
@@ -4857,7 +4892,7 @@ function renderSonho(){
   if(ft.value !== sui.to) ft.value = sui.to;
   const q = document.getElementById("sQ"); if(q.value !== sui.q) q.value = sui.q;
   document.getElementById("sAddTop").style.display = edita ? "" : "none";
-  document.getElementById("brandCount").textContent = sonho.length + " campanhas";
+  document.getElementById("brandCount").textContent = sonho.filter(c => c.canal !== "Wapp").length + " campanhas";
 
   renderSonhoKPIs(list);
 
@@ -4880,8 +4915,8 @@ function renderSonho(){
   });
   if(edita) h += `<tr class="addrow"><td colspan="${SCOLS.length + 1}"><button class="addbtn" id="sAdd">+ adicionar campanha</button></td></tr>`;
   h += `</tbody></table>`;
-  if(!list.length) h = `<div class="blank"><span class="big">${sonho.length ? "Nenhuma campanha neste período" : "Ainda não há campanhas do Sonho da Sorte"}</span>
-    <p>${sonho.length ? "Mude o período ou limpe a busca para ver o resto." : "Crie a primeira campanha."}</p>
+  if(!list.length) h = `<div class="blank"><span class="big">${sonho.some(c => c.canal !== "Wapp") ? "Nenhuma campanha neste período" : "Ainda não há campanhas do Sonho da Sorte"}</span>
+    <p>${sonho.some(c => c.canal !== "Wapp") ? "Mude o período ou limpe a busca para ver o resto." : "Crie a primeira campanha."}</p>
     ${edita ? `<button class="btn primary" id="sAdd">＋ Nova campanha</button>` : ""}</div>`;
   sw.innerHTML = h;
   sw.scrollTop = y; sw.scrollLeft = x;
@@ -5115,6 +5150,302 @@ document.getElementById("sQ").oninput     = (e)=>{ sui.q = e.target.value; rende
 document.getElementById("sBtnClear").onclick = ()=>{ sui.q = ""; sui.canal = ""; render(); };
 document.getElementById("brandSel").onchange = (e)=> setMarca(e.target.value);
 
+/* ===================== WHATSAPP · SONHO =====================
+   Mesma tabela e mesmo salvamento da aba RCS (sonho_campanhas), só que mostra os envios
+   com canal "Wapp". Campos desta aba → colunas da tabela:
+   Quantidade = sc_destinos · Entregues = sc_sucesso · Cliques = sc_cliques
+   Investimento = valor_investido · BM = bm. As taxas são calculadas (sCalc: p_suc e ctr). */
+const wappWrap = document.getElementById("wappWrap");
+let wui = {range:"tudo", offset:0, from:"", to:"", q:""};
+let wOrdem = null;
+const WCOLS = [
+  {k:"data_inicio",     n:"Data",              t:"date", w:140, sk:0},
+  {k:"hora",            n:"Hora do envio",     t:"text", w:122},
+  {k:"nome",            n:"Campanha",          t:"text", w:220},
+  {k:"sc_destinos",     n:"Quantidade",        t:"num",  w:122, d:0, dica:"Mensagens enviadas"},
+  {k:"bm",              n:"BM",                t:"text", w:150, dica:"Conta do WhatsApp Business (BM) usada no envio"},
+  {k:"segmento",        n:"Segmento",          t:"text", w:260},
+  {k:"sc_sucesso",      n:"Entregues",         t:"num",  w:112, d:0, dica:"Mensagens entregues ao cliente"},
+  {k:"p_suc",           n:"Taxa de envio",     t:"calc", w:124, f:"pct", dica:"Entregues ÷ Quantidade"},
+  {k:"sc_cliques",      n:"Cliques",           t:"num",  w:100, d:0},
+  {k:"ctr",             n:"Taxa de clique",    t:"calc", w:128, f:"pct", dica:"Cliques ÷ Entregues"},
+  {k:"valor_investido", n:"Investimento (R$)", t:"num",  w:158, d:2},
+  {k:"obs",             n:"Observações",       t:"text", w:200},
+];
+const WCOL = Object.fromEntries(WCOLS.map(c => [c.k, c]));
+
+/* ---------- período, busca e ordem ---------- */
+function wRangeDates(){
+  const t = new Date(); t.setHours(0,0,0,0);
+  switch(wui.range){
+    case "semana": { const a = addD(startOfWeek(t), wui.offset*7); return [a, addD(a,6)]; }
+    case "mes":    { const m = new Date(t.getFullYear(), t.getMonth()+wui.offset, 1);
+                     return [m, new Date(m.getFullYear(), m.getMonth()+1, 0)]; }
+    case "custom": { if(!wui.from && !wui.to) return null;
+                     let a = wui.from ? parseD(wui.from) : parseD("1900-01-01");
+                     let b = wui.to ? parseD(wui.to) : parseD("2999-12-31");
+                     if(a > b){ const x = a; a = b; b = x; } return [a, b]; }
+    default: return null;
+  }
+}
+function wRangeLabel(){
+  const r = wRangeDates();
+  if(!r) return wui.range === "custom" ? "Escolha as datas" : "Todo o histórico";
+  if(wui.range === "mes") return MESES_L[r[0].getMonth()] + " de " + r[0].getFullYear();
+  return shortD(r[0]) + " – " + shortD(r[1]) + " de " + r[1].getFullYear();
+}
+function wMatch(c){
+  if(c.canal !== "Wapp") return false;
+  const r = wRangeDates();
+  if(r && c.data_inicio){ const d = parseD(c.data_inicio); if(d < r[0] || d > r[1]) return false; }
+  if(wui.q){
+    const t = (c.nome + " " + c.segmento + " " + c.bm + " " + c.obs).toLowerCase();
+    if(!t.includes(wui.q.toLowerCase())) return false;
+  }
+  return true;
+}
+function wValor(c, k){
+  const col = WCOL[k];
+  if(col.t === "calc") return sCalc(c)[k];
+  if(col.t === "num") return nvS(c[k]);
+  return c[k] || "";
+}
+function wVisible(){
+  const lista = sonho.filter(wMatch);
+  const porSeq = (a, b) => (a.seq || 0) - (b.seq || 0) || String(a.id).localeCompare(b.id);
+  if(!wOrdem) return lista.sort(porSeq);
+  return lista.sort((a, b) => {
+    const va = wValor(a, wOrdem.k), vb = wValor(b, wOrdem.k);
+    const ea = va === null || va === undefined || va === "", eb = vb === null || vb === undefined || vb === "";
+    if(ea !== eb) return ea ? 1 : -1;
+    if(ea && eb) return porSeq(a, b);
+    const cmp = (typeof va === "number" && typeof vb === "number") ? va - vb
+              : String(va).localeCompare(String(vb), "pt", {sensitivity:"base"});
+    return wOrdem.dir * cmp || porSeq(a, b);
+  });
+}
+
+/* ---------- números do topo ---------- */
+function renderWappKPIs(list){
+  let qtd = 0, nEnv = 0, ent = 0, entBase = 0, cli = 0, cliBase = 0, inv = 0, invQtd = 0;
+  list.forEach(c => {
+    const d = nvS(c.sc_destinos), e = nvS(c.sc_sucesso), cl = nvS(c.sc_cliques), iv = nvS(c.valor_investido);
+    if(d != null){ qtd += d; nEnv++; }
+    if(d && e != null){ ent += e; entBase += d; }
+    if(e && cl != null){ cli += cl; cliBase += e; }
+    if(iv != null){ inv += iv; if(d) invQtd += d; }
+  });
+  const set = (id, h) => { document.getElementById(id).innerHTML = h; };
+  set("wk1", qtd ? fmtN(qtd, 0) : "—");
+  set("wk1f", list.length + " envio" + (list.length === 1 ? "" : "s") + " no período");
+  set("wk2", entBase ? fmtN(ent / entBase * 100, 1, 1) + "<small>%</small>" : "—");
+  set("wk2f", entBase ? fmtN(ent, 0) + " entregues ÷ " + fmtN(entBase, 0) + " enviadas" : "Preencha quantidade e entregues");
+  set("wk3", cliBase ? fmtN(cli / cliBase * 100, 2, 2) + "<small>%</small>" : "—");
+  set("wk3f", cliBase ? fmtN(cli, 0) + " cliques ÷ " + fmtN(cliBase, 0) + " entregues" : "Preencha entregues e cliques");
+  set("wk4", inv ? fmtBRL(inv) : "—");
+  set("wk4f", inv && invQtd ? fmtBRL(inv / invQtd * 1000) + " por mil enviadas" : "Preencha o investimento");
+}
+
+/* ---------- desenho ---------- */
+function renderWapp(){
+  const edita = canWrite !== false;
+  const list = wVisible();
+  document.getElementById("wWkLabel").textContent = wRangeLabel();
+  const fixo = wui.range === "tudo" || wui.range === "custom";
+  document.getElementById("wNavPrev").disabled = fixo;
+  document.getElementById("wNavNext").disabled = fixo;
+  document.getElementById("wNavReset").disabled = fixo || wui.offset === 0;
+  document.getElementById("wCustomBox").toggleAttribute("data-on", wui.range === "custom");
+  document.querySelectorAll("#wRangeSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.r === wui.range)));
+  const fa = document.getElementById("wFrom"), ft = document.getElementById("wTo");
+  if(fa.value !== wui.from) fa.value = wui.from;
+  if(ft.value !== wui.to) ft.value = wui.to;
+  const q = document.getElementById("wQ"); if(q.value !== wui.q) q.value = wui.q;
+  document.getElementById("wAddTop").style.display = edita ? "" : "none";
+  const todos = sonho.filter(c => c.canal === "Wapp");
+  document.getElementById("brandCount").textContent = todos.length + " envios";
+
+  renderWappKPIs(list);
+
+  const sw = wappWrap, y = sw.scrollTop, x = sw.scrollLeft;
+  const larg = WCOLS.reduce((a, c) => a + c.w, 74);
+  let h = `<table class="grid sg" style="min-width:${larg}px"><colgroup>`
+    + WCOLS.map(c => `<col style="width:${c.w}px">`).join("") + `<col style="width:74px"></colgroup><thead><tr>`
+    + WCOLS.map(c => {
+        const mk = wOrdem && wOrdem.k === c.k ? `<span class="thmk" title="Coluna ordenada">${wOrdem.dir > 0 ? "▲" : "▼"}</span>` : "";
+        const fx = c.t === "calc" ? `<span class="fx" title="${esc(c.dica || "Calculado automaticamente")}">ƒ</span>` : "";
+        const tt = c.dica ? esc(c.dica) + " — clique para ordenar" : "Clique para ordenar";
+        return `<th class="sth${c.sk != null ? ` sk sk${c.sk}` : ""}${c.t === "calc" ? " calcth" : ""}" data-sk="${c.k}" title="${tt}">${esc(c.n)}${fx}${mk}</th>`;
+      }).join("") + `<th></th></tr></thead><tbody>`;
+  list.forEach(c => {
+    const k = sCalc(c);
+    h += `<tr data-sid="${esc(c.id)}">` + WCOLS.map(col => {
+        const td = sCelula(c, col, k, edita);
+        return col.k === "bm" ? td.replace('<input class="sci"', '<input class="sci" list="wBmList"') : td;
+      }).join("")
+      + `<td class="sact">${edita ? `<button data-wdup="${esc(c.id)}" title="Duplicar envio" aria-label="Duplicar">⧉</button><button data-wdel="${esc(c.id)}" title="Excluir envio" aria-label="Excluir">✕</button>` : ""}</td></tr>`;
+  });
+  if(edita) h += `<tr class="addrow"><td colspan="${WCOLS.length + 1}"><button class="addbtn" id="wAdd">+ adicionar envio</button></td></tr>`;
+  h += `</tbody></table>`;
+  const bms = [...new Set(todos.map(c => (c.bm || "").trim()).filter(Boolean))].sort();
+  h += `<datalist id="wBmList">${bms.map(b => `<option value="${esc(b)}">`).join("")}</datalist>`;
+  if(!list.length) h = `<div class="blank"><span class="big">${todos.length ? "Nenhum envio neste período" : "Ainda não há envios de WhatsApp"}</span>
+    <p>${todos.length ? "Mude o período ou limpe a busca para ver o resto." : "Registre o primeiro envio."}</p>
+    ${edita ? `<button class="btn primary" id="wAdd">＋ Novo envio</button>` : ""}</div>`;
+  sw.innerHTML = h;
+  sw.scrollTop = y; sw.scrollLeft = x;
+
+  const n = list.length;
+  document.getElementById("wappFoot").innerHTML =
+    `<span>${n} envio${n === 1 ? "" : "s"} no período</span><span class="vsep"></span>
+     <span>Clique no cabeçalho para ordenar · <b>ƒ</b> = coluna calculada sozinha · <kbd>Enter</kbd> / <kbd>↓</kbd> desce para a linha de baixo ·
+     na célula numérica dá para digitar uma conta, como <kbd>=33308*2</kbd></span>`
+    + (wOrdem ? `<button class="btn sm" id="wLimpaOrdem">Tirar ordenação</button>` : "")
+    + (wui.q ? `<button class="btn sm" id="wLimpa">Limpar busca</button>` : "");
+}
+/* depois de editar uma célula: refaz só as colunas calculadas da linha (redesenhar tiraria o cursor do campo) */
+function atualizaLinhaWapp(c){
+  const tr = wappWrap.querySelector(`tr[data-sid="${CSS.escape(c.id)}"]`);
+  if(tr){
+    const k = sCalc(c);
+    tr.querySelectorAll("[data-sc]").forEach(el => {
+      const col = WCOL[el.dataset.sc]; if(!col) return;
+      const v = k[col.k];
+      el.textContent = fmtCalc(col.f, v);
+      el.className = "sc" + corCalc(col.f, v);
+    });
+  }
+  renderWappKPIs(wVisible());
+}
+
+/* ---------- edição ---------- */
+function novaWapp(base){
+  const seq = Math.max(0, ...sonho.map(c => c.seq || 0)) + 1;
+  const todos = sonho.filter(c => c.canal === "Wapp").sort((a, b) => (b.seq || 0) - (a.seq || 0));
+  const ultimoBm = (todos.find(c => (c.bm || "").trim()) || {}).bm || "";
+  const c = Object.assign(sonhoDaLinha({id:uid(), seq, canal:"Wapp", data_inicio:TODAY, bm:ultimoBm}), base || {});
+  sonho.push(c);
+  markDirty();
+  if(!wVisible().some(x => x.id === c.id)){
+    wui.range = "tudo"; wui.offset = 0; wui.from = ""; wui.to = ""; wui.q = "";
+    toast("Filtros limpos — o envio novo ficaria fora do período");
+  }
+  render();
+  setTimeout(() => {
+    const el = wappWrap.querySelector(`input[data-sid="${CSS.escape(c.id)}"][data-sk="hora"]`);
+    if(el){ el.scrollIntoView({block:"nearest"}); el.focus(); }
+  }, 30);
+  return c;
+}
+async function excluiWapp(id){
+  const c = sonho.find(x => x.id === id); if(!c) return;
+  const ok = await pergunta({titulo:"Excluir envio", perigo:true, ok:"Excluir",
+    texto:`"${c.nome || "Sem nome"}" sai do painel para todo mundo.`});
+  if(!ok) return;
+  sonho = sonho.filter(x => x.id !== id);
+  render(); markDirty(); toast("Envio excluído");
+}
+function duplicaWapp(id){
+  const c = sonho.find(x => x.id === id); if(!c) return;
+  novaWapp(Object.assign({}, c, {id:uid(), seq:Math.max(0, ...sonho.map(x => x.seq || 0)) + 1,
+    nome:(c.nome || "") + " (cópia)", data_inicio:TODAY, sc_sucesso:null, sc_cliques:null, valor_investido:null}));
+}
+function confirmaCelulaWapp(el){
+  const c = sonho.find(x => x.id === el.dataset.sid); if(!c) return;
+  const k = el.dataset.sk, col = WCOL[k]; if(!col || col.t === "calc") return;
+  if(canWrite === false) return;
+  let v;
+  if(col.t === "num"){
+    const r = parseNum(el.value);
+    if(!r.ok){ toast("Não entendi esse número"); el.value = el.defaultValue; return; }
+    v = r.v;
+    if(v != null && v < 0){ toast("Use um valor maior ou igual a zero"); el.value = el.defaultValue; return; }
+    el.value = v == null ? "" : fmtN(v, col.d, Math.max(col.d, 2));
+  }else if(col.t === "date"){
+    v = el.value || null;
+  }else{
+    v = el.value.trim();
+  }
+  if(c[k] === v || (c[k] == null && v == null)){ el.defaultValue = el.value; return; }
+  c[k] = v;
+  el.defaultValue = el.value;
+  if(col.t === "text") el.title = v || "";
+  atualizaLinhaWapp(c);
+  markDirty();
+}
+wappWrap.addEventListener("change", (e)=>{
+  const el = e.target.closest("[data-sk]");
+  if(el && el.dataset.sid) confirmaCelulaWapp(el);
+});
+wappWrap.addEventListener("focusin", (e)=>{
+  const el = e.target;
+  if(el.tagName === "INPUT" && el.type !== "date" && !el.readOnly) setTimeout(()=>{ try{ el.select(); }catch(err){} }, 0);
+});
+wappWrap.addEventListener("keydown", (e)=>{
+  const el = e.target;
+  if(!el.dataset || !el.dataset.sk || !el.dataset.sid) return;
+  if(e.key === "Escape" && el.tagName === "INPUT"){ el.value = el.defaultValue; el.blur(); return; }
+  const desce = e.key === "Enter" || e.key === "ArrowDown", sobe = e.key === "ArrowUp";
+  if((desce || sobe) && el.tagName === "INPUT" && !(el.type === "date" && e.key !== "Enter")){
+    const tr = el.closest("tr");
+    const prox = sobe ? tr.previousElementSibling : tr.nextElementSibling;
+    e.preventDefault();
+    confirmaCelulaWapp(el);
+    const alvo = prox && prox.querySelector(`[data-sk="${el.dataset.sk}"]`);
+    if(alvo) alvo.focus();
+  }
+});
+wappWrap.addEventListener("click", (e)=>{
+  const th = e.target.closest("th[data-sk]");
+  if(th){
+    const k = th.dataset.sk;
+    wOrdem = (wOrdem && wOrdem.k === k) ? {k, dir:-wOrdem.dir} : {k, dir:-1};   // 1º clique: maior → menor
+    render(); return;
+  }
+  const d = e.target.closest("[data-wdel]"); if(d){ excluiWapp(d.dataset.wdel); return; }
+  const u = e.target.closest("[data-wdup]"); if(u){ duplicaWapp(u.dataset.wdup); return; }
+  if(e.target.closest("#wAdd")){ novaWapp(); return; }
+});
+document.getElementById("wappFoot").addEventListener("click", (e)=>{
+  if(e.target.closest("#wLimpaOrdem")){ wOrdem = null; render(); }
+  if(e.target.closest("#wLimpa")){ wui.q = ""; render(); }
+});
+document.getElementById("wAddTop").onclick = ()=> novaWapp();
+document.getElementById("wRangeSeg").onclick = (e)=>{
+  const b = e.target.closest("button"); if(!b) return;
+  wui.range = b.dataset.r; wui.offset = 0;
+  if(wui.range === "custom" && !wui.from && !wui.to){
+    wui.from = fmtD(addD(new Date(), -30)); wui.to = fmtD(new Date());
+  }
+  render();
+  if(wui.range === "custom") setTimeout(()=>document.getElementById("wFrom").focus(), 30);
+};
+document.getElementById("wNavPrev").onclick  = ()=>{ if(wui.range !== "tudo" && wui.range !== "custom"){ wui.offset--; render(); } };
+document.getElementById("wNavNext").onclick  = ()=>{ if(wui.range !== "tudo" && wui.range !== "custom"){ wui.offset++; render(); } };
+document.getElementById("wNavReset").onclick = ()=>{ wui.offset = 0; render(); };
+document.getElementById("wFrom").onchange = (e)=>{ wui.from = e.target.value; render(); };
+document.getElementById("wTo").onchange   = (e)=>{ wui.to = e.target.value; render(); };
+document.getElementById("wQ").oninput     = (e)=>{ wui.q = e.target.value; render(); };
+document.getElementById("wBtnClear").onclick = ()=>{ wui.q = ""; render(); };
+
+/* CSV da aba WhatsApp — respeita período e busca */
+function wCsv(){
+  const cel = v => { v = String(v == null ? "" : v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const num = v => v == null ? "" : String(Math.round(v * 100) / 100).replace(".", ",");
+  const pct = v => v == null ? "" : String(Math.round(v * 10000) / 100).replace(".", ",");
+  const rows = [["Data","Hora do envio","Campanha","Quantidade","BM","Segmento","Entregues","Taxa de envio %","Cliques","Taxa de clique %","Investimento (R$)","Observações"]];
+  wVisible().forEach(c => {
+    const k = sCalc(c);
+    rows.push([c.data_inicio ? dataBR(c.data_inicio) : "", c.hora, c.nome, num(nvS(c.sc_destinos)), c.bm, c.segmento, num(nvS(c.sc_sucesso)),
+      pct(k.p_suc), num(nvS(c.sc_cliques)), pct(k.ctr), num(nvS(c.valor_investido)), c.obs]);
+  });
+  const blob = new Blob(["﻿" + rows.map(r => r.map(cel).join(";")).join("\r\n")], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = "whatsapp-sonho_" + TODAY + ".csv";
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  toast("CSV exportado (" + (rows.length - 1) + " envios)");
+}
+
 /* CSV da Sonho — respeita período e busca, como o da Bet */
 function csvSonho(lista){
   const head = SCOLS.map(c => c.n);
@@ -5142,7 +5473,7 @@ const ex = {modo:"tudo", from:"", to:"", ids:new Set(), q:"", soSc:false, soAn:f
 const pcX = (v, d) => v == null ? "—" : fmtN(v * 100, d == null ? 2 : d, d == null ? 2 : d) + "%";
 
 function exTodas(){
-  return sonho.slice().sort((a, b) => String(a.data_inicio || "").localeCompare(String(b.data_inicio || ""))
+  return sonho.filter(c => c.canal !== "Wapp").sort((a, b) => String(a.data_inicio || "").localeCompare(String(b.data_inicio || ""))
     || String(a.hora || "").localeCompare(String(b.hora || "")) || (a.seq || 0) - (b.seq || 0));
 }
 function exLista(){
@@ -5186,8 +5517,8 @@ function exInfo(){
   exModal.querySelectorAll("[data-ef]").forEach(b => { if(b.dataset.ef !== "json") b.disabled = !n; });
 }
 function abreExportSonho(){
-  const ds = sonho.map(c => c.data_inicio).filter(Boolean).sort();
-  ex.modo = "tudo"; ex.q = ""; ex.from = ds[0] || ""; ex.to = ds[ds.length - 1] || ""; ex.ids = new Set(sonho.map(c => c.id));
+  const ds = exTodas().map(c => c.data_inicio).filter(Boolean).sort();
+  ex.modo = "tudo"; ex.q = ""; ex.from = ds[0] || ""; ex.to = ds[ds.length - 1] || ""; ex.ids = new Set(exTodas().map(c => c.id));
   document.getElementById("exQ").value = "";
   exDesenha();
   exModal.dataset.open = "1";
