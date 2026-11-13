@@ -987,6 +987,46 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
   </div>
 </div>
 
+<div class="modal" id="wxModal" role="dialog" aria-modal="true" aria-labelledby="wxTitle">
+  <div class="mbox exbox">
+    <header><div style="flex:1"><h2 id="wxTitle">Exportar · WhatsApp · Sonho</h2><p>Escolha o que sai e em que formato.</p></div>
+      <button class="btn icon sm" data-wxclose aria-label="Fechar">✕</button></header>
+    <div class="mbody">
+      <div class="exlab">O que exportar</div>
+      <div class="seg" id="wxModo" role="group" aria-label="Escopo"></div>
+      <div class="exdatas" id="wxDatas"><input type="date" id="wxFrom" aria-label="Data inicial"><span>até</span><input type="date" id="wxTo" aria-label="Data final"></div>
+      <div id="wxCamp">
+        <div class="exbar"><input class="field search" id="wxQ" type="search" placeholder="Buscar envio…" aria-label="Buscar envio">
+          <button class="btn sm" data-wxall>Marcar todos</button><button class="btn sm" data-wxnone>Limpar</button></div>
+        <div class="exlist" id="wxList"></div>
+      </div>
+      <div class="exinfo" id="wxInfo"></div>
+      <div class="exlab" style="margin-top:18px">Filtros e ordem</div>
+      <div class="exopts">
+        <label class="exchk"><input type="checkbox" data-wxf="soEnt"> Só envios com entregues preenchidos (deixa de fora os que ainda não têm resultado)</label>
+        <label class="exsel">Ordenar por
+          <select id="wxOrd"><option value="data">Data do envio</option><option value="ctr">Maior taxa de clique</option><option value="suc">Maior taxa de envio</option><option value="qtd">Maior quantidade</option><option value="inv">Maior investimento</option></select></label>
+      </div>
+      <div class="exlab" style="margin-top:18px">O que entra na apresentação</div>
+      <div class="exopts two">
+        <label class="exchk"><input type="checkbox" data-wxsec="res"> Resumo de envio e cliques</label>
+        <label class="exchk"><input type="checkbox" data-wxsec="inv"> Investimento e custos</label>
+        <label class="exchk"><input type="checkbox" data-wxsec="dest"> Destaques</label>
+        <label class="exchk"><input type="checkbox" data-wxsec="comp"> Comparativo de taxa de clique entre envios</label>
+        <label class="exchk"><input type="checkbox" data-wxsec="pecas"> Uma página por envio <span id="wxPgs" style="color:var(--ink-3)"></span></label>
+        <label class="exchk"><input type="checkbox" data-wxsec="tab"> Tabela-resumo (anexo)</label>
+      </div>
+      <div class="exlab" style="margin-top:18px">Formato</div>
+      <div class="exfmt">
+        <button class="btn" data-wxe="csv"><b>Planilha</b><small>.csv com todas as colunas</small></button>
+        <button class="btn primary" data-wxe="pptx"><b>Apresentação</b><small>.pptx · resumo editável</small></button>
+        <button class="btn" data-wxe="pdf"><b>Apresentação em PDF</b><small>abre em slides; salvar como PDF</small></button>
+      </div>
+    </div>
+    <div class="mfoot"><button class="btn" data-wxclose style="margin-left:auto">Fechar</button></div>
+  </div>
+</div>
+
 <div class="modal" id="stModal" role="dialog" aria-modal="true" aria-labelledby="stTitle">
   <div class="mbox">
     <header>
@@ -3659,7 +3699,7 @@ document.getElementById("btnExport").onclick = (e)=>{
   if(ui.marca === "sonho"){ abreExportSonho(); return; }
   if(ui.marca === "push"){ abreExportPush(); return; }
   if(ui.marca === "email"){ eCsv(); return; }
-  if(ui.marca === "wapp"){ wCsv(); return; }
+  if(ui.marca === "wapp"){ abreExportWapp(); return; }
   const b = e.currentTarget;
   /* Sem isto o ouvinte de clique da página fecha o menu no mesmo clique que o
      abriu — o botão está fora do #pop. É a trava que o "Ajustar" já usa. */
@@ -5428,22 +5468,18 @@ document.getElementById("wTo").onchange   = (e)=>{ wui.to = e.target.value; rend
 document.getElementById("wQ").oninput     = (e)=>{ wui.q = e.target.value; render(); };
 document.getElementById("wBtnClear").onclick = ()=>{ wui.q = ""; render(); };
 
-/* CSV da aba WhatsApp — respeita período e busca */
-function wCsv(){
+/* CSV da aba WhatsApp — recebe a lista (o diálogo Exportar escolhe quais envios entram) */
+function wCsvTexto(lista){
   const cel = v => { v = String(v == null ? "" : v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
   const num = v => v == null ? "" : String(Math.round(v * 100) / 100).replace(".", ",");
   const pct = v => v == null ? "" : String(Math.round(v * 10000) / 100).replace(".", ",");
   const rows = [["Data","Hora do envio","Campanha","Quantidade","BM","Segmento","Entregues","Taxa de envio %","Cliques","Taxa de clique %","Investimento (R$)","Observações"]];
-  wVisible().forEach(c => {
+  lista.forEach(c => {
     const k = sCalc(c);
     rows.push([c.data_inicio ? dataBR(c.data_inicio) : "", c.hora, c.nome, num(nvS(c.sc_destinos)), c.bm, c.segmento, num(nvS(c.sc_sucesso)),
       pct(k.p_suc), num(nvS(c.sc_cliques)), pct(k.ctr), num(nvS(c.valor_investido)), c.obs]);
   });
-  const blob = new Blob(["﻿" + rows.map(r => r.map(cel).join(";")).join("\r\n")], {type:"text/csv;charset=utf-8"});
-  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-  a.download = "whatsapp-sonho_" + TODAY + ".csv";
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  toast("CSV exportado (" + (rows.length - 1) + " envios)");
+  return "\ufeff" + rows.map(r => r.map(cel).join(";")).join("\r\n");
 }
 
 /* CSV da Sonho — respeita período e busca, como o da Bet */
@@ -5461,6 +5497,195 @@ function csvSonho(lista){
     }));
   });
   return "﻿" + rows.map(r => r.map(v => `"${String(v == null ? "" : v).replace(/"/g,'""')}"`).join(",")).join("\n");
+}
+
+
+/* ===================== EXPORTAR · WHATSAPP · SONHO =====================
+   Mesmo diálogo do RCS e do Push: o que sai (a tela como está, um intervalo de datas ou
+   envios marcados), filtros, o que entra na apresentação e o formato (CSV, .pptx ou PDF).
+   Usa os mesmos desenhistas de slides (exHtml / exPptx). */
+const EX_M_WAPP = {nome:"WhatsApp · Sonho da Sorte", rod:"WhatsApp · Sonho da Sorte", tit:"WhatsApp · Sonho da Sorte · resumo"};
+const wxModal = document.getElementById("wxModal");
+const wx = {modo:"tela", from:"", to:"", ids:new Set(), q:"", soEnt:false, ord:"data",
+  secs:{res:true, inv:true, dest:true, comp:true, pecas:false, tab:true}};
+const wxCron = (a, b) => String(a.data_inicio || "").localeCompare(String(b.data_inicio || ""))
+  || String(a.hora || "").localeCompare(String(b.hora || "")) || (a.seq || 0) - (b.seq || 0);
+
+function wxTodos(){ return sonho.filter(c => c.canal === "Wapp").sort(wxCron); }
+function wxLista(){
+  let t;
+  if(wx.modo === "tela") t = wVisible();
+  else if(wx.modo === "datas") t = wxTodos().filter(c => c.data_inicio && (!wx.from || c.data_inicio >= wx.from) && (!wx.to || c.data_inicio <= wx.to));
+  else t = wxTodos().filter(c => wx.ids.has(c.id));
+  if(wx.soEnt) t = t.filter(c => nvS(c.sc_sucesso) != null);
+  const ch = {ctr:c => sCalc(c).ctr, suc:c => sCalc(c).p_suc, qtd:c => nvS(c.sc_destinos), inv:c => nvS(c.valor_investido)}[wx.ord];
+  t = t.slice();
+  if(ch) t.sort((a, b) => { const x = ch(a), y = ch(b); if(x == null && y == null) return 0; if(x == null) return 1; if(y == null) return -1; return y - x; });
+  else t.sort(wxCron);
+  return t;
+}
+function wxRotulo(c){
+  return (c.data_inicio ? dataBR(c.data_inicio).slice(0, 5) : "s/ data") + (c.hora ? " " + c.hora : "") + " · " + (c.nome || "Sem nome");
+}
+function wxDesenha(){
+  document.getElementById("wxModo").innerHTML = [["tela", "Filtro da tela"], ["datas", "Por datas"], ["envio", "Por envios"]]
+    .map(([m, n]) => `<button data-wxm="${m}" aria-pressed="${wx.modo === m}">${n}</button>`).join("");
+  document.getElementById("wxDatas").style.display = wx.modo === "datas" ? "flex" : "none";
+  document.getElementById("wxCamp").style.display = wx.modo === "envio" ? "block" : "none";
+  const f = document.getElementById("wxFrom"), t = document.getElementById("wxTo");
+  if(f.value !== wx.from) f.value = wx.from;
+  if(t.value !== wx.to) t.value = wx.to;
+  wxModal.querySelectorAll("[data-wxf]").forEach(i => { i.checked = !!wx[i.dataset.wxf]; });
+  wxModal.querySelectorAll("[data-wxsec]").forEach(i => { i.checked = !!wx.secs[i.dataset.wxsec]; });
+  document.getElementById("wxOrd").value = wx.ord;
+  wxDesenhaLista(); wxInfo();
+}
+function wxDesenhaLista(){
+  const q = wx.q.toLowerCase();
+  const itens = wxTodos().filter(c => !q || wxRotulo(c).toLowerCase().includes(q));
+  document.getElementById("wxList").innerHTML = itens.map(c =>
+    `<label class="exrow"><input type="checkbox" data-wxid="${esc(c.id)}"${wx.ids.has(c.id) ? " checked" : ""}><span>${esc(wxRotulo(c))}</span></label>`).join("")
+    || `<div class="exvazio">Nenhum envio encontrado</div>`;
+}
+function wxInfo(){
+  const l = wxLista(), n = l.length;
+  const ds = l.map(c => c.data_inicio).filter(Boolean).sort();
+  document.getElementById("wxInfo").textContent = n + " envio" + (n === 1 ? "" : "s") + " na seleção"
+    + (n && ds.length ? " · " + dataBR(ds[0]).slice(0, 5) + (ds[0] === ds[ds.length - 1] ? "" : " a " + dataBR(ds[ds.length - 1]).slice(0, 5)) : "");
+  document.getElementById("wxPgs").textContent = n ? "(" + n + " página" + (n === 1 ? "" : "s") + ")" : "";
+  wxModal.querySelectorAll("[data-wxe]").forEach(b => { b.disabled = !n; });
+}
+function abreExportWapp(){
+  const ds = wxTodos().map(c => c.data_inicio).filter(Boolean).sort();
+  wx.modo = "tela"; wx.q = ""; wx.from = ds[0] || ""; wx.to = ds[ds.length - 1] || ""; wx.ids = new Set(wxTodos().map(c => c.id));
+  document.getElementById("wxQ").value = "";
+  wxDesenha();
+  wxModal.dataset.open = "1";
+}
+function fechaExportWapp(){ delete wxModal.dataset.open; }
+wxModal.addEventListener("click", (e) => {
+  if(e.target === wxModal || e.target.closest("[data-wxclose]")){ fechaExportWapp(); return; }
+  const m = e.target.closest("[data-wxm]"); if(m){ wx.modo = m.dataset.wxm; wxDesenha(); return; }
+  if(e.target.closest("[data-wxall]")){ wxTodos().forEach(c => wx.ids.add(c.id)); wxDesenhaLista(); wxInfo(); return; }
+  if(e.target.closest("[data-wxnone]")){ wx.ids.clear(); wxDesenhaLista(); wxInfo(); return; }
+  const b = e.target.closest("[data-wxe]"); if(b && !b.disabled) wxExecuta(b.dataset.wxe);
+});
+wxModal.addEventListener("change", (e) => {
+  const d = e.target.dataset || {};
+  if(d.wxid){ if(e.target.checked) wx.ids.add(d.wxid); else wx.ids.delete(d.wxid); wxInfo(); }
+  if(d.wxf){ wx[d.wxf] = e.target.checked; wxInfo(); }
+  if(d.wxsec){ wx.secs[d.wxsec] = e.target.checked; }
+  if(e.target.id === "wxOrd"){ wx.ord = e.target.value; wxInfo(); }
+  if(e.target.id === "wxFrom"){ wx.from = e.target.value; wxInfo(); }
+  if(e.target.id === "wxTo"){ wx.to = e.target.value; wxInfo(); }
+});
+document.getElementById("wxQ").oninput = (e) => { wx.q = e.target.value; wxDesenhaLista(); };
+document.addEventListener("keydown", (e) => { if(e.key === "Escape" && wxModal.dataset.open) fechaExportWapp(); });
+
+async function wxExecuta(f){
+  const l = wxLista();
+  if(!l.length){ toast("Nenhum envio na seleção"); return; }
+  if(f === "csv"){ await offer("whatsapp-sonho-" + TODAY + ".csv", wCsvTexto(l), "text/csv"); return; }
+  if(!Object.values(wx.secs).some(Boolean)){ toast("Marque ao menos um item em “O que entra na apresentação”"); return; }
+  const sl = wxSlides(l);
+  if(f === "pdf"){ exAbreHtml(sl, "whatsapp-sonho-resumo-" + TODAY + ".html", EX_M_WAPP); return; }
+  if(f === "pptx"){ await exPptx(sl, "whatsapp-sonho-resumo-" + TODAY + ".pptx", EX_M_WAPP); }
+}
+
+/* ---------- os números do resumo: os mesmos cartões da aba ---------- */
+function wxResumo(list){
+  const r = {n:list.length, nEnv:0, qtd:0, ent:0, entBase:0, cli:0, cliBase:0, inv:0, invQtd:0, invCli:0, cliInv:0};
+  list.forEach(c => {
+    const d = nvS(c.sc_destinos), e = nvS(c.sc_sucesso), cl = nvS(c.sc_cliques), iv = nvS(c.valor_investido);
+    if(d != null){ r.qtd += d; r.nEnv++; }
+    if(d && e != null){ r.ent += e; r.entBase += d; }
+    if(e && cl != null){ r.cli += cl; r.cliBase += e; }
+    if(iv != null){ r.inv += iv; if(d) r.invQtd += d; if(cl) { r.invCli += iv; r.cliInv += cl; } }
+  });
+  return r;
+}
+function wxSlides(list){
+  const R = wxResumo(list), K = wx.secs, ds = list.map(c => c.data_inicio).filter(Boolean).sort();
+  const per = !ds.length ? "" : (ds[0] === ds[ds.length - 1] ? dataBR(ds[0]) : dataBR(ds[0]) + " a " + dataBR(ds[ds.length - 1]));
+  const n0 = v => v == null ? "—" : fmtN(v, 0);
+  const S = [];
+  S.push({t:"capa", titulo:"WhatsApp · Sonho da Sorte", sub:"Resumo dos envios" + (per ? " · " + per : ""),
+    linhas:[R.n + " envio" + (R.n === 1 ? "" : "s") + " no resumo", "Gerado em " + dataBR(TODAY) + " · Painel de Campanhas"]});
+  if(K.res) S.push({t:"kpis", tag:"sc", titulo:"Envio e cliques · WhatsApp", sub:"Quantidade, entrega e engajamento",
+    cards:[
+      {l:"Envios", v:String(R.n), f:R.nEnv + " com quantidade preenchida"},
+      {l:"Quantidade enviada", v:R.qtd ? fmtN(R.qtd, 0) : "—", f:"mensagens; inclui reenvios, não são pessoas únicas"},
+      {l:"Entregues", v:R.entBase ? fmtN(R.ent, 0) : "—", f:R.entBase ? pcX(R.ent / R.entBase, 1) + " das enviadas" : "preencha quantidade e entregues"},
+      {l:"Taxa de envio", v:R.entBase ? pcX(R.ent / R.entBase, 1) : "—", f:"entregues ÷ quantidade"},
+      {l:"Cliques", v:R.cliBase ? fmtN(R.cli, 0) : "—", f:R.cliBase ? "sobre " + fmtN(R.cliBase, 0) + " entregues" : ""},
+      {l:"Taxa de clique", v:R.cliBase ? pcX(R.cli / R.cliBase) : "—", f:"cliques ÷ entregues"}]});
+  if(K.inv) S.push({t:"kpis", tag:"an", titulo:"Investimento e custos", sub:"Quanto foi investido nos envios da seleção",
+    cards:[
+      {l:"Investido", v:R.inv ? fmtBRL(R.inv) : "—", f:R.n + " envio" + (R.n === 1 ? "" : "s") + " na seleção"},
+      {l:"Custo por mil enviadas", v:R.inv && R.invQtd ? fmtBRL(R.inv / R.invQtd * 1000) : "—", f:"investimento ÷ quantidade × 1.000"},
+      {l:"Custo por mensagem", v:R.inv && R.invQtd ? fmtBRL(R.inv / R.invQtd) : "—", f:"investimento ÷ quantidade"},
+      {l:"Custo por clique", v:R.invCli && R.cliInv ? fmtBRL(R.invCli / R.cliInv) : "—", f:R.cliInv ? "sobre " + fmtN(R.cliInv, 0) + " cliques" : "preencha cliques e investimento"},
+      {l:"Cliques", v:R.cliBase ? fmtN(R.cli, 0) : "—", f:"nos envios com entregues"},
+      {l:"Quantidade enviada", v:R.qtd ? fmtN(R.qtd, 0) : "—", f:"base do custo por mil"}]});
+  const nm = c => (c.nome || "Sem nome") + (c.data_inicio ? " (" + dataBR(c.data_inicio).slice(0, 5) + ")" : "");
+  if(K.dest){
+    const D = [];
+    const comCtr = list.filter(c => nvS(c.sc_sucesso) >= 1000 && nvS(c.sc_cliques) != null).sort((a, b) => sCalc(b).ctr - sCalc(a).ctr);
+    if(comCtr.length) D.push({t:"Melhor taxa de clique", d:nm(comCtr[0]) + " · " + pcX(sCalc(comCtr[0]).ctr) + " (" + fmtN(nvS(comCtr[0].sc_cliques), 0) + " cliques em " + fmtN(nvS(comCtr[0].sc_sucesso), 0) + " entregues)"});
+    const maior = list.filter(c => nvS(c.sc_destinos) != null).sort((a, b) => nvS(b.sc_destinos) - nvS(a.sc_destinos))[0];
+    if(maior) D.push({t:"Maior envio", d:nm(maior) + " · " + fmtN(nvS(maior.sc_destinos), 0) + " mensagens" + (nvS(maior.sc_sucesso) != null ? ", " + fmtN(nvS(maior.sc_sucesso), 0) + " entregues" : "")});
+    const cpc = list.filter(c => nvS(c.valor_investido) && nvS(c.sc_cliques)).sort((a, b) => nvS(a.valor_investido) / nvS(a.sc_cliques) - nvS(b.valor_investido) / nvS(b.sc_cliques));
+    if(cpc.length) D.push({t:"Menor custo por clique", d:nm(cpc[0]) + " · " + fmtBRL(nvS(cpc[0].valor_investido) / nvS(cpc[0].sc_cliques)) + " por clique"});
+    list.filter(c => nvS(c.sc_destinos) >= 1000 && sCalc(c).p_suc != null && sCalc(c).p_suc < 0.7).forEach(c =>
+      D.push({t:"Atenção: baixa entrega no WhatsApp", d:nm(c) + " · só " + pcX(sCalc(c).p_suc, 1) + " entregues de " + fmtN(nvS(c.sc_destinos), 0) + " enviadas"}));
+    D.push({t:"Como ler", d:"Taxa de envio = entregues ÷ quantidade. Taxa de clique = cliques ÷ entregues. Quantidade soma reenvios e não são pessoas únicas."});
+    S.push({t:"destaques", titulo:"Destaques", sub:"Leitura rápida dos números", itens:D});
+  }
+  if(K.comp){
+    const lin = list.map(c => { const k = sCalc(c); return {nome:String(c.nome || "Sem nome").slice(0, 40),
+      data:(c.data_inicio ? dataBR(c.data_inicio).slice(0, 5) : "—") + (c.hora ? " " + c.hora : ""),
+      l1:"Enviadas", v1:n0(nvS(c.sc_destinos)), l2:"Entregues", v2:n0(nvS(c.sc_sucesso)), p2:pcX(k.p_suc, 1), ctr:k.ctr}; });
+    const mx = Math.max(0.0001, ...lin.map(r => r.ctr || 0)), POR = 8, pags = Math.ceil(lin.length / POR);
+    for(let i = 0; i < pags; i++)
+      S.push({t:"comp", titulo:"Comparativo de envios" + (pags > 1 ? " (" + (i + 1) + "/" + pags + ")" : ""),
+        sub:"Barra = taxa de clique (cliques ÷ entregues) · ao lado, quantidade enviada e entregues", rows:lin.slice(i * POR, (i + 1) * POR), max:mx});
+  }
+  if(K.pecas) list.forEach(c => {
+    const k = sCalc(c), d = nvS(c.sc_destinos), e = nvS(c.sc_sucesso), cl = nvS(c.sc_cliques), iv = nvS(c.valor_investido);
+    const nb = v => fmtBRL(v).replace(/\s/g, "\u00a0");
+    const an = [
+      {l:"Investido", v:iv == null ? "—" : nb(iv)},
+      {l:"Custo por mil", v:iv && d ? nb(iv / d * 1000) : "—"},
+      {l:"Custo por mensagem", v:iv && d ? nb(iv / d) : "—"},
+      {l:"Custo por clique", v:iv && cl ? nb(iv / cl) : "—"}];
+    const info = [c.bm ? "BM: " + c.bm : "", c.segmento ? "Segmento: " + c.segmento : "", c.obs ? "Obs.: " + c.obs : ""].filter(Boolean).join("\n");
+    S.push({t:"peca", titulo:String(c.nome || "Sem nome").slice(0, 60),
+      sub:(c.data_inicio ? dataBR(c.data_inicio) : "") + (c.hora ? " às " + c.hora : ""),
+      pecaRot:"ENVIO WHATSAPP", titPeca:c.nome || "", corpo:info, corpoVazio:"BM e segmento ainda não preenchidos para este envio.", cta:"",
+      tiles:[
+        {l:"Quantidade", v:n0(d), f:"mensagens enviadas"},
+        {l:"Entregues", v:n0(e), f:d && e != null ? pcX(k.p_suc, 1) + " das enviadas" : ""},
+        {l:"Taxa de envio", v:pcX(k.p_suc, 1), f:"entregues ÷ quantidade"},
+        {l:"Cliques", v:n0(cl), f:e ? "sobre " + fmtN(e, 0) + " entregues" : ""},
+        {l:"Taxa de clique", v:pcX(k.ctr), f:"cliques ÷ entregues"},
+        {l:"Investimento (R$)", v:iv == null ? "—" : fmtN(iv, 2, 2), f:c.bm ? "BM: " + c.bm : ""}],
+      an, temAn:an.some(x => x.v !== "—"), anRot:"INVESTIMENTO E CUSTOS", anVazio:"Investimento ainda não preenchido."});
+  });
+  if(K.tab){
+    const head = ["Data", "Campanha", "BM", "Segmento", "Quantidade", "Entregues", "% Envio", "Cliques", "% Clique", "Investido"];
+    const linhas = list.map(c => {
+      const k = sCalc(c);
+      return [(c.data_inicio ? dataBR(c.data_inicio).slice(0, 5) : "—") + (c.hora ? " " + c.hora : ""),
+        String(c.nome || "Sem nome").slice(0, 40), String(c.bm || "—").slice(0, 16), String(c.segmento || "—").slice(0, 40),
+        n0(nvS(c.sc_destinos)), n0(nvS(c.sc_sucesso)), pcX(k.p_suc, 1), n0(nvS(c.sc_cliques)), pcX(k.ctr),
+        nvS(c.valor_investido) == null ? "—" : fmtBRL(nvS(c.valor_investido))];
+    });
+    const POR = 7, pags = Math.ceil(linhas.length / POR);
+    for(let i = 0; i < pags; i++)
+      S.push({t:"tabela", titulo:"Tabela-resumo" + (pags > 1 ? " (" + (i + 1) + "/" + pags + ")" : ""), sub:"Todos os envios da seleção", left:4, colW:[1.0, 2.2, 1.1, 2.3, .95, .9, .75, .7, .8, 1.1],
+        head, rows:linhas.slice(i * POR, (i + 1) * POR)});
+  }
+  return S;
 }
 
 /* ===================== EXPORTAR · RCS - SONHO DA SORTE =====================
