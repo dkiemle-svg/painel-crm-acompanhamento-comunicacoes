@@ -4081,37 +4081,37 @@ function eKpis(D){
 function eRow(cells, cls, extra){ return "<tr" + (cls ? ' class="' + cls + '"' : "") + (extra || "") + ">" + cells + "</tr>"; }
 function eTable(D){
   const {hoje, dias, fora} = D, nC = E_COLS.length;
-  let h = '<table class="pv-tbl"><thead><tr><th class="l">Dia</th><th class="l">Data</th><th class="l">Status</th><th>Limite do dia</th>' +
-    E_COLS.map(c => "<th>" + c[0] + "</th>").join("") + "<th>Throttle<small>por 5 min</small></th><th>Envios<small>por hora</small></th></tr></thead><tbody>";
+  let h = '<table class="pv-tbl"><thead><tr><th class="l">Dia</th><th class="l">Data</th><th class="l">Status</th><th>Limite do dia</th><th>Throttle<small>por 5 min</small></th><th>Envios<small>por hora</small></th>' +
+    E_COLS.map(c => "<th>" + c[0] + "</th>").join("") + "</tr></thead><tbody>";
   const cel = (a, d) => E_COLS.map(c => "<td>" + c[1](a, d) + "</td>").join("");
   const vazio = E_COLS.map(() => "<td>—</td>").join("");
   dias.forEach(x => {
     const d = x.d, aberto = !!eui.open[d.dia], temC = x.camp.length > 0, fut = d.data > hoje;
     const cls = "em-day" + (fut ? " em-fut" : "") + (d.data === hoje ? " em-hoje" : "");
-    h += eRow('<td class="l"><span class="em-car">' + (temC ? (aberto ? "▾" : "▸") : "") + "</span>Day " + d.dia + '</td><td class="l">' + pDM(d.data) + '</td><td class="l">' + eStatus(d, x.a, hoje) + "</td><td>" + pInt(d.limite) + "</td>" +
-      (fut ? vazio : cel(x.a, d)) + "<td>" + pInt(d.throttle_5min) + "</td><td>" + pInt(d.enviados_hora) + "</td>", cls, ' data-ed="' + d.dia + '"');
+    h += eRow('<td class="l"><span class="em-car">' + (temC ? (aberto ? "▾" : "▸") : "") + "</span>Day " + d.dia + '</td><td class="l">' + pDM(d.data) + '</td><td class="l">' + eStatus(d, x.a, hoje) + "</td><td>" + pInt(d.limite) + "</td><td>" + pInt(d.throttle_5min) + "</td><td>" + pInt(d.enviados_hora) + "</td>" +
+      (fut ? vazio : cel(x.a, d)), cls, ' data-ed="' + d.dia + '"');
     if(aberto) x.camp.forEach(r => {
-      h += eRow('<td class="l" colspan="2">↳ ' + esc(r._lbl) + " · " + esc(r.nome || r.campaign_id) + '</td><td class="l">' + esc(r.status === "COMPLETED" ? "Enviado" : (r.status || "")) + "</td><td></td>" + cel(eAgg([r]), null) + "<td></td><td></td>", "em-sub");
+      h += eRow('<td class="l" colspan="2">↳ ' + esc(r._lbl) + " · " + esc(r.nome || r.campaign_id) + '</td><td class="l">' + esc(r.status === "COMPLETED" ? "Enviado" : (r.status || "")) + "</td><td></td><td></td><td></td>" + cel(eAgg([r]), null), "em-sub");
     });
   });
   if(fora.length){
     h += '<tr class="em-grp"><td colspan="' + (nC + 6) + '">Fora do plano (testes e envios em datas sem limite definido)</td></tr>';
     fora.forEach(r => {
-      h += eRow('<td class="l" colspan="2">' + pDM(r._d) + " " + esc(r._lbl) + " · " + esc(r.nome || r.campaign_id) + '</td><td class="l">' + esc(r.status === "COMPLETED" ? "Enviado" : (r.status || "")) + "</td><td></td>" + cel(eAgg([r]), null) + "<td></td><td></td>", "em-sub");
+      h += eRow('<td class="l" colspan="2">' + pDM(r._d) + " " + esc(r._lbl) + " · " + esc(r.nome || r.campaign_id) + '</td><td class="l">' + esc(r.status === "COMPLETED" ? "Enviado" : (r.status || "")) + "</td><td></td><td></td><td></td>" + cel(eAgg([r]), null), "em-sub");
     });
   }
   const t = eAgg(eui.rows.filter(r => dias.some(x => x.d.data === r._d)));
-  h += '</tbody><tfoot><tr><td class="l" colspan="3">Total no plano</td><td>' + pInt(dias.reduce((s, x) => s + Number(x.d.limite), 0)) + "</td>" +
-    E_COLS.map(c => "<td>" + (c[0] === "% do limite" ? "" : c[1](t, null)) + "</td>").join("") + "<td></td><td></td></tr></tfoot></table>";
+  h += '</tbody><tfoot><tr><td class="l" colspan="3">Total no plano</td><td>' + pInt(dias.reduce((s, x) => s + Number(x.d.limite), 0)) + "</td><td></td><td></td>" +
+    E_COLS.map(c => "<td>" + (c[0] === "% do limite" ? "" : c[1](t, null)) + "</td>").join("") + "</tr></tfoot></table>";
   return h;
 }
 function eCsv(){
   const D = eDias(), num = v => v == null ? "" : String(Math.round(v * 100) / 100).replace(".", ",");
   const cel = v => { v = String(v == null ? "" : v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-  const rows = [["Dia","Data","Limite do dia","Enviados","% do limite","Qualificados","Entregues","Aberturas","Abertura ÷ enviados %","Cliques","CTR %","Conv. únicas","Erros","Descadastros","Bounces","Spam","Throttle 5 min","Envios por hora","Campanhas"]];
+  const rows = [["Dia","Data","Limite do dia","Throttle 5 min","Envios por hora","Enviados","% do limite","Qualificados","Entregues","Aberturas","Abertura ÷ enviados %","Cliques","CTR %","Conv. únicas","Erros","Descadastros","Bounces","Spam","Campanhas"]];
   D.dias.forEach(x => { const a = x.a, d = x.d;
-    rows.push(["Day " + d.dia, d.data.slice(8) + "/" + d.data.slice(5, 7) + "/" + d.data.slice(0, 4), d.limite, a.enviados, num(d.limite ? 100 * a.enviados / d.limite : null), a.qualificados, a.entregues,
-      a.visualizados, num(a.abertura), a.clicados, num(a.ctr), a.conv_unicas, a.erros, a.descadastros, a.bounces, a.spam, d.throttle_5min, d.enviados_hora, x.camp.map(r => r._lbl + " " + (r.nome || "")).join(" | ")]); });
+    rows.push(["Day " + d.dia, d.data.slice(8) + "/" + d.data.slice(5, 7) + "/" + d.data.slice(0, 4), d.limite, d.throttle_5min, d.enviados_hora, a.enviados, num(d.limite ? 100 * a.enviados / d.limite : null), a.qualificados, a.entregues,
+      a.visualizados, num(a.abertura), a.clicados, num(a.ctr), a.conv_unicas, a.erros, a.descadastros, a.bounces, a.spam, x.camp.map(r => r._lbl + " " + (r.nome || "")).join(" | ")]); });
   const blob = new Blob(["﻿" + rows.map(r => r.map(cel).join(";")).join("\r\n")], {type:"text/csv;charset=utf-8"});
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
   a.download = "email-sonho_" + new Date().toISOString().slice(0, 10) + ".csv";
