@@ -644,6 +644,15 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
 .pv-ts{color:var(--ink-3);font-size:12px}
 .pv-top b{font-variant-numeric:tabular-nums}
 .pv-bar{fill-opacity:.85}
+.pv-ctl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:-2px 0 12px}
+.pv-ctl .field{height:30px}
+.pv-ctl label{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-2);cursor:pointer}
+.pv-ctl .pv-dt{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-3)}
+.pv-leg{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12px;color:var(--ink-2);margin:0 0 10px}
+.pv-lg{display:inline-flex;align-items:center;gap:6px}
+.pv-sw{display:inline-block;width:12px;height:8px;border-radius:2px;background:var(--accent)}
+.pv-sw.b{height:0;width:16px;border-top:2px dashed var(--c-warn);background:none;border-radius:0}
+.pv-lg b{font-variant-numeric:tabular-nums;color:var(--ink)}
 .pv-col:hover .pv-bar{fill-opacity:1}
 .pv-tip{position:fixed;display:none;z-index:50;pointer-events:none;background:var(--ink);color:var(--surface);padding:7px 10px;border-radius:var(--r-2);font-size:12px;line-height:1.4;white-space:pre-line;box-shadow:var(--sh-2)}
 .pv-sec{display:flex;flex-direction:column;gap:12px}
@@ -788,6 +797,26 @@ textarea.askinput.alto{height:auto;min-height:96px;resize:vertical;padding:9px 1
     <div class="card pv-pad" id="pCmp"></div>
     <div class="card pv-pad" id="pChartsCard">
       <div class="pv-hd"><h3>Evolução</h3><select class="field" id="pChartMetric" aria-label="Métrica dos gráficos"></select></div>
+      <div class="pv-ctl" id="pcCtl">
+        <span class="seg" id="pcRange" role="group" aria-label="Período dos gráficos">
+          <button data-pc="topo" aria-pressed="true" title="Usa o período escolhido na barra de filtros acima">Filtro do topo</button>
+          <button data-pc="tudo" aria-pressed="false">Tudo</button>
+          <button data-pc="7d" aria-pressed="false">7 dias</button>
+          <button data-pc="14d" aria-pressed="false">14 dias</button>
+          <button data-pc="30d" aria-pressed="false">30 dias</button>
+          <button data-pc="mes" aria-pressed="false">Mês atual</button>
+          <button data-pc="custom" aria-pressed="false">Personalizado</button>
+        </span>
+        <span class="pv-dt" id="pcCustom" style="display:none"><input type="date" id="pcFrom" class="field" aria-label="Início do período dos gráficos"> até <input type="date" id="pcTo" class="field" aria-label="Fim do período dos gráficos"></span>
+        <label><input type="checkbox" id="pcCmp"> Comparar com</label>
+        <select class="field" id="pcCmpMode" aria-label="Período de comparação" style="display:none">
+          <option value="prev">Período anterior (mesmo tamanho)</option>
+          <option value="mes">Mesmo intervalo do mês anterior</option>
+          <option value="custom">Personalizado</option>
+        </select>
+        <span class="pv-dt" id="pcCmpBox" style="display:none"><input type="date" id="pcbFrom" class="field" aria-label="Início da comparação"> até <input type="date" id="pcbTo" class="field" aria-label="Fim da comparação"></span>
+      </div>
+      <div class="pv-leg" id="pcLeg"></div>
       <div class="pv-row">
         <div><div class="pv-sub">Por dia de envio</div><div id="pChartDay"></div></div>
         <div><div class="pv-sub">Por horário de envio</div><div id="pChartHour"></div></div>
@@ -4229,7 +4258,7 @@ const P_BASE = "2026-09-07";   // início da base de comparação
 const P_OP   = "2026-10-07";   // início da nossa operação
 const P_TZ   = "America/Sao_Paulo";
 const pui = {rows:[], loaded:false, loading:false, err:"", at:0, range:"tudo", from:"", to:"", q:"",
-             status:"enviados", metric:"entregues", tab:"dash", heat:"conv_rate", sort:{k:"inicio", d:-1}, bound:false, entered:false};
+             status:"enviados", metric:"entregues", cr:"topo", cFrom:"", cTo:"", cmp:false, cmode:"prev", cbFrom:"", cbTo:"", tab:"dash", heat:"conv_rate", sort:{k:"inicio", d:-1}, bound:false, entered:false};
 const pFmtParts = new Intl.DateTimeFormat("en-CA", {timeZone:P_TZ, year:"numeric", month:"2-digit", day:"2-digit",
                                                       hour:"2-digit", minute:"2-digit", hourCycle:"h23"});
 function pParts(d){ const o = {}; pFmtParts.formatToParts(d).forEach(p => o[p.type] = p.value); return o; }
@@ -4342,7 +4371,7 @@ function pNice(v){
 }
 function pBars(items, W, fa, titulo){
   const H = 220, L = 48, R = 8, T = 10, B = 26, iw = W - L - R, ih = H - T - B;
-  const max = pNice(Math.max.apply(null, [0].concat(items.map(i => i.v || 0))));
+  const max = pNice(Math.max.apply(null, [0].concat(items.map(i => i.v || 0), items.map(i => i.v2 || 0))));
   const bw = iw / items.length, gap = Math.min(3, bw * 0.2);
   const every = Math.max(1, Math.ceil(items.length / Math.max(1, Math.floor(iw / 44))));
   let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="' + esc(titulo) + '">';
@@ -4361,32 +4390,116 @@ function pBars(items, W, fa, titulo){
     s += '<rect x="' + x + '" y="' + T + '" width="' + bw + '" height="' + (ih + B) + '" fill="transparent" data-pt="' + esc(it.tip) + '"/></g>';
     if(i % every === 0) s += '<text x="' + (x + bw / 2) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="10" fill="var(--ink-3)" font-family="var(--mono)">' + esc(it.x) + '</text>';
   });
+  // série de comparação (período B) sobreposta como linha tracejada
+  if(items.some(i => i.v2 != null)){
+    let d = "", pen = false, dots = "";
+    items.forEach((it, i) => {
+      if(it.v2 == null){ pen = false; return; }
+      const cx = L + i * bw + bw / 2, cy = T + ih - ih * it.v2 / max;
+      d += (pen ? "L" : "M") + cx.toFixed(1) + " " + cy.toFixed(1) + " "; pen = true;
+      dots += '<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="2.6" fill="var(--surface)" stroke="var(--c-warn)" stroke-width="1.6" pointer-events="none"/>';
+    });
+    s += '<path d="' + d + '" fill="none" stroke="var(--c-warn)" stroke-width="1.6" stroke-dasharray="4 3" pointer-events="none"/>' + dots;
+  }
   return s + "</svg>";
 }
 
-function pCharts(list){
+/* ---- Evolução: período próprio + comparação ---- */
+function pDAdd(d, n){ const x = new Date(d + "T12:00:00Z"); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); }
+function pDDiff(a, b){ return Math.round((new Date(b + "T12:00:00Z") - new Date(a + "T12:00:00Z")) / 864e5); }
+function pMonthBack(d){
+  const y = +d.slice(0, 4), m = +d.slice(5, 7), dd = +d.slice(8), last = new Date(Date.UTC(y, m - 1, 0)).getUTCDate();
+  const pm = m === 1 ? 12 : m - 1, py = m === 1 ? y - 1 : y;
+  return py + "-" + String(pm).padStart(2, "0") + "-" + String(Math.min(dd, last)).padStart(2, "0");
+}
+function pChartBase(){ // pushes com busca/status do topo, mas SEM o período do topo
+  const q = pui.q.trim().toLowerCase();
+  return pui.rows.filter(r => r._d && (pui.status !== "enviados" || r._sent) && (!q || r.nome.toLowerCase().indexOf(q) >= 0));
+}
+function pChartPeriods(base){
+  const today = pAgo(0), sent = base.filter(r => r._sent), ds = (sent.length ? sent : base).map(r => r._d).sort();
+  const minD = ds[0] || today, maxD = ds[ds.length - 1] || today, r = pui.cr;
+  let f = "", t = "", hoje = false;
+  if(r === "topo"){
+    if(pui.range === "30d"){ f = pAgo(30); hoje = true; }
+    else if(pui.range === "7d"){ f = pAgo(7); hoje = true; }
+    else if(pui.range === "custom"){ f = pui.from; t = pui.to; }
+  }
+  else if(r === "7d"){ f = pAgo(7); hoje = true; }
+  else if(r === "14d"){ f = pAgo(14); hoje = true; }
+  else if(r === "30d"){ f = pAgo(30); hoje = true; }
+  else if(r === "mes"){ f = today.slice(0, 7) + "-01"; hoje = true; }
+  else if(r === "custom"){ f = pui.cFrom; t = pui.cTo; }
+  f = f || minD; t = t || (hoje ? today : maxD);
+  if(t < f){ const x = f; f = t; t = x; }
+  let B = null;
+  if(pui.cmp){
+    const len = pDDiff(f, t) + 1; let bf, bt;
+    if(pui.cmode === "mes"){ bf = pMonthBack(f); bt = pMonthBack(t); }
+    else if(pui.cmode === "custom" && pui.cbFrom && pui.cbTo){ bf = pui.cbFrom; bt = pui.cbTo; if(bt < bf){ const x = bf; bf = bt; bt = x; } }
+    else { bt = pDAdd(f, -1); bf = pDAdd(bt, -(len - 1)); }
+    B = {f:bf, t:bt};
+  }
+  return {A:{f, t}, B};
+}
+
+function pCharts(){
   const M = P_METRICS[pui.metric] || P_METRICS.entregues;
-  const wd = document.getElementById("pChartDay"), wh = document.getElementById("pChartHour");
+  const wd = document.getElementById("pChartDay"), wh = document.getElementById("pChartHour"), lg = document.getElementById("pcLeg");
   if(!wd || !wh) return;
-  const valid = list.filter(r => r._d);
-  if(!valid.length){ wd.innerHTML = wh.innerHTML = '<div class="pv-empty">Sem pushes no filtro atual.</div>'; return; }
-  // por dia (dias sem envio entram como vazio)
-  const byD = {}; valid.forEach(r => (byD[r._d] = byD[r._d] || []).push(r));
-  const days = Object.keys(byD).sort();
-  const cur = new Date(days[0] + "T12:00:00Z"), end = new Date(days[days.length - 1] + "T12:00:00Z"), di = [];
-  while(cur <= end){
-    const d = cur.toISOString().slice(0, 10), l = byD[d];
-    const a = l ? pAgg(l) : null, v = a ? M.v(a) : null;
-    di.push({x:pDM(d), v, tip:pDM(d) + "\n" + M.l + ": " + (a ? M.f(v) : "sem envio") + (a ? "\n" + a.n + " push" + (a.n > 1 ? "es" : "") : "")});
-    cur.setUTCDate(cur.getUTCDate() + 1);
+  const base = pChartBase();
+  if(!base.length){ wd.innerHTML = wh.innerHTML = '<div class="pv-empty">Sem pushes no filtro atual.</div>'; if(lg) lg.innerHTML = ""; return; }
+  const P = pChartPeriods(base), A = P.A, B = P.B;
+  const LA = base.filter(r => r._d >= A.f && r._d <= A.t), LB = B ? base.filter(r => r._d >= B.f && r._d <= B.t) : [];
+  const sA = LA.filter(r => r._sent), sB = LB.filter(r => r._sent);
+  const aA = pAgg(sA), aB = pAgg(sB);
+  const per = x => pDM(x.f) + "/" + x.f.slice(0, 4) + " a " + pDM(x.t) + "/" + x.t.slice(0, 4);
+  const nd = x => pDDiff(x.f, x.t) + 1;
+  if(lg){
+    let h = '<span class="pv-lg"><i class="pv-sw"></i>' + (B ? "A · " : "") + per(A) + " · " + nd(A) + " dia" + (nd(A) === 1 ? "" : "s") + " · " + pInt(aA.n) + " push" + (aA.n === 1 ? "" : "es") +
+            " · " + M.l + ": <b>" + (aA.n ? M.f(M.v(aA)) : "—") + "</b></span>";
+    if(B){
+      h += '<span class="pv-lg"><i class="pv-sw b"></i>B · ' + per(B) + " · " + nd(B) + " dia" + (nd(B) === 1 ? "" : "s") + " · " + pInt(aB.n) + " push" + (aB.n === 1 ? "" : "es") +
+           " · " + M.l + ": <b>" + (aB.n ? M.f(M.v(aB)) : "—") + "</b></span>";
+      const va = aA.n ? M.v(aA) : null, vb = aB.n ? M.v(aB) : null;
+      if(va != null && vb != null){
+        const pp = ["ctr", "conv_rate", "entrega"].indexOf(pui.metric) >= 0;
+        let d, txt;
+        if(pp){ d = va - vb; txt = (d >= 0 ? "+" : "−") + pDec(Math.abs(d), 2) + " p.p."; }
+        else if(vb){ d = 100 * (va - vb) / vb; txt = (d >= 0 ? "+" : "−") + pDec(Math.abs(d), 1) + "%"; }
+        if(txt) h += '<span class="pv-lg">A vs B: <span class="pv-var ' + (Math.abs(d) < 0.05 ? "" : d > 0 ? "up" : "dn") + '">' + (d > 0 ? "▲ " : d < 0 ? "▼ " : "– ") + txt + "</span></span>";
+      }
+      if(!LB.length) h += '<span class="pv-lg" style="color:var(--c-warn)">Sem pushes no período B (o painel carrega dados desde ' + pDM(P_BASE) + "/2026).</span>";
+    }
+    lg.innerHTML = h;
+  }
+  if(!LA.length){ wd.innerHTML = wh.innerHTML = '<div class="pv-empty">Sem pushes no período escolhido.</div>'; return; }
+  const cnt = a => a.n + " push" + (a.n > 1 ? "es" : "");
+  // por dia: o dia i do período B é alinhado ao dia i do período A
+  const mA = pGroup(LA, r => r._d), mB = pGroup(LB, r => r._d), nA = nd(A), di = [];
+  for(let i = 0; i < nA; i++){
+    const d = pDAdd(A.f, i), l = mA[d], a = l ? pAgg(l) : null, v = a ? M.v(a) : null;
+    const it = {x:pDM(d), v, tip:pDM(d) + "\n" + M.l + ": " + (a ? M.f(v) : "sem envio") + (a ? "\n" + cnt(a) : "")};
+    if(B){
+      const d2 = pDAdd(B.f, i);
+      if(d2 <= B.t){
+        const l2 = mB[d2], a2 = l2 ? pAgg(l2) : null, v2 = a2 ? M.v(a2) : null;
+        it.v2 = v2; it.tip += "\n― B · " + pDM(d2) + ": " + (a2 ? M.f(v2) : "sem envio") + (a2 ? " (" + cnt(a2) + ")" : "");
+      }
+    }
+    di.push(it);
   }
   const w1 = Math.max(280, wd.clientWidth || 560), w2 = Math.max(280, wh.clientWidth || 560);
   wd.innerHTML = pBars(di, w1, M.ax, M.l + " por dia");
-  const byH = {}; valid.forEach(r => { if(r._h != null) (byH[r._h] = byH[r._h] || []).push(r); });
-  const hi = [];
+  const byH = pGroup(LA, r => r._h), byH2 = pGroup(LB, r => r._h), hi = [];
   for(let h = 0; h < 24; h++){
     const l = byH[h], a = l ? pAgg(l) : null, v = a ? M.v(a) : null;
-    hi.push({x:h + "h", v, tip:h + "h–" + h + "h59\n" + M.l + ": " + (a ? M.f(v) : "sem envio") + (a ? "\n" + a.n + " push" + (a.n > 1 ? "es" : "") : "")});
+    const it = {x:h + "h", v, tip:h + "h–" + h + "h59\n" + M.l + ": " + (a ? M.f(v) : "sem envio") + (a ? "\n" + cnt(a) : "")};
+    if(B){
+      const l2 = byH2[h], a2 = l2 ? pAgg(l2) : null, v2 = a2 ? M.v(a2) : null;
+      it.v2 = v2; it.tip += "\n― B: " + (a2 ? M.f(v2) + " (" + cnt(a2) + ")" : "sem envio");
+    }
+    hi.push(it);
   }
   wh.innerHTML = pBars(hi, w2, M.ax, M.l + " por horário");
 }
@@ -4512,6 +4625,13 @@ function pushBind(){
   $("pStatus").addEventListener("change", e => { pui.status = e.target.value; render(); });
   $("pChartMetric").innerHTML = Object.keys(P_METRICS).map(k => '<option value="' + k + '">' + P_METRICS[k].l + "</option>").join("");
   $("pChartMetric").addEventListener("change", e => { pui.metric = e.target.value; render(); });
+  $("pcRange").addEventListener("click", e => { const b = e.target.closest("button[data-pc]"); if(!b) return; pui.cr = b.dataset.pc; render(); });
+  $("pcFrom").addEventListener("change", e => { pui.cFrom = e.target.value; pui.cr = "custom"; render(); });
+  $("pcTo").addEventListener("change", e => { pui.cTo = e.target.value; pui.cr = "custom"; render(); });
+  $("pcCmp").addEventListener("change", e => { pui.cmp = e.target.checked; render(); });
+  $("pcCmpMode").addEventListener("change", e => { pui.cmode = e.target.value; render(); });
+  $("pcbFrom").addEventListener("change", e => { pui.cbFrom = e.target.value; pui.cmode = "custom"; render(); });
+  $("pcbTo").addEventListener("change", e => { pui.cbTo = e.target.value; pui.cmode = "custom"; render(); });
   $("pBtnClear").addEventListener("click", () => { pui.q = ""; pui.from = pui.to = ""; pui.range = "tudo"; pui.status = "enviados"; render(); });
   $("pReload").addEventListener("click", () => pushCarrega());
   $("pCsv").addEventListener("click", () => pCsv());
@@ -4530,7 +4650,7 @@ function pushBind(){
     tip.style.left = Math.max(8, x) + "px"; tip.style.top = (e.clientY + 14) + "px";
   });
   $("pChartsCard").addEventListener("mouseleave", () => { tip.style.display = "none"; });
-  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if(ui.marca === "push" && pui.loaded) pCharts(pFiltered()); }, 150); });
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if(ui.marca === "push" && pui.loaded) pCharts(); }, 150); });
 }
 
 /* ---- Insights (horários quentes/frios, variações, dicas) ---- */
@@ -4688,11 +4808,20 @@ function renderPush(){
   if($("pTo").value !== pui.to) $("pTo").value = pui.to;
   if($("pQ").value !== pui.q) $("pQ").value = pui.q;
   $("pStatus").value = pui.status; $("pChartMetric").value = pui.metric;
+  document.querySelectorAll("#pcRange button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.pc === pui.cr)));
+  $("pcCustom").style.display = pui.cr === "custom" ? "inline-flex" : "none";
+  $("pcCmpMode").style.display = pui.cmp ? "" : "none";
+  $("pcCmpBox").style.display = pui.cmp && pui.cmode === "custom" ? "inline-flex" : "none";
+  $("pcCmp").checked = pui.cmp; $("pcCmpMode").value = pui.cmode;
+  if($("pcFrom").value !== pui.cFrom) $("pcFrom").value = pui.cFrom;
+  if($("pcTo").value !== pui.cTo) $("pcTo").value = pui.cTo;
+  if($("pcbFrom").value !== pui.cbFrom) $("pcbFrom").value = pui.cbFrom;
+  if($("pcbTo").value !== pui.cbTo) $("pcbTo").value = pui.cbTo;
   $("pReload").disabled = pui.loading;
   $("pReload").textContent = pui.loading ? "Carregando…" : "↻ Recarregar";
   const at = pui.rows.reduce((m, r) => r.atualizado_em > m ? r.atualizado_em : m, "");
   $("pStamp").textContent = at ? "Clever · atualizado " + (() => { const p = pParts(new Date(at)); return p.day + "/" + p.month + " " + p.hour + ":" + p.minute; })() : "";
-  const vazio = (msg) => { ["pKpis","pCmp","pTops","pTable"].forEach(i => $(i).innerHTML = ""); $("pChartDay").innerHTML = $("pChartHour").innerHTML = ""; $("pNote").innerHTML = msg; $("pFoot").textContent = ""; $("brandCount").textContent = ""; };
+  const vazio = (msg) => { ["pKpis","pCmp","pTops","pTable"].forEach(i => $(i).innerHTML = ""); $("pChartDay").innerHTML = $("pChartHour").innerHTML = ""; $("pcLeg").innerHTML = ""; $("pNote").innerHTML = msg; $("pFoot").textContent = ""; $("brandCount").textContent = ""; };
   if(!pui.loaded){ $("pDash").style.display = ""; $("pIns").style.display = "none";
     vazio(pui.err ? '<span class="pv-err">Não foi possível carregar os pushes: ' + esc(pui.err) + ' — use “Recarregar”.</span>' : "Carregando pushes…");
     return;
@@ -4709,7 +4838,7 @@ function renderPush(){
     "Pushes recentes ainda acumulam conversões, então os últimos dias tendem a ficar subestimados.";
   $("pKpis").innerHTML = pKpis(a);
   $("pCmp").innerHTML = pCompare();
-  pCharts(list);
+  pCharts();
   $("pTops").innerHTML = pTops(list);
   $("pTable").innerHTML = pTable(list);
   const ag = list.filter(r => !r._sent).length;
